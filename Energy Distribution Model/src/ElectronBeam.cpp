@@ -96,7 +96,7 @@ double ElectronBeam::GetTransverse_kT()
 void ElectronBeam::ShowUI()
 {
 	densityChanged = false;
-	if (ImGui::Button("Load e-m_distribution file"))
+	if (ImGui::Button("Load e-density file"))
 	{
 		std::filesystem::path file = FileLoader::getInstance().openFileExplorer("data\\e-densities\\");
 		LoadDensityFile(file);
