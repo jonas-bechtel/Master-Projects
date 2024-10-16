@@ -12,36 +12,78 @@
 #include "IonBeam.h"
 #include "Point3D.h"
 
+struct EnergyDistribution
+{
+	// actual distribution
+	TH1D* distribution;
+
+	// all the things used to create it
+	MCMC_Parameters mcmcParameter;
+	ElectronBeamParameters eBeamParameter;
+	IonBeamParameters ionBeamParameter;
+
+	std::filesystem::path densityFile;
+	std::filesystem::path energyFile;
+
+	// additional labelling things
+	std::string name = "";
+	//std::filesystem::path descriptionFile;
+	// energy range ??
+	std::filesystem::path folder;
+	int index = 0;
+	double driftTubeVoltage = 0;
+	double centerLabEnergy = 0;
+
+	//double cathodeVoltage;
+
+	TH1D* operator->()
+	{
+		return distribution;
+	}
+
+	std::string String();
+
+	//EnergyDistribution()
+	//{
+	//	std::cout << "creating energy distribution\n";
+	//}
+	//~EnergyDistribution()
+	//{
+	//	std::cout << "deleting energy distribution\n";
+	//	delete distribution;
+	//}
+};
+
 class EnergyDistributionModel : public Module
 {
 public:
 	EnergyDistributionModel();
+	void LoadLabEnergyFile(std::filesystem::path file);
+	void GenerateEnergyDistribution();
+	void GenerateEnergyDistributionsFromFile(std::filesystem::path file);
 
 private:
 	void ShowUI();
 
-	TH3D* MultiplyElectronAndIonDensities(TH3D* electronDensities, TH3D* ionDensities);
-	void LoadLabEnergyFile(std::filesystem::path file);
-	void CreateEnergyDistributionHistogram();
-	void GenerateEnergyDistribution();
-	void PlotEnergyDistribution();
+	void SetupEnergyDistribution();
+	void PlotEnergyDistributions();
+	void PlotCurrentEnergyDistribution();
 
 	void PlotLabEnergyProjections();
+	void ClearDistributionList();
 
 private:
-	ElectronBeam electronBeam;
-	IonBeam ionBeam;
-	MCMC mcmcSampler;
-
-	TH1D* energyDistribution;
+	std::vector<EnergyDistribution> energyDistributions;
+	EnergyDistribution currentDistribution;
 	
 	TH1D* labEnergyProjectionX;
 	TH1D* labEnergyProjectionY;
 	TH1D* labEnergyProjectionZ;
 
-	// sigma of gaussian used for iona beam, in [m]
-	double ionBeamRadius = 0.006;
-	float energyRange[2] = { 1e-7, 10 };
+	std::filesystem::path loadedEnergyFile;
+
+	float energyRange[2] = { 6e-0, 30 };
+	bool normalise = true;
 
 	// random number generation things
 	std::mersenne_twister_engine<std::uint_fast64_t,

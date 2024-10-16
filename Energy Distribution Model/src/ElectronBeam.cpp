@@ -1,6 +1,6 @@
 #include "ElectronBeam.h"
 #include "PhysicalConstants.h"
-#include "FileLoader.h"
+#include "FileHandler.h"
 
 #include "imgui.h"
 
@@ -18,14 +18,19 @@
 #include <TRootCanvas.h>
 
 ElectronBeam::ElectronBeam()
-	: Module("electron beam")
+	: Module("Electron Beam")
 {
 	PlotTrajectory();
 }
 
-ElectronBeamParameters& ElectronBeam::GetParamters()
+ElectronBeamParameters ElectronBeam::GetParameter()
 {
 	return parameters;
+}
+
+void ElectronBeam::SetParameter(ElectronBeamParameters params)
+{
+	parameters = params;
 }
 
 void ElectronBeam::LoadDensityFile(std::filesystem::path file)
@@ -33,15 +38,20 @@ void ElectronBeam::LoadDensityFile(std::filesystem::path file)
 	if (!file.empty())
 	{
 		delete m_distribution;
-		m_distribution = FileLoader::getInstance().LoadMatrixFile(file);
-		m_distribution->SetTitle("electron m_distribution");
-		m_distribution->SetName("electron m_distribution");
+		m_distribution = FileHandler::GetInstance().LoadMatrixFile(file);
+		m_distribution->SetTitle("electron distribution");
+		m_distribution->SetName("electron distribution");
+
+		loadedDensityFile = file;
+
+		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
+		ionBeam->MultiplyWithElectronDensities(m_distribution);
 	}
 }
 
-bool ElectronBeam::HasDensityChanged()
+std::filesystem::path ElectronBeam::GetLoadedDensityFile()
 {
-	return densityChanged;
+	return loadedDensityFile;
 }
 
 TVector3 ElectronBeam::GetDirection(double z)
@@ -95,13 +105,13 @@ double ElectronBeam::GetTransverse_kT()
 
 void ElectronBeam::ShowUI()
 {
-	densityChanged = false;
+	//densityChanged = false;
 	if (ImGui::Button("Load e-density file"))
 	{
-		std::filesystem::path file = FileLoader::getInstance().openFileExplorer("data\\e-densities\\");
+		std::filesystem::path file = FileHandler::GetInstance().OpenFileExplorer();
 		LoadDensityFile(file);
 		PlotDistribution();
-		densityChanged = true;
+		//densityChanged = true;
 	}
 
 	ImGui::Text("electron current: %e A", parameters.electronCurrent);
@@ -195,3 +205,17 @@ double ElectronBeam::DistancePointToTrajectoryOfZ(double z, Point3D point)
 	return TMath::Power(Trajectory(z) - point.y, 2) + TMath::Power(z - point.z, 2);
 }
 
+std::string ElectronBeamParameters::String()
+{
+	std::string string = std::string(Form("# cooling energy: %.3f eV\n", coolingEnergy)) + 
+						 std::string(Form("# electron current: %.2e A\n", electronCurrent)) + 
+						 std::string(Form("# transverse kT: %.2e eV\n", transverse_kT)) + 
+						 std::string(Form("# expansion factor: %.1f\n", expansionFactor)) +
+						 std::string(Form("# cathode radius: %.3e m\n", cathodeRadius)) +
+						 std::string(Form("# cathode tempperature: %.1f K\n", cathodeTemperature)) +
+						 std::string(Form("# LLR: %d\n", LLR)) +
+						 std::string(Form("# sigma lab energy: %.3f eV\n", sigmaLabEnergy)) +
+						 std::string(Form("# extraction energy: %.3f eV\n", extractionEnergy));
+
+	return string;
+}

@@ -19,9 +19,9 @@ private:
 private:
 	TApplication app = TApplication("app", nullptr, nullptr);
 
-	MCMC normalMCMC = MCMC();
-	//ElectronBeam electronBeam;
+	ElectronBeam electronBeam;
+	IonBeam ionBeam;
+	MCMC mcmc;
 	EnergyDistributionModel model;
-
 };
 

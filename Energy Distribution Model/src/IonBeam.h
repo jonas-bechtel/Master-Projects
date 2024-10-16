@@ -6,20 +6,28 @@
 #include "Module.h"
 #include "Point3D.h"
 
+struct IonBeamParameters
+{
+	// sigma of gaussian shape in [m]
+	float radius = 0.001;
+
+	std::string String();
+};
+
 class IonBeam : public Module
 {
 public:
 	IonBeam();
-	bool HasDensityChanged();
-	void CreateIonBeam(TH3D* referenceDensity);
+	float Radius();
+	IonBeamParameters GetParameter();
+	void SetParameter(IonBeamParameters params);
+	void MultiplyWithElectronDensities(TH3D* electronDensities);
 
 private:
 	void ShowUI() override;
 
+	void CreateIonBeam(TH3D* referenceDensity);
 private:
-	// sigma of gaussian shape in [m]
-	float size = 0.006;
-
-	bool densityChanged = false;
+	IonBeamParameters parameter;
 };
 

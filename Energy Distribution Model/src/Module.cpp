@@ -22,17 +22,29 @@ Module::Module(std::string name)
 	HideCanvas(m_secondCanvas);
 }
 
+Module* Module::Get(std::string name)
+{
+	return s_moduleMap.at(name);
+}
+
+std::unordered_map<std::string, Module*>& Module::GetModuleMap()
+{
+	return s_moduleMap;
+}
+
 void Module::ShowWindow()
 {
 	if (ImGui::Begin((m_name + " Window").c_str()))
 	{
 		ShowUI();
+		ImGui::Separator();
 		ShowHideCanvasButton(m_mainCanvas);
 		ImGui::SameLine();
 		ShowHideCanvasButton(m_secondCanvas);
 		
 		ImGui::End();
 	}
+
 	UpdateCanvas();
 }
 
@@ -61,9 +73,9 @@ void Module::PlotDistribution()
 	m_distributionSmall->Draw("BOX2");
 }
 
-void Module::RebinningFactorInput()
+bool Module::RebinningFactorInput()
 {
-	ImGui::InputInt3("Rebinning factors", s_rebinningFactors);
+	return ImGui::InputInt3("Rebinning factors", s_rebinningFactors);
 }
 
 bool Module::IsCanvasShown(TCanvas* canvas)

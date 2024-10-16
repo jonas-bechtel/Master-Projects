@@ -229,14 +229,18 @@ void Application::Run()
 
 Application::Application()
 {
-
+    
 }
    
 void Application::ShowWindows()
 {
     ImGui::DockSpaceOverViewport();
 
-    model.ShowWindow();
+    auto modules = Module::GetModuleMap();
+    for (auto& [name, module] : modules)
+    {
+        module->ShowWindow();
+    }
 
     //ImGui::ShowDemoWindow();
     //ImPlot::ShowDemoWindow();

@@ -10,6 +10,8 @@ class Module
 {
 public:
 	Module(std::string name);
+	static Module* Get(std::string name);
+	static std::unordered_map<std::string, Module*>& GetModuleMap();
 
 	void ShowWindow();
 	TH3D* GetDistribution();
@@ -18,7 +20,7 @@ public:
 
 protected:
 	void PlotDistribution();
-	void RebinningFactorInput();
+	bool RebinningFactorInput();
 
 private:
 	bool IsCanvasShown(TCanvas* canvas);

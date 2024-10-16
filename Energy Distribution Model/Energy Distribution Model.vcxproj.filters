@@ -54,7 +54,7 @@
     <ClCompile Include="src\EnergyDistributionModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\FileLoader.cpp">
+    <ClCompile Include="src\FileHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\main.cpp">
@@ -116,7 +116,7 @@
     <ClInclude Include="src\EnergyDistributionModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\FileLoader.h">
+    <ClInclude Include="src\FileHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\MCMC.h">

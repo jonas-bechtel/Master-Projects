@@ -1,10 +1,13 @@
 #include "MCMC.h"
-#include "FileLoader.h"
+//#include "FileHandler.h"
 
 #include <chrono>
 #include <TAxis3D.h>
 #include <TView.h>
-#include <TRootCanvas.h>
+#include "ElectronBeam.h"
+#include "IonBeam.h"
+#include "EnergyDistributionModel.h"
+//#include <TRootCanvas.h>
 
 MCMC::MCMC()
 	: Module("MCMC")
@@ -27,71 +30,41 @@ void MCMC::SetTargetDistribution(TH3D* targetDist)
 	}
 }
 
-//void MCMC::GenerateTargetDistribution()
-//{
-//	int nXBins = numberBins[0];
-//	int nYBins = numberBins[1];
-//	int nZBins = numberBins[2];
-//
-//	delete targetDist;
-//	targetDist = new TH3D("Goal Distribution", "Goal Distribution", nXBins, axisRanges[0], axisRanges[1], 
-//													 nYBins, axisRanges[2], axisRanges[3],
-//													 nZBins, axisRanges[4], axisRanges[5]);
-//
-//	double sigma = 1;
-//	double A = 1;
-//	double offset = 0;
-//	double omega = 1 / 5.0;
-//
-//	for (int i = 1; i <= nXBins; i++) {
-//		for (int j = 1; j <= nYBins; j++) {
-//			for (int k = 1; k <= nZBins; k++) {
-//				// Calculate the coordinates for this bin
-//				double x = -3 + 6.0 * i / (nXBins - 1);   // Adjust x to range from -5 to 5
-//				double y = -3 + 6.0 * j / (nYBins - 1);   // y range from -3 to 3
-//				double z = -3 + 6.0 * k / (nZBins - 1);   // z range from -3 to 3
-//
-//				// Calculate the center of the tube in the y direction as a function of x
-//				double y_center = A * sin(offset + omega * x * 3.14);  // Sinusoidal bend in the y direction
-//
-//				// Calculate the value using the Gaussian distribution centered at (y_center, z = 0)
-//				double value = exp(-((y - y_center) * (y - y_center) + z * z) / (2.0 * sigma * sigma));
-//
-//				//double value = exp(-(y * y + z * z) / 2.0 / sigma);  // Gaussian example
-//				targetDist->SetBinContent(i, j, k, value);
-//			}
-//		}
-//	}
-//	targetDist->GetXaxis()->SetTitle("X-Axis");
-//	targetDist->GetYaxis()->SetTitle("Y-Axis");
-//	targetDist->GetZaxis()->SetTitle("Z-Axis");
-//}
-
 std::vector<Point3D>& MCMC::GetSamples()
 {
 	return chain;
 }
 
+MCMC_Parameters MCMC::GetParameter()
+{
+	return parameter;
+}
+
+void MCMC::SetParameter(MCMC_Parameters params)
+{
+	parameter = params;
+}
+
 void MCMC::ShowUI()
 {
-	ImGui::InputInt("chain length", &chainLength);
-	ImGui::InputInt("burn in", &burnIn);
-	ImGui::InputInt("lag", &lag);
-	if (ImGui::InputFloat3("Sigma of Proposal functions (x,y,z)", proposalSigma))
+	ImGui::InputInt("chain length", &parameter.numberSamples);
+	ImGui::InputInt("burn in", &parameter.burnIn);
+	ImGui::InputInt("lag", &parameter.lag);
+	if (ImGui::InputFloat3("Sigma of Proposal functions (x,y,z)", parameter.proposalSigma))
 	{
-		normalDistX = std::normal_distribution<double>(0.0, proposalSigma[0]);
-		normalDistY = std::normal_distribution<double>(0.0, proposalSigma[1]);
-		normalDistZ = std::normal_distribution<double>(0.0, proposalSigma[2]);
+		normalDistX = std::normal_distribution<double>(0.0, parameter.proposalSigma[0]);
+		normalDistY = std::normal_distribution<double>(0.0, parameter.proposalSigma[1]);
+		normalDistZ = std::normal_distribution<double>(0.0, parameter.proposalSigma[2]);
 	}
 
 	ImGui::Checkbox("change the seed", &changeSeed);
 	ImGui::SameLine();
-	ImGui::InputInt("Seed", &seed);
+	ImGui::InputInt("Seed", &parameter.seed);
 	RebinningFactorInput();
 
 	if (ImGui::Button("generate chain"))
 	{
-		GenerateChain();
+		GenerateSamples();
 
 		PlotDistribution();
 		PlotAutocorrelation();
@@ -105,7 +78,7 @@ void MCMC::ShowUI()
 
 }
 
-void MCMC::GenerateChain()
+void MCMC::GenerateSamples()
 {
 	if (!targetDist)
 	{
@@ -128,16 +101,16 @@ void MCMC::GenerateChain()
 	m_distribution->SetZTitle("Z-axis");
 
 	chain.clear();
-	chain.reserve(chainLength);
+	chain.reserve(parameter.numberSamples);
 	futures.clear();
 	m_distribution->Reset();
 	interpolationTime = 0;
 
 	if (changeSeed)
 	{
-		seed = std::time(0);
+		parameter.seed = std::time(0);
 	}
-	generator.seed(seed);
+	generator.seed(parameter.seed);
 
     auto t_start = std::chrono::high_resolution_clock::now();
 
@@ -185,16 +158,16 @@ void MCMC::GenerateChain()
 		int acceptedValues = 0;
 		int totalIterations = 0;
 
-		while (chain.size() < chainLength)
+		while (chain.size() < parameter.numberSamples)
 		{
 			totalIterations++;
 
-			if (GenerateSample(currentPoint, currentValue, generator))
+			if (GenerateSingleSample(currentPoint, currentValue, generator))
 			{
 				acceptedValues++;
 			};
 
-			if (burnInCounter < burnIn)
+			if (burnInCounter < parameter.burnIn)
 			{
 				burnInCounter++;
 				continue;
@@ -204,7 +177,7 @@ void MCMC::GenerateChain()
 			{
 				chain.push_back(currentPoint);
 				m_distribution->Fill(currentPoint.x, currentPoint.y, currentPoint.z);
-				lagCounter = lag;
+				lagCounter = parameter.lag;
 			}
 			else
 			{
@@ -227,10 +200,10 @@ float MCMC::GenerateSubchain(int index)
 		0x5555555555555555, 17,
 		0x71d67fffeda60000, 37,
 		0xfff7eee000000000, 43,
-		6364136223846793005> generatorLocal(seed + index);
+		6364136223846793005> generatorLocal(parameter.seed + index);
 
 	std::vector<Point3D>& subchain = subchains[index];
-	int subchainLength = chainLength / numThreads;
+	int subchainLength = parameter.numberSamples / numThreads;
 	subchain.clear();
 	subchain.reserve(subchainLength);
 
@@ -251,12 +224,12 @@ float MCMC::GenerateSubchain(int index)
 	{
 		totalIterations++;
 
-		if (GenerateSample(currentPoint, currentValue, generatorLocal))
+		if (GenerateSingleSample(currentPoint, currentValue, generatorLocal))
 		{
 			acceptedValues++;
 		};
 
-		if (burnInCounter < burnIn)
+		if (burnInCounter < parameter.burnIn)
 		{
 			burnInCounter++;
 			continue;
@@ -265,7 +238,7 @@ float MCMC::GenerateSubchain(int index)
 		if (lagCounter == 0)
 		{
 			subchain.push_back(currentPoint);
-			lagCounter = lag;
+			lagCounter = parameter.lag;
 		}
 		else
 		{
@@ -275,7 +248,7 @@ float MCMC::GenerateSubchain(int index)
 	return (float)acceptedValues / totalIterations;
 }
 
-bool MCMC::GenerateSample(Point3D& current, double& currentValue, std::mersenne_twister_engine<std::uint_fast64_t,
+bool MCMC::GenerateSingleSample(Point3D& current, double& currentValue, std::mersenne_twister_engine<std::uint_fast64_t,
 	64, 312, 156, 31,
 	0xb5026f5aa96619e9, 29,
 	0x5555555555555555, 17,
@@ -344,7 +317,7 @@ void MCMC::PlotTargetDistribution()
 
 void MCMC::PlotAutocorrelation()
 {
-	if (chain.size() != chainLength)
+	if (chain.size() != parameter.numberSamples)
 	{
 		std::cout << "the chain has the wrong size: " << chain.size() << "\n";
 		return;
@@ -360,9 +333,9 @@ void MCMC::PlotAutocorrelation()
 		means[1] += point.y;
 		means[2] += point.z;
 	}
-	means[0] /= chainLength;
-	means[1] /= chainLength;
-	means[2] /= chainLength;
+	means[0] /= parameter.numberSamples;
+	means[1] /= parameter.numberSamples;
+	means[2] /= parameter.numberSamples;
 
 	// Compute variances
 	for (const Point3D& point : chain) 
@@ -371,13 +344,13 @@ void MCMC::PlotAutocorrelation()
 		variances[1] += (point.y - means[1]) * (point.y - means[1]);
 		variances[2] += (point.z - means[2]) * (point.z - means[2]);
 	}
-	variances[0] /= chainLength;
-	variances[1] /= chainLength;
-	variances[2] /= chainLength;
+	variances[0] /= parameter.numberSamples;
+	variances[1] /= parameter.numberSamples;
+	variances[2] /= parameter.numberSamples;
 
-	std::vector<double> autocorrX(chainLength);
-	std::vector<double> autocorrY(chainLength);
-	std::vector<double> autocorrZ(chainLength);
+	std::vector<double> autocorrX(parameter.numberSamples);
+	std::vector<double> autocorrY(parameter.numberSamples);
+	std::vector<double> autocorrZ(parameter.numberSamples);
 
 	// Compute autocorrelation
 	for (int lag = 1; lag < 100; lag++) 
@@ -386,7 +359,7 @@ void MCMC::PlotAutocorrelation()
 		double sumY = 0;
 		double sumZ = 0;
 
-		for (int i = 0; i < chainLength - lag;  i++) 
+		for (int i = 0; i < parameter.numberSamples - lag;  i++)
 		{
 			Point3D point = chain[i];
 			Point3D pointLag = chain[i + lag];
@@ -394,9 +367,9 @@ void MCMC::PlotAutocorrelation()
 			sumY += (point.y - means[1]) * (pointLag.y - means[1]);
 			sumZ += (point.z - means[2]) * (pointLag.z - means[2]);
 		}
-		autocorrX[lag] = sumX / (variances[0] * (chainLength - lag));
-		autocorrY[lag] = sumY / (variances[1] * (chainLength - lag));
-		autocorrZ[lag] = sumZ / (variances[2] * (chainLength - lag));
+		autocorrX[lag] = sumX / (variances[0] * (parameter.numberSamples - lag));
+		autocorrY[lag] = sumY / (variances[1] * (parameter.numberSamples - lag));
+		autocorrZ[lag] = sumZ / (variances[2] * (parameter.numberSamples - lag));
 	}
 	//std::cout << "x variance: " << variances[0] << " mean: " << means[0] << "\n";
 	//std::cout << "y variance: " << variances[1] << " mean: " << means[1] << "\n";
@@ -460,4 +433,13 @@ void MCMC::PlotProjections()
 	projectionZTarget->Draw("HIST SAME");
 }
 
+std::string MCMC_Parameters::String()
+{
+	std::string string = std::string(Form("# number of samples: %d\n", numberSamples)) +
+						 std::string(Form("# burn in: %d\n", burnIn)) +
+						 std::string(Form("# lag: %d\n", lag)) +
+						 std::string(Form("# proposal sigmas (x, y, z): %.3f, %.3f, %.3f m\n", proposalSigma[0], proposalSigma[1], proposalSigma[2])) +
+						 std::string(Form("# seed: %d\n", seed));
 
+	return string;
+}
