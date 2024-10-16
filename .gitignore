@@ -7,7 +7,7 @@
 *.asc
 
 # screenshots
-*.png
+*.PNG
 
 # User-specific files
 *.rsuser
