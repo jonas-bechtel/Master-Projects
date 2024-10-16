@@ -70,6 +70,7 @@ private:
 	void PlotCurrentEnergyDistribution();
 
 	void PlotLabEnergyProjections();
+	void PLotZweightByEnergy();
 	void ClearDistributionList();
 
 private:
@@ -80,7 +81,15 @@ private:
 	TH1D* labEnergyProjectionY;
 	TH1D* labEnergyProjectionZ;
 
+	TH1D* zPositions;
+	TH1D* zWeightByEnergy;
+
 	std::filesystem::path loadedEnergyFile;
+	std::filesystem::path currentDescriptionFile = "";
+
+	// start/end index in description file to generate distribution for
+	int startIndex = 1;
+	int endIndex = 2;
 
 	float energyRange[2] = { 6e-0, 30 };
 	bool normalise = true;

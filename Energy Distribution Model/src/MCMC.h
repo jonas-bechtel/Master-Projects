@@ -72,6 +72,7 @@ private:
 	
 	float acceptanceRate = 0.0;
 	bool changeSeed = true;
+	bool automaticProposalStd = true;
 
 	bool generateAsync = true;
 	int numThreads = std::thread::hardware_concurrency();

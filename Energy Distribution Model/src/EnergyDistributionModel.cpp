@@ -9,11 +9,16 @@
 #include <sstream>
 
 #include <TRootCanvas.h>
+#include <TLegend.h>
 
 
 EnergyDistributionModel::EnergyDistributionModel()
 	: Module("Energy Distribution Model")
 {
+	m_mainCanvas->cd();
+	m_mainCanvas->Clear();
+	//m_mainCanvas->Divide(1, 2);
+	//m_mainCanvas->SetWindowSize(1000, 1000);
 }
 
 void EnergyDistributionModel::ShowUI()
@@ -22,25 +27,43 @@ void EnergyDistributionModel::ShowUI()
 	{
 		std::filesystem::path file = FileHandler::GetInstance().OpenFileExplorer();
 		LoadLabEnergyFile(file);
+		PlotLabEnergyProjections();
 	}
 
 	ImGui::InputFloat2("energy range", energyRange, "%.1e");
 
 	if (ImGui::Button("Generate Single Energy Distribution"))
 	{
-		//delete currentDistribution.distribution;
+		delete currentDistribution.distribution;
 		SetupEnergyDistribution();
 		GenerateEnergyDistribution();
 		PlotCurrentEnergyDistribution();
+		PLotZweightByEnergy();
 		FileHandler::GetInstance().SaveEnergyDistributionToFile(currentDistribution);
 	}
 	ImGui::SameLine();
 	ImGui::Checkbox("normalise", &normalise);
 
+	ImGui::SetNextItemWidth(80.0f);
+	ImGui::InputInt("start index", &startIndex);
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(80.0f);
+	ImGui::InputInt("end index", &endIndex);
+
+	if (ImGui::Button("select description file"))
+	{
+		currentDescriptionFile = FileHandler::GetInstance().OpenFileExplorer();
+	}
+	ImGui::SameLine();
+	ImGui::Text(currentDescriptionFile.filename().string().c_str());
+
 	if (ImGui::Button("Generate Distributions from description File"))
 	{
-		std::filesystem::path descriptionFile = FileHandler::GetInstance().OpenFileExplorer();
-		GenerateEnergyDistributionsFromFile(descriptionFile);
+		GenerateEnergyDistributionsFromFile(currentDescriptionFile);
+
+		PlotLabEnergyProjections();
+		PlotEnergyDistributions();
+		PLotZweightByEnergy();
 	}
 }
 
@@ -55,8 +78,8 @@ void EnergyDistributionModel::LoadLabEnergyFile(std::filesystem::path file)
 		
 		loadedEnergyFile = file;
 
-		PlotDistribution();
-		PlotLabEnergyProjections();
+		//PlotDistribution();
+		//PlotLabEnergyProjections();
 	}
 }
 
@@ -117,6 +140,11 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 	// sample positions from electron density multiplied with ion density given from outside
 	std::vector<Point3D> positionSamples = mcmc->GetSamples();
 
+	delete zPositions;
+	delete zWeightByEnergy;
+	zPositions = new TH1D("z-positions", "z-positions", 100, 0, 0.6);
+	zWeightByEnergy = new TH1D("z weight by energy", "z weight by energy", 100, 0, 0.6);
+
 	if (positionSamples.empty())
 	{
 		std::cout << "no sampled positions were given\n";
@@ -128,7 +156,6 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		std::cout << "no lab energies were given\n";
 		return; 
 	}
-	//TH1D* energy = new TH1D("bla", "bla", 100, 0, 0.6);
 
 	for (const Point3D& point : positionSamples)
 	{
@@ -148,7 +175,8 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		double labEnergy = m_distribution->Interpolate(x_modified, y_modified, z_modified);
 		double electronVelocityMagnitude = TMath::Sqrt(2 * labEnergy * TMath::Qe() / PhysicalConstants::electronMass);
 
-		//energy->Fill(z_modified, labEnergy);
+		zPositions->Fill(z_modified);
+		zWeightByEnergy->Fill(z_modified, labEnergy);
 
 		// determine direction of velocity based on beam trajectory function
 		TVector3 longitudinalDirection = eBeam->GetDirection(point.z);
@@ -208,10 +236,6 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		}
 		currentDistribution->Scale(1.0 / currentDistribution->Integral());
 	}
-	
-	//energy->Divide(samplesInZ);
-	//m_secondCanvas->cd(4);
-	//energy->Draw("Hist");
 }
 
 void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesystem::path file)
@@ -224,15 +248,18 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 
-	for (int index = 1; true; index++)
+	for (int index = startIndex; index <= endIndex; index++)
 	{
-		if (index > 5) break;
+		//if (index > 10) break;
 
 		// get 3 parameters: U drift tube, electron current, center E lab
-		float* additionalParameter = fileHandler.GetParamtersFromDescriptionFileAtIndex(file, index);
+		std::array<float, 3> additionalParameter = fileHandler.GetParamtersFromDescriptionFileAtIndex(file, index);
 
 		// if they are not found the index is not in the file
-		if (!additionalParameter) break;
+		if (!additionalParameter[0]) continue;
+
+		// set read electron current
+		eBeam->SetCurrent(additionalParameter[1]);
 		
 		// full procedure to generate one energy distribution 
 		// 1. load files
@@ -259,23 +286,26 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 
 		energyDistributions.push_back(currentDistribution);
 	}
-
-	PlotEnergyDistributions();
 }
 
 void EnergyDistributionModel::PlotEnergyDistributions()
 {
-	m_mainCanvas->cd(1);
+	m_mainCanvas->cd();
 	int colors[5] = { kRed, kBlue, kGreen, kOrange, kMagenta };
 
 	gPad->SetLogy();
 	gPad->SetLogx();
 	
+	// Create a legend
+	TLegend* legend = new TLegend(0.7, 0.7, 0.9, 0.9);
+
 	for (int i = 0; i < energyDistributions.size(); i++)
 	{
 		if (!energyDistributions[i].distribution) return;
 		
 		energyDistributions[i]->SetLineColor(colors[i % 5]);
+		legend->AddEntry(energyDistributions[i].distribution, 
+			Form("%4.0d: U drift = %fV", energyDistributions[i].index, energyDistributions[i].driftTubeVoltage), "l");
 
 		if (i == 0)
 		{
@@ -288,11 +318,12 @@ void EnergyDistributionModel::PlotEnergyDistributions()
 		}
 		std::cout << "bla\n";
 	}
+	legend->Draw();
 }
 
 void EnergyDistributionModel::PlotCurrentEnergyDistribution()
 {
-	m_mainCanvas->cd(1);
+	m_mainCanvas->cd();
 
 	currentDistribution->Draw("HIST");
 
@@ -319,6 +350,18 @@ void EnergyDistributionModel::PlotLabEnergyProjections()
 	m_secondCanvas->cd(3);
 	labEnergyProjectionZ = m_distribution->ProjectionZ();
 	labEnergyProjectionZ->Draw();
+}
+
+void EnergyDistributionModel::PLotZweightByEnergy()
+{
+	if (!zWeightByEnergy) return;
+
+	m_secondCanvas->cd(4);
+	zPositions->Draw();
+
+	m_secondCanvas->cd(5);
+	zWeightByEnergy->Divide(zPositions);
+	zWeightByEnergy->Draw("Hist");
 }
 
 void EnergyDistributionModel::ClearDistributionList()

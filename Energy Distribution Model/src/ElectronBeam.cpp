@@ -33,6 +33,11 @@ void ElectronBeam::SetParameter(ElectronBeamParameters params)
 	parameters = params;
 }
 
+void ElectronBeam::SetCurrent(double current)
+{
+	parameters.electronCurrent = current;
+}
+
 void ElectronBeam::LoadDensityFile(std::filesystem::path file)
 {
 	if (!file.empty())

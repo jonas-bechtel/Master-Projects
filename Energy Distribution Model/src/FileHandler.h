@@ -19,7 +19,7 @@ public:
 
 	TH3D* LoadMatrixFile(std::filesystem::path filename);
 	std::vector<EnergyDistribution> LoadEnergiesFile(std::filesystem::path filename);
-	float* GetParamtersFromDescriptionFileAtIndex(std::filesystem::path descriptionFile, int index);
+	std::array<float, 3> GetParamtersFromDescriptionFileAtIndex(std::filesystem::path descriptionFile, int index);
 
 	void SaveEnergyDistributionToFile(EnergyDistribution energyDistribution);
 

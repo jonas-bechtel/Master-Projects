@@ -50,12 +50,16 @@ void MCMC::ShowUI()
 	ImGui::InputInt("chain length", &parameter.numberSamples);
 	ImGui::InputInt("burn in", &parameter.burnIn);
 	ImGui::InputInt("lag", &parameter.lag);
-	if (ImGui::InputFloat3("Sigma of Proposal functions (x,y,z)", parameter.proposalSigma))
+
+	ImGui::Checkbox("automatically set proposal sigma", &automaticProposalStd);
+	ImGui::BeginDisabled(automaticProposalStd);
+	if (ImGui::InputFloat3("Sigma of Proposal functions (x,y,z)", parameter.proposalSigma, "%.4f"))
 	{
 		normalDistX = std::normal_distribution<double>(0.0, parameter.proposalSigma[0]);
 		normalDistY = std::normal_distribution<double>(0.0, parameter.proposalSigma[1]);
 		normalDistZ = std::normal_distribution<double>(0.0, parameter.proposalSigma[2]);
 	}
+	ImGui::EndDisabled();
 
 	ImGui::Checkbox("change the seed", &changeSeed);
 	ImGui::SameLine();
@@ -84,6 +88,18 @@ void MCMC::GenerateSamples()
 	{
 		std::cout << "no target histogram was set\n";
 		return;
+	}
+
+	// use the std of the target distribution as sigmas for proposal functions
+	if (automaticProposalStd)
+	{
+		parameter.proposalSigma[0] = targetDist->GetStdDev(1);
+		parameter.proposalSigma[1] = targetDist->GetStdDev(2);
+		parameter.proposalSigma[2] = targetDist->GetStdDev(3);
+
+		normalDistX = std::normal_distribution<double>(0.0, parameter.proposalSigma[0]);
+		normalDistY = std::normal_distribution<double>(0.0, parameter.proposalSigma[1]);
+		normalDistZ = std::normal_distribution<double>(0.0, parameter.proposalSigma[2]);
 	}
 
 	double nXBins = targetDist->GetXaxis()->GetNbins();
@@ -438,7 +454,7 @@ std::string MCMC_Parameters::String()
 	std::string string = std::string(Form("# number of samples: %d\n", numberSamples)) +
 						 std::string(Form("# burn in: %d\n", burnIn)) +
 						 std::string(Form("# lag: %d\n", lag)) +
-						 std::string(Form("# proposal sigmas (x, y, z): %.3f, %.3f, %.3f m\n", proposalSigma[0], proposalSigma[1], proposalSigma[2])) +
+						 std::string(Form("# proposal sigmas (x, y, z): %.4f, %.4f, %.3f m\n", proposalSigma[0], proposalSigma[1], proposalSigma[2])) +
 						 std::string(Form("# seed: %d\n", seed));
 
 	return string;

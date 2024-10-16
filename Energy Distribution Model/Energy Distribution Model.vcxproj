@@ -77,13 +77,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\OpenCL-SDK-v2024.05.08\include;$(ProjectDir)unuran;$(ProjectDir)tinyfiledialogs;$(ProjectDir)imgui_plot;C:\root_v6.32.04\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\OpenCL-SDK-v2024.05.08\include;$(ProjectDir)vendor\tinyfiledialogs;$(ProjectDir)vendor\imgui_plot;C:\root_v6.32.04\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)unuran;C:\OpenCL-SDK-v2024.05.08\lib;C:\root_v6.32.04\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\OpenCL-SDK-v2024.05.08\lib;C:\root_v6.32.04\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>d3d12.lib;d3dcompiler.lib;dxgi.lib;libCore.lib;libRIO.lib;libHist.lib;libGpad.lib;libGraf.lib;libGraf3d.lib;libMatrix.lib;libMathCore.lib;libPhysics.lib;OpenCL.lib;Comdlg32.lib;Ole32.lib;user32.lib;shell32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -95,7 +95,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\OpenCL-SDK-v2024.05.08\include;$(ProjectDir)unuran;$(ProjectDir)tinyfiledialogs;$(ProjectDir)imgui_plot;C:\root_v6.32.04\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\OpenCL-SDK-v2024.05.08\include;$(ProjectDir)vendor\tinyfiledialogs;$(ProjectDir)vendor\imgui_plot;C:\root_v6.32.04\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -103,7 +103,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)unuran;C:\OpenCL-SDK-v2024.05.08\lib;C:\root_v6.32.04\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\OpenCL-SDK-v2024.05.08\lib;C:\root_v6.32.04\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>d3d12.lib;d3dcompiler.lib;dxgi.lib;libCore.lib;libRIO.lib;libHist.lib;libGpad.lib;libGraf.lib;libGraf3d.lib;libMatrix.lib;libMathCore.lib;libPhysics.lib;OpenCL.lib;Comdlg32.lib;Ole32.lib;user32.lib;shell32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -113,13 +113,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\OpenCL-SDK-v2024.05.08\include;$(ProjectDir)unuran;$(ProjectDir)tinyfiledialogs;$(ProjectDir)imgui_plot;C:\root_v6.32.04\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\OpenCL-SDK-v2024.05.08\include;$(ProjectDir)vendor\tinyfiledialogs;$(ProjectDir)vendor\imgui_plot;C:\root_v6.32.04\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)unuran;C:\OpenCL-SDK-v2024.05.08\lib;C:\root_v6.32.04\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\OpenCL-SDK-v2024.05.08\lib;C:\root_v6.32.04\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>d3d12.lib;d3dcompiler.lib;dxgi.lib;libCore.lib;libRIO.lib;libHist.lib;libGpad.lib;libGraf.lib;libGraf3d.lib;libMatrix.lib;libMathCore.lib;libPhysics.lib;OpenCL.lib;Comdlg32.lib;Ole32.lib;user32.lib;shell32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -131,7 +131,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\OpenCL-SDK-v2024.05.08\include;$(ProjectDir)unuran;$(ProjectDir)tinyfiledialogs;$(ProjectDir)imgui_plot;C:\root_v6.32.04\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\OpenCL-SDK-v2024.05.08\include;$(ProjectDir)vendor\tinyfiledialogs;$(ProjectDir)vendor\imgui_plot;C:\root_v6.32.04\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -139,21 +139,11 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)unuran;C:\OpenCL-SDK-v2024.05.08\lib;C:\root_v6.32.04\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\OpenCL-SDK-v2024.05.08\lib;C:\root_v6.32.04\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>d3d12.lib;d3dcompiler.lib;dxgi.lib;libCore.lib;libRIO.lib;libHist.lib;libGpad.lib;libGraf.lib;libGraf3d.lib;libMatrix.lib;libMathCore.lib;libPhysics.lib;OpenCL.lib;Comdlg32.lib;Ole32.lib;user32.lib;shell32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="imgui_plot\imgui.cpp" />
-    <ClCompile Include="imgui_plot\imgui_demo.cpp" />
-    <ClCompile Include="imgui_plot\imgui_draw.cpp" />
-    <ClCompile Include="imgui_plot\imgui_impl_dx12.cpp" />
-    <ClCompile Include="imgui_plot\imgui_impl_win32.cpp" />
-    <ClCompile Include="imgui_plot\imgui_tables.cpp" />
-    <ClCompile Include="imgui_plot\imgui_widgets.cpp" />
-    <ClCompile Include="imgui_plot\implot.cpp" />
-    <ClCompile Include="imgui_plot\implot_demo.cpp" />
-    <ClCompile Include="imgui_plot\implot_items.cpp" />
     <ClCompile Include="src\Module.cpp" />
     <ClCompile Include="src\IonBeam.cpp" />
     <ClCompile Include="src\Application.cpp" />
@@ -162,19 +152,19 @@
     <ClCompile Include="src\FileHandler.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\MCMC.cpp" />
-    <ClCompile Include="tinyfiledialogs\tinyfiledialogs.c" />
+    <ClCompile Include="vendor\imgui_plot\imgui.cpp" />
+    <ClCompile Include="vendor\imgui_plot\imgui_demo.cpp" />
+    <ClCompile Include="vendor\imgui_plot\imgui_draw.cpp" />
+    <ClCompile Include="vendor\imgui_plot\imgui_impl_dx12.cpp" />
+    <ClCompile Include="vendor\imgui_plot\imgui_impl_win32.cpp" />
+    <ClCompile Include="vendor\imgui_plot\imgui_tables.cpp" />
+    <ClCompile Include="vendor\imgui_plot\imgui_widgets.cpp" />
+    <ClCompile Include="vendor\imgui_plot\implot.cpp" />
+    <ClCompile Include="vendor\imgui_plot\implot_demo.cpp" />
+    <ClCompile Include="vendor\imgui_plot\implot_items.cpp" />
+    <ClCompile Include="vendor\tinyfiledialogs\tinyfiledialogs.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="imgui_plot\imconfig.h" />
-    <ClInclude Include="imgui_plot\imgui.h" />
-    <ClInclude Include="imgui_plot\imgui_impl_dx12.h" />
-    <ClInclude Include="imgui_plot\imgui_impl_win32.h" />
-    <ClInclude Include="imgui_plot\imgui_internal.h" />
-    <ClInclude Include="imgui_plot\implot.h" />
-    <ClInclude Include="imgui_plot\implot_internal.h" />
-    <ClInclude Include="imgui_plot\imstb_rectpack.h" />
-    <ClInclude Include="imgui_plot\imstb_textedit.h" />
-    <ClInclude Include="imgui_plot\imstb_truetype.h" />
     <ClInclude Include="src\Module.h" />
     <ClInclude Include="src\IonBeam.h" />
     <ClInclude Include="src\Application.h" />
@@ -184,8 +174,17 @@
     <ClInclude Include="src\MCMC.h" />
     <ClInclude Include="src\PhysicalConstants.h" />
     <ClInclude Include="src\Point3D.h" />
-    <ClInclude Include="tinyfiledialogs\tinyfiledialogs.h" />
-    <ClInclude Include="unuran\unuran.h" />
+    <ClInclude Include="vendor\imgui_plot\imconfig.h" />
+    <ClInclude Include="vendor\imgui_plot\imgui.h" />
+    <ClInclude Include="vendor\imgui_plot\imgui_impl_dx12.h" />
+    <ClInclude Include="vendor\imgui_plot\imgui_impl_win32.h" />
+    <ClInclude Include="vendor\imgui_plot\imgui_internal.h" />
+    <ClInclude Include="vendor\imgui_plot\implot.h" />
+    <ClInclude Include="vendor\imgui_plot\implot_internal.h" />
+    <ClInclude Include="vendor\imgui_plot\imstb_rectpack.h" />
+    <ClInclude Include="vendor\imgui_plot\imstb_textedit.h" />
+    <ClInclude Include="vendor\imgui_plot\imstb_truetype.h" />
+    <ClInclude Include="vendor\tinyfiledialogs\tinyfiledialogs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

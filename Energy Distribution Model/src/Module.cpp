@@ -3,6 +3,7 @@
 #include "imgui.h"
 
 #include <TRootCanvas.h>
+#include <iostream>
 
 std::unordered_map<std::string, Module*> Module::s_moduleMap;
 int Module::s_rebinningFactors[3] = { 10, 10, 10 };
@@ -38,10 +39,15 @@ void Module::ShowWindow()
 	{
 		ShowUI();
 		ImGui::Separator();
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.2f, 0.5f, 1.0f));     
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.3f, 0.6f, 1.0f)); 
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.2f, 0.4f, 1.0f));
+
 		ShowHideCanvasButton(m_mainCanvas);
 		ImGui::SameLine();
 		ShowHideCanvasButton(m_secondCanvas);
-		
+		ImGui::PopStyleColor(3);
+
 		ImGui::End();
 	}
 

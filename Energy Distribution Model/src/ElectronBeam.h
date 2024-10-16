@@ -35,6 +35,7 @@ public:
 	ElectronBeam();
 	ElectronBeamParameters GetParameter();
 	void SetParameter(ElectronBeamParameters params);
+	void SetCurrent(double current);
 	void LoadDensityFile(std::filesystem::path file);
 	std::filesystem::path GetLoadedDensityFile();
 

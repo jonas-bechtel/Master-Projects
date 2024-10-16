@@ -3,6 +3,7 @@
 #include "tinyfiledialogs.h"
 
 #include <iostream>
+#include <array>
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -114,9 +115,9 @@ std::vector<EnergyDistribution> FileHandler::LoadEnergiesFile(std::filesystem::p
     return energyDistributions;
 }
 
-float* FileHandler::GetParamtersFromDescriptionFileAtIndex(std::filesystem::path descriptionFile, int index)
+std::array<float, 3> FileHandler::GetParamtersFromDescriptionFileAtIndex(std::filesystem::path descriptionFile, int index)
 {
-    float parameter[3] = { 0, 0, 0 };
+    std::array<float, 3> parameter = { 0, 0, 0 };
 
     std::ifstream file(descriptionFile);
 
@@ -124,28 +125,28 @@ float* FileHandler::GetParamtersFromDescriptionFileAtIndex(std::filesystem::path
     if (!file.is_open())
     {
         std::cerr << "Error: Could not open the file " << descriptionFile << std::endl;
-        return nullptr;
+        return parameter;
     }
 
     std::string line;
 
-    // trow away first line
+    // throw away first line
     std::getline(file, line);
 
     while (std::getline(file, line))
     {
         std::vector<std::string> tokens = SplitLine(line, "\t");
-        if (std::stoi(tokens[0]))
+        if (std::stoi(tokens[0]) == index)
         {
-            parameter[0] = std::stod(tokens[1]);
-            parameter[1] = std::stod(tokens[2]);
-            parameter[2] = std::stod(tokens[3]);
+            parameter[0] = std::stof(tokens[1]);
+            parameter[1] = std::stof(tokens[2]);
+            parameter[2] = std::stof(tokens[3]);
             return parameter;
         }
     }
 
     std::cout << "Index " << index << " not found in file: " << descriptionFile << std::endl;
-    return nullptr;
+    return parameter;
 }
 
 std::filesystem::path FileHandler::OpenFileExplorer(std::filesystem::path startPath)
