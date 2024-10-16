@@ -6,6 +6,9 @@
 # data Files
 *.asc
 
+# screenshots
+*.png
+
 # User-specific files
 *.rsuser
 *.suo
