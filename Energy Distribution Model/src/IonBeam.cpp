@@ -78,28 +78,36 @@ void IonBeam::CreateIonBeam(TH3D* referenceDensity)
 				double y = m_distribution->GetYaxis()->GetBinCenter(j);
 				//double z = density->GetZaxis()->GetBinCenter(k);
 
+				// apply shift of ion beam
+				x -= parameter.shift[0];
+				y -= parameter.shift[1];
+
 				// Calculate the value using the Gaussian distribution centered at z = 0
-				//double normalisation = 1 / (2 * TMath::Pi() * ionBeamRadius * ionBeamRadius);
 				double value = exp(-(x * x + y * y) / (2.0 * parameter.radius * parameter.radius));
 				m_distribution->SetBinContent(i, j, k, value);
 			}
 		}
 	}
-	PlotDistribution();
 }
 
 void IonBeam::ShowUI()
 {
-	if (ImGui::SliderFloat("ion beam size / sigma in [m]", &parameter.radius, 0, 0.01))
+	if (ImGui::InputFloat("ion beam radius / sigma in [m]", &parameter.radius, 0.001, 0.001, "%.4f") ||
+		ImGui::InputFloat2("shift in x and y [m]", parameter.shift, "%.4f"))
 	{
+		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 		ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
-		MultiplyWithElectronDensities(eBeam->GetDistribution());
+		MultiplyWithElectronDensities(eBeam->GetDistribution()); // not large dist
+		PlotDistribution();
+		mcmc->PlotTargetDistribution();
 	}
 }
 
 std::string IonBeamParameters::String()
 {
-	std::string string = std::string(Form("# radius: %.3f m\n", radius));
+	std::string string = std::string(Form("# ion beam parameter:\n")) +
+						 std::string(Form("# radius: %.4f m\n", radius)) +
+						 std::string(Form("# shift in x and y: %.4f, %4f m\n", shift[0], shift[1]));
 
 	return string;
 }

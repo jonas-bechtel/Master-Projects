@@ -38,8 +38,9 @@ public:
 	void SetParameter(MCMC_Parameters params);
 	void GenerateSamples();
 
+	void PlotTargetDistribution();
 private:
-	void ShowUI();
+	void ShowUI() override;
 
 	float GenerateSubchain(int index);
 	bool GenerateSingleSample(Point3D& current, double& currentValue, std::mersenne_twister_engine<std::uint_fast64_t,
@@ -50,7 +51,6 @@ private:
 		0xfff7eee000000000, 43,
 		6364136223846793005>& generator);
 
-	void PlotTargetDistribution();
 	void PlotAutocorrelation();
 	void PlotProjections();
 

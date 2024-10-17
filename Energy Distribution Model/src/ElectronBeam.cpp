@@ -44,13 +44,18 @@ void ElectronBeam::LoadDensityFile(std::filesystem::path file)
 	{
 		delete m_distribution;
 		m_distribution = FileHandler::GetInstance().LoadMatrixFile(file);
+		CutZerosFromDistribution();
 		m_distribution->SetTitle("electron distribution");
 		m_distribution->SetName("electron distribution");
+
+		if(increaseHist)
+			CreateLargeDistribution();
 
 		loadedDensityFile = file;
 
 		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 		ionBeam->MultiplyWithElectronDensities(m_distribution);
+		ionBeam->PlotDistribution();
 	}
 }
 
@@ -110,14 +115,18 @@ double ElectronBeam::GetTransverse_kT()
 
 void ElectronBeam::ShowUI()
 {
-	//densityChanged = false;
 	if (ImGui::Button("Load e-density file"))
 	{
 		std::filesystem::path file = FileHandler::GetInstance().OpenFileExplorer();
 		LoadDensityFile(file);
 		PlotDistribution();
-		//densityChanged = true;
+		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
+		mcmc->PlotTargetDistribution();
 	}
+	ImGui::SameLine();
+	ImGui::Checkbox("multiply bins", &increaseHist);
+	ImGui::SameLine();
+	ImGui::InputInt(" factor", &factor, 2);
 
 	ImGui::Text("electron current: %e A", parameters.electronCurrent);
 	ImGui::InputDouble("cooling energy [eV]", &parameters.coolingEnergy);
@@ -138,6 +147,129 @@ void ElectronBeam::ShowUI()
 	{
 		PlotTrajectory();
 	}
+}
+
+void ElectronBeam::CutZerosFromDistribution()
+{
+	// Identify the non-zero bin ranges
+	int minX = m_distribution->GetNbinsX(), maxX = 0;
+	int minY = m_distribution->GetNbinsY(), maxY = 0;
+	int minZ = 0;
+	int maxZ = m_distribution->GetNbinsY();
+
+	// Loop over all bins to find the first and last non-zero bins in both x and y
+	for (int i = 1; i <= m_distribution->GetNbinsX(); i++)
+	{
+		for (int j = 1; j <= m_distribution->GetNbinsY(); j++)
+		{
+			for (int k = 1; k <= m_distribution->GetNbinsZ(); k++)
+			{
+				if (m_distribution->GetBinContent(i, j, k) != 0)
+				{
+					if (i < minX) minX = i;
+					if (i > maxX) maxX = i;
+					if (j < minY) minY = j;
+					if (j > maxY) maxY = j;
+				}
+			}
+			
+		}
+	}
+	//std::cout << "minX: " << minX << "\n";
+	//std::cout << "maxX: " << maxX << "\n";
+	//std::cout << "minY: " << minY << "\n";
+	//std::cout << "maxY: " << maxY << "\n";
+
+	int newBinsX = maxX - minX + 1;
+	int newBinsY = maxY - minY + 1;
+	int newBinsZ = m_distribution->GetNbinsZ();
+
+	//std::cout << "newBinsX: " << newBinsX << "\n";
+	//std::cout << "newBinsY: " << newBinsY << "\n";
+
+	double xMin = m_distribution->GetXaxis()->GetBinLowEdge(minX);
+	double xMax = m_distribution->GetXaxis()->GetBinUpEdge(maxX);
+	double yMin = m_distribution->GetYaxis()->GetBinLowEdge(minY);
+	double yMax = m_distribution->GetYaxis()->GetBinUpEdge(maxY);
+	double zMin = m_distribution->GetZaxis()->GetXmin();
+	double zMax = m_distribution->GetZaxis()->GetXmax();
+
+	//std::cout << "xMin: " << xMin << "\n";
+	//std::cout << "xMax: " << xMax << "\n";
+
+	TH3D* temp = new TH3D("temp", "temp",
+		newBinsX, xMin, xMax,
+		newBinsY, yMin, yMax,
+		newBinsZ, zMin, zMax);
+
+	// Step 4: Copy the relevant bin contents to the new histogram
+	for (int i = minX; i <= maxX; i++) 
+	{
+		for (int j = minY; j <= maxY; j++) 
+		{
+			for (int k = minZ; k <= maxZ; k++)
+			{
+				double content = m_distribution->GetBinContent(i, j, k);
+				temp->SetBinContent(i - minX + 1, j - minY + 1, k, content); // Copy with adjusted indices
+			}
+		}
+	}
+	//std::cout << "old bins\n";
+	//for (int i = 1; i <= m_distribution->GetNbinsX(); i++)
+	//{
+	//	std::cout << m_distribution->GetXaxis()->GetBinCenter(i) << "\n";
+	//}
+	//std::cout << "new bins\n";
+	//for (int i = 1; i <= temp->GetNbinsX(); i++)
+	//{
+	//	std::cout << temp->GetXaxis()->GetBinCenter(i) << "\n";
+	//}
+
+	delete m_distribution;
+	m_distribution = temp;
+}
+
+void ElectronBeam::CreateLargeDistribution()
+{
+	int numberBinsX = m_distribution->GetNbinsX() * factor;
+	int numberBinsY = m_distribution->GetNbinsY() * factor;
+	int numberBinsZ = m_distribution->GetNbinsZ() * factor;
+
+	double firstBinCenterX = m_distribution->GetXaxis()->GetBinCenter(1);
+	double firstBinCenterY = m_distribution->GetYaxis()->GetBinCenter(1);
+	double firstBinCenterZ = m_distribution->GetZaxis()->GetBinCenter(1);
+
+	double lastBinCenterX = m_distribution->GetXaxis()->GetBinCenter(m_distribution->GetNbinsX());
+	double lastBinCenterY = m_distribution->GetYaxis()->GetBinCenter(m_distribution->GetNbinsY());
+	double lastBinCenterZ = m_distribution->GetZaxis()->GetBinCenter(m_distribution->GetNbinsZ());
+
+	TH3D* temp = new TH3D("electron distribution large", "electron distribution large",
+		numberBinsX, m_distribution->GetXaxis()->GetXmin(), m_distribution->GetXaxis()->GetXmax(),
+		numberBinsY, m_distribution->GetYaxis()->GetXmin(), m_distribution->GetYaxis()->GetXmax(),
+		numberBinsZ, m_distribution->GetZaxis()->GetXmin(), m_distribution->GetZaxis()->GetXmax());
+
+	for (int i = 1; i <= numberBinsX; i++) 
+	{
+		for (int j = 1; j <= numberBinsY; j++) 
+		{
+			for (int k = 1; k <= numberBinsZ; k++)
+			{
+				double x = temp->GetXaxis()->GetBinCenter(i);
+				double y = temp->GetYaxis()->GetBinCenter(j);
+				double z = temp->GetZaxis()->GetBinCenter(k);
+
+				double x_modified = std::min(std::max(x, firstBinCenterX), lastBinCenterX - 1e-5);
+				double y_modified = std::min(std::max(y, firstBinCenterY), lastBinCenterY - 1e-5);
+				double z_modified = std::min(std::max(z, firstBinCenterZ), lastBinCenterZ - 1e-5);
+
+				//std::cout << x << ", " << y << ", " << z << "\n";
+				double value = m_distribution->Interpolate(x_modified, y_modified, z_modified);
+				temp->SetBinContent(i, j, k, value);
+			}
+		}
+	}
+	delete m_distribution;
+	m_distribution = temp;
 }
 
 void ElectronBeam::PlotTrajectory()
@@ -212,13 +344,14 @@ double ElectronBeam::DistancePointToTrajectoryOfZ(double z, Point3D point)
 
 std::string ElectronBeamParameters::String()
 {
-	std::string string = std::string(Form("# cooling energy: %.3f eV\n", coolingEnergy)) + 
+	std::string string = std::string(Form("# electron beam parameter:\n")) +
+						 std::string(Form("# cooling energy: %.3f eV\n", coolingEnergy)) + 
 						 std::string(Form("# electron current: %.2e A\n", electronCurrent)) + 
 						 std::string(Form("# transverse kT: %.2e eV\n", transverse_kT)) + 
 						 std::string(Form("# expansion factor: %.1f\n", expansionFactor)) +
 						 std::string(Form("# cathode radius: %.3e m\n", cathodeRadius)) +
 						 std::string(Form("# cathode tempperature: %.1f K\n", cathodeTemperature)) +
-						 std::string(Form("# LLR: %d\n", LLR)) +
+						 std::string(Form("# LLR: %.1f\n", LLR)) +
 						 std::string(Form("# sigma lab energy: %.3f eV\n", sigmaLabEnergy)) +
 						 std::string(Form("# extraction energy: %.3f eV\n", extractionEnergy));
 

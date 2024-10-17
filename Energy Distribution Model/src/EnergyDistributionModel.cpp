@@ -57,6 +57,7 @@ void EnergyDistributionModel::ShowUI()
 	ImGui::SameLine();
 	ImGui::Text(currentDescriptionFile.filename().string().c_str());
 
+	ImGui::BeginDisabled(currentDescriptionFile.empty());
 	if (ImGui::Button("Generate Distributions from description File"))
 	{
 		GenerateEnergyDistributionsFromFile(currentDescriptionFile);
@@ -65,6 +66,7 @@ void EnergyDistributionModel::ShowUI()
 		PlotEnergyDistributions();
 		PLotZweightByEnergy();
 	}
+	ImGui::EndDisabled();
 }
 
 void EnergyDistributionModel::LoadLabEnergyFile(std::filesystem::path file)
@@ -234,7 +236,8 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 			currentDistribution->SetBinContent(i, currentDistribution->GetBinContent(i) / currentDistribution->GetBinWidth(i));
 			currentDistribution->SetBinError(i, currentDistribution->GetBinError(i) / currentDistribution->GetBinWidth(i));
 		}
-		currentDistribution->Scale(1.0 / currentDistribution->Integral());
+		if(currentDistribution->Integral())
+			currentDistribution->Scale(1.0 / currentDistribution->Integral());
 	}
 }
 
@@ -250,8 +253,6 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 
 	for (int index = startIndex; index <= endIndex; index++)
 	{
-		//if (index > 10) break;
-
 		// get 3 parameters: U drift tube, electron current, center E lab
 		std::array<float, 3> additionalParameter = fileHandler.GetParamtersFromDescriptionFileAtIndex(file, index);
 
@@ -377,12 +378,7 @@ void EnergyDistributionModel::ClearDistributionList()
 
 std::string EnergyDistribution::String()
 {
-	std::string string = "# electron beam parameter:\n" +
-						  eBeamParameter.String() +
-						  "# ion beam parameter:\n" +
-						  ionBeamParameter.String() +
-						  "# mcmc sampling parameter:\n" +
-						  mcmcParameter.String();
+	std::string string = eBeamParameter.String() + ionBeamParameter.String() + mcmcParameter.String();
 
 	string += "# additional parameter:\n";
 	string += Form("# drift tube voltage: %e V\n", driftTubeVoltage);

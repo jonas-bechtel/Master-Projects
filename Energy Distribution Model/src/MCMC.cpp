@@ -1,13 +1,11 @@
-#include "MCMC.h"
-//#include "FileHandler.h"
-
 #include <chrono>
 #include <TAxis3D.h>
 #include <TView.h>
+
+#include "MCMC.h"
 #include "ElectronBeam.h"
 #include "IonBeam.h"
 #include "EnergyDistributionModel.h"
-//#include <TRootCanvas.h>
 
 MCMC::MCMC()
 	: Module("MCMC")
@@ -26,7 +24,6 @@ void MCMC::SetTargetDistribution(TH3D* targetDist)
 		axisRanges[3] = targetDist->GetYaxis()->GetXmax();
 		axisRanges[4] = targetDist->GetZaxis()->GetXmin();
 		axisRanges[5] = targetDist->GetZaxis()->GetXmax();
-		PlotTargetDistribution();
 	}
 }
 
@@ -64,7 +61,15 @@ void MCMC::ShowUI()
 	ImGui::Checkbox("change the seed", &changeSeed);
 	ImGui::SameLine();
 	ImGui::InputInt("Seed", &parameter.seed);
-	RebinningFactorInput();
+	if (RebinningFactorInput())
+	{
+		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
+		ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
+
+		ionBeam->PlotDistribution();
+		eBeam->PlotDistribution();
+		PlotTargetDistribution();
+	}
 
 	if (ImGui::Button("generate chain"))
 	{
@@ -79,7 +84,6 @@ void MCMC::ShowUI()
 
 	ImGui::LabelText("", "Took %.1f ms total. Interpolation took %.1f ms", totalTime, interpolationTime);
 	ImGui::LabelText("", "Acceptance Rate: %.1f %%", acceptanceRate * 100);
-
 }
 
 void MCMC::GenerateSamples()
@@ -297,8 +301,6 @@ bool MCMC::GenerateSingleSample(Point3D& current, double& currentValue, std::mer
 	auto t_int_start = std::chrono::high_resolution_clock::now();
 	double p_new = targetDist->Interpolate(x_modified, y_modified, z_modified);
 
-	//std::cout << "x: " << x_proposed << "y: " << y_proposed << "z: " << z_proposed << "\n";
-	//std::cout << "x modified: " << x_proposed << std::min(std::max(x_proposed, targetDist->GetXaxis()->GetBinCenter(1)), targetDist->GetXaxis()->GetBinCenter(100) - 1e-5);
 	auto t_int_end = std::chrono::high_resolution_clock::now();
 	interpolationTime += std::chrono::duration<double, std::milli>(t_int_end - t_int_start).count();
 
@@ -451,7 +453,8 @@ void MCMC::PlotProjections()
 
 std::string MCMC_Parameters::String()
 {
-	std::string string = std::string(Form("# number of samples: %d\n", numberSamples)) +
+	std::string string = std::string(Form("# mcmc sampling parameter:\n")) +
+						 std::string(Form("# number of samples: %d\n", numberSamples)) +
 						 std::string(Form("# burn in: %d\n", burnIn)) +
 						 std::string(Form("# lag: %d\n", lag)) +
 						 std::string(Form("# proposal sigmas (x, y, z): %.4f, %.4f, %.3f m\n", proposalSigma[0], proposalSigma[1], proposalSigma[2])) +

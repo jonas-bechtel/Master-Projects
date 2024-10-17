@@ -67,6 +67,14 @@ Module::~Module()
 	delete m_secondCanvas;
 }
 
+void Module::PlotAllOnMainCanvas()
+{
+}
+
+void Module::PlotAllOnSecondCanvas()
+{
+}
+
 void Module::PlotDistribution()
 {
 	if (!m_distribution) return;
@@ -92,6 +100,7 @@ bool Module::IsCanvasShown(TCanvas* canvas)
 void Module::ShowCanvas(TCanvas* canvas)
 {
 	((TRootCanvas*)canvas->GetCanvasImp())->MapRaised();
+
 }
 
 void Module::HideCanvas(TCanvas* canvas)
@@ -110,6 +119,7 @@ void Module::ShowHideCanvasButton(TCanvas* canvas)
 		else
 		{
 			ShowCanvas(canvas);
+			canvas == m_mainCanvas ? PlotAllOnMainCanvas() : PlotAllOnSecondCanvas();
 		}
 	}
 }

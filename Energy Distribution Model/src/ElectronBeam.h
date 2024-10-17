@@ -45,7 +45,10 @@ public:
 	double GetTransverse_kT();
 
 private:
-	void ShowUI();
+	void ShowUI() override;
+
+	void CutZerosFromDistribution();
+	void CreateLargeDistribution();
 
 	TVector3 GetNormal(double z);
 	void PlotTrajectory();
@@ -58,6 +61,8 @@ private:
 	ElectronBeamParameters parameters;
 	std::filesystem::path loadedDensityFile;
 
+	int factor = 3;
+	bool increaseHist = true;
 	float sliderZ = 0;
 	float sliderY = 0;
 };

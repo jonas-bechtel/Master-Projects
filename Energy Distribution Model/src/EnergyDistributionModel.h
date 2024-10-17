@@ -63,7 +63,7 @@ public:
 	void GenerateEnergyDistributionsFromFile(std::filesystem::path file);
 
 private:
-	void ShowUI();
+	void ShowUI() override;
 
 	void SetupEnergyDistribution();
 	void PlotEnergyDistributions();
@@ -85,7 +85,7 @@ private:
 	TH1D* zWeightByEnergy;
 
 	std::filesystem::path loadedEnergyFile;
-	std::filesystem::path currentDescriptionFile = "";
+	std::filesystem::path currentDescriptionFile;
 
 	// start/end index in description file to generate distribution for
 	int startIndex = 1;

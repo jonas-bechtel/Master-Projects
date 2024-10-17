@@ -15,11 +15,13 @@ public:
 
 	void ShowWindow();
 	TH3D* GetDistribution();
+	void PlotDistribution();
 
 	virtual ~Module();
 
 protected:
-	void PlotDistribution();
+	virtual void PlotAllOnMainCanvas();
+	virtual void PlotAllOnSecondCanvas();
 	bool RebinningFactorInput();
 
 private:

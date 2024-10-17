@@ -9,7 +9,8 @@
 struct IonBeamParameters
 {
 	// sigma of gaussian shape in [m]
-	float radius = 0.001;
+	float radius = 0.0010;
+	float shift[2] = { 0, 0 };
 
 	std::string String();
 };
@@ -25,6 +26,7 @@ public:
 
 private:
 	void ShowUI() override;
+	void PlotAllOnMainCanvas() override { PlotDistribution(); }
 
 	void CreateIonBeam(TH3D* referenceDensity);
 private:
