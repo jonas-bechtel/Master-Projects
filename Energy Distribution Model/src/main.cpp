@@ -2,8 +2,6 @@
 
 #include <vector>
 
-void test();
-
 int main(int argc, char** argv) {
     Application app;
     app.Run();
@@ -21,8 +19,6 @@ int main(int argc, char** argv) {
     //    // Catches any other std::exception derived exceptions
     //    std::cerr << "Caught a generic error: " << e.what() << std::endl;
     //}
-
-    //test();
 
     return 0;
 }

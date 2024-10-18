@@ -183,7 +183,7 @@ std::filesystem::path FileHandler::FindFileWithIndex(std::filesystem::path folde
         }
     }
     std::cout << "No file with index: " << index << " was found in " << folder << std::endl;
-    return std::filesystem::path("");
+    return std::filesystem::path();
 }
 
 void FileHandler::SaveEnergyDistributionToFile(EnergyDistribution energyDistribution)

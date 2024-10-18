@@ -292,7 +292,7 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 	{
 		// get 3 parameters: U drift tube, electron current, center E lab
 		std::array<float, 3> additionalParameter = fileHandler.GetParamtersFromDescriptionFileAtIndex(file, index);
-
+		std::cout << additionalParameter[0] << "\n";
 		// if they are not found the index is not in the file
 		if (!additionalParameter[0]) continue;
 
@@ -303,6 +303,7 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 		// 1. load files
 		std::filesystem::path densityfile = fileHandler.FindFileWithIndex(file.parent_path() / "e-densities", index);
 		std::filesystem::path energyfile = fileHandler.FindFileWithIndex(file.parent_path() / "lab-energies", index);
+		if (densityfile.empty() || energyfile.empty()) continue;
 		eBeam->LoadDensityFile(densityfile);
 		LoadLabEnergyFile(energyfile);
 
