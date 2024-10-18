@@ -1,6 +1,5 @@
 #include "Module.h"
 
-#include "imgui.h"
 
 #include <TRootCanvas.h>
 #include <iostream>
@@ -44,7 +43,7 @@ void Module::ShowWindow()
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.2f, 0.4f, 1.0f));
 
 		ShowHideCanvasButton(m_mainCanvas);
-		ImGui::SameLine();
+		//ImGui::SameLine();
 		ShowHideCanvasButton(m_secondCanvas);
 		ImGui::PopStyleColor(3);
 

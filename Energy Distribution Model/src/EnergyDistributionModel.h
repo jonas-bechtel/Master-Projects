@@ -14,8 +14,14 @@
 
 struct EnergyDistribution
 {
+	// resulting values
+	double rateCoefficient = 0;
+
 	// actual distribution
-	TH1D* distribution;
+	TH1D* distribution = nullptr;
+	std::vector<double> collisionEnergies;
+	std::vector<double> binCenters;
+	std::vector<double> binValues;
 
 	// all the things used to create it
 	MCMC_Parameters mcmcParameter;
@@ -26,7 +32,8 @@ struct EnergyDistribution
 	std::filesystem::path energyFile;
 
 	// additional labelling things
-	std::string name = "";
+	std::string outputFileName = "";
+	std::string label = "";
 	//std::filesystem::path descriptionFile;
 	// energy range ??
 	std::filesystem::path folder;
@@ -67,6 +74,7 @@ private:
 
 	void SetupEnergyDistribution();
 	void PlotEnergyDistributions();
+	void PlotRateCoefficients();
 	void PlotCurrentEnergyDistribution();
 
 	void PlotLabEnergyProjections();
@@ -76,7 +84,9 @@ private:
 private:
 	std::vector<EnergyDistribution> energyDistributions;
 	EnergyDistribution currentDistribution;
+	std::vector<double> currentEnergies;
 	
+	TGraph* rateCoefficients;
 	TH1D* labEnergyProjectionX;
 	TH1D* labEnergyProjectionY;
 	TH1D* labEnergyProjectionZ;
@@ -90,6 +100,7 @@ private:
 	// start/end index in description file to generate distribution for
 	int startIndex = 1;
 	int endIndex = 2;
+	bool doAll = false;
 
 	float energyRange[2] = { 6e-0, 30 };
 	bool normalise = true;

@@ -1,4 +1,6 @@
 #pragma once
+#include "imgui.h"
+#include "implot.h"
 
 #include <string>
 #include <unordered_map>

@@ -2,8 +2,6 @@
 #include "PhysicalConstants.h"
 #include "FileHandler.h"
 
-#include "imgui.h"
-
 #include <math.h>
 #include <filesystem>
 #include <sstream>
@@ -49,6 +47,8 @@ void EnergyDistributionModel::ShowUI()
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(80.0f);
 	ImGui::InputInt("end index", &endIndex);
+	ImGui::SameLine();
+	ImGui::Checkbox("all", &doAll);
 
 	if (ImGui::Button("select description file"))
 	{
@@ -65,8 +65,29 @@ void EnergyDistributionModel::ShowUI()
 		PlotLabEnergyProjections();
 		PlotEnergyDistributions();
 		PLotZweightByEnergy();
+		PlotRateCoefficients();
 	}
 	ImGui::EndDisabled();
+
+	if (ImPlot::BeginPlot("Plot"))
+	{
+		ImPlot::SetupAxis(ImAxis_X1, "collision energy [eV]");
+		ImPlot::SetupAxis(ImAxis_Y1, "f(E)", ImPlotAxisFlags_AutoFit);
+		ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
+		ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+		//ImPlot::PlotHistogram("Energy Dist 2", currentEnergies.data(), currentEnergies.size(),
+		//	10000, 1.0, ImPlotRange(), ImPlotHistogramFlags_Density);
+		for (EnergyDistribution eDist : energyDistributions)
+		{
+			if (eDist.distribution)
+			{
+				ImPlot::PlotLine(eDist.label.c_str(), eDist.binCenters.data(), eDist.binValues.data(), eDist->GetNbinsX());
+			}
+		}
+		
+		ImPlot::EndPlot();
+	}
+
 }
 
 void EnergyDistributionModel::LoadLabEnergyFile(std::filesystem::path file)
@@ -109,7 +130,7 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 	indexSS << std::setw(4) << std::setfill('0') << currentDistribution.index;
 
 	// name will be used as the filename
-	currentDistribution.name = indexSS.str() + "_" + currentDistribution.folder.filename().string() +
+	currentDistribution.outputFileName = indexSS.str() + "_" + currentDistribution.folder.filename().string() +
 							"energyDist_IonBeam" + int(currentDistribution.ionBeamParameter.radius * 1000) + "mm"
 							+ "_Ecool" + eCoolSS.str() + "eV";
 
@@ -119,6 +140,9 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 	float numberBins = (int)((max - min) / 10 * binsPerDecade);
 	double factor = TMath::Power((max / min), (1 / numberBins));
 	//std::cout << "N: " << numberBins << " factor: " << factor << "\n";
+
+	currentDistribution.binCenters.reserve(numberBins);
+	currentDistribution.binValues.reserve(numberBins);
 
 	std::vector<double> binEdges;
 	binEdges.reserve(numberBins + 1);
@@ -141,6 +165,7 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 
 	// sample positions from electron density multiplied with ion density given from outside
 	std::vector<Point3D> positionSamples = mcmc->GetSamples();
+	currentDistribution.collisionEnergies.reserve(positionSamples.size());
 
 	delete zPositions;
 	delete zWeightByEnergy;
@@ -217,6 +242,10 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		// calculate collision energy [eV] and put it in a histogram
 		double collisionEnergy = 0.5 * PhysicalConstants::electronMass * collosionVelocity * collosionVelocity / TMath::Qe();
 		currentDistribution->Fill(collisionEnergy);
+		currentDistribution.collisionEnergies.push_back(collisionEnergy);
+
+		double sigma = 1 / collisionEnergy;
+		currentDistribution.rateCoefficient += sigma * collosionVelocity;
 
 		//std::cout << "position: (" << x << " " << y << " " << z << ")\n";
 		////std::cout << "modified: (" << x_modified << " " << y_modified << " " << z_modified << ")\n";
@@ -227,6 +256,7 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		//std::cout << "collision energy: " << collisionEnergy << " eV\n";
 		//std::cout << "\n";
 	}
+	currentDistribution.rateCoefficient /= positionSamples.size();
 
 	// normalisation
 	if (normalise)
@@ -239,6 +269,13 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		if(currentDistribution->Integral())
 			currentDistribution->Scale(1.0 / currentDistribution->Integral());
 	}
+
+	for (int i = 1; i <= currentDistribution->GetNbinsX(); i++)
+	{
+		currentDistribution.binCenters.push_back(currentDistribution->GetBinCenter(i));
+		currentDistribution.binValues.push_back(currentDistribution->GetBinContent(i));
+	}
+	
 }
 
 void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesystem::path file)
@@ -278,6 +315,7 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 		SetupEnergyDistribution();
 		currentDistribution.driftTubeVoltage = additionalParameter[0];
 		currentDistribution.centerLabEnergy = additionalParameter[2];
+		currentDistribution.label = Form("%4.0d: U drift = %fV", currentDistribution.index, currentDistribution.driftTubeVoltage);
 
 		// 4. generate energy distribution
 		GenerateEnergyDistribution();
@@ -305,8 +343,7 @@ void EnergyDistributionModel::PlotEnergyDistributions()
 		if (!energyDistributions[i].distribution) return;
 		
 		energyDistributions[i]->SetLineColor(colors[i % 5]);
-		legend->AddEntry(energyDistributions[i].distribution, 
-			Form("%4.0d: U drift = %fV", energyDistributions[i].index, energyDistributions[i].driftTubeVoltage), "l");
+		legend->AddEntry(energyDistributions[i].distribution, energyDistributions[i].label.c_str(), "l");
 
 		if (i == 0)
 		{
@@ -320,6 +357,26 @@ void EnergyDistributionModel::PlotEnergyDistributions()
 		std::cout << "bla\n";
 	}
 	legend->Draw();
+}
+
+void EnergyDistributionModel::PlotRateCoefficients()
+{
+	delete rateCoefficients;
+	rateCoefficients = new TGraph(energyDistributions.size());
+	rateCoefficients->SetTitle("rate Coefficients");
+
+	for (int i = 0; i < energyDistributions.size(); i++)
+	{
+		double E_d = pow(sqrt(energyDistributions[i].centerLabEnergy) - sqrt(energyDistributions[i].eBeamParameter.coolingEnergy), 2);
+		rateCoefficients->SetPoint(i, E_d, energyDistributions[i].rateCoefficient);
+		std::cout << energyDistributions[i].rateCoefficient << "\n";
+	}
+
+	m_secondCanvas->cd(6);
+	rateCoefficients->SetMarkerStyle(21);
+	rateCoefficients->GetXaxis()->SetTitle("E_d [eV]");
+	rateCoefficients->GetYaxis()->SetTitle("alpha [m^3/s]");
+	rateCoefficients->Draw("ALP");
 }
 
 void EnergyDistributionModel::PlotCurrentEnergyDistribution()

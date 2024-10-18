@@ -50,7 +50,7 @@ void ElectronBeam::LoadDensityFile(std::filesystem::path file)
 
 		if(increaseHist)
 			CreateLargeDistribution();
-
+		
 		loadedDensityFile = file;
 
 		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
@@ -126,16 +126,17 @@ void ElectronBeam::ShowUI()
 	ImGui::SameLine();
 	ImGui::Checkbox("multiply bins", &increaseHist);
 	ImGui::SameLine();
+	ImGui::SetNextItemWidth(100.0f);
 	ImGui::InputInt(" factor", &factor, 2);
 
-	ImGui::Text("electron current: %e A", parameters.electronCurrent);
-	ImGui::InputDouble("cooling energy [eV]", &parameters.coolingEnergy);
-	ImGui::InputDouble("transverse kT [eV]", &parameters.transverse_kT);
-	ImGui::InputDouble("cathode radius [m]", &parameters.cathodeRadius);
-	ImGui::InputDouble("cathode Temperature [K]", &parameters.cathodeTemperature);
-	ImGui::InputDouble("extraction energy [eV]", &parameters.extractionEnergy);
-	ImGui::InputDouble("expansion factor", &parameters.expansionFactor);
-	ImGui::InputDouble("LLR", &parameters.LLR);
+	ImGui::Text("electron current: %e A", parameters.electronCurrent);			ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("cooling energy [eV]", &parameters.coolingEnergy);		ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("transverse kT [eV]", &parameters.transverse_kT);		ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("cathode radius [m]", &parameters.cathodeRadius);		ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("cathode Temperature [K]", &parameters.cathodeTemperature); ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("extraction energy [eV]", &parameters.extractionEnergy); ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("expansion factor", &parameters.expansionFactor);		ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("LLR", &parameters.LLR);									ImGui::SetNextItemWidth(100.0f);
 	ImGui::InputDouble("sigma lab energy [eV]", &parameters.sigmaLabEnergy);
 	ImGui::Separator();
 

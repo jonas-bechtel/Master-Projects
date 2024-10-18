@@ -18,7 +18,7 @@ public:
 	std::filesystem::path FindFileWithIndex(std::filesystem::path folder, int index);
 
 	TH3D* LoadMatrixFile(std::filesystem::path filename);
-	std::vector<EnergyDistribution> LoadEnergiesFile(std::filesystem::path filename);
+	//std::vector<EnergyDistribution> LoadEnergiesFile(std::filesystem::path filename);
 	std::array<float, 3> GetParamtersFromDescriptionFileAtIndex(std::filesystem::path descriptionFile, int index);
 
 	void SaveEnergyDistributionToFile(EnergyDistribution energyDistribution);
