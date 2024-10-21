@@ -43,13 +43,16 @@ void Module::ShowWindow()
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.2f, 0.4f, 1.0f));
 
 		ShowHideCanvasButton(m_mainCanvas);
-		//ImGui::SameLine();
 		ShowHideCanvasButton(m_secondCanvas);
 		ImGui::PopStyleColor(3);
-
-		ImGui::End();
 	}
+	ImGui::End();
 
+	//if (m_hasPlotWindow && ImGui::Begin("Plots"))
+	//{
+	//	ShowPlots();
+	//	ImGui::End();
+	//}
 	UpdateCanvas();
 }
 
@@ -82,7 +85,11 @@ void Module::PlotDistribution()
 	m_mainCanvas->cd(2);
 	m_distributionSmall = (TH3D*)m_distribution->Rebin3D(s_rebinningFactors[0],
 														 s_rebinningFactors[1], 
-														 s_rebinningFactors[2], "generated dist small");
+														 s_rebinningFactors[2], "dist small");
+
+	m_distributionSmall->GetXaxis()->SetTitle("x-axis");
+	m_distributionSmall->GetYaxis()->SetTitle("y-axis");
+	m_distributionSmall->GetZaxis()->SetTitle("z-axis");
 	m_distributionSmall->Draw("BOX2");
 }
 

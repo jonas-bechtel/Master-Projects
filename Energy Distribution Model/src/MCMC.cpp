@@ -44,12 +44,13 @@ void MCMC::SetParameter(MCMC_Parameters params)
 
 void MCMC::ShowUI()
 {
-	ImGui::InputInt("chain length", &parameter.numberSamples);
-	ImGui::InputInt("burn in", &parameter.burnIn);
-	ImGui::InputInt("lag", &parameter.lag);
+	ImGui::SetNextItemWidth(200.0f); ImGui::InputInt("chain length", &parameter.numberSamples);
+	ImGui::SetNextItemWidth(200.0f); ImGui::InputInt("burn in", &parameter.burnIn);
+	ImGui::SetNextItemWidth(200.0f); ImGui::InputInt("lag", &parameter.lag);
 
 	ImGui::Checkbox("automatically set proposal sigma", &automaticProposalStd);
 	ImGui::BeginDisabled(automaticProposalStd);
+	ImGui::SetNextItemWidth(200.0f);
 	if (ImGui::InputFloat3("Sigma of Proposal functions (x,y,z)", parameter.proposalSigma, "%.4f"))
 	{
 		normalDistX = std::normal_distribution<double>(0.0, parameter.proposalSigma[0]);
@@ -58,9 +59,11 @@ void MCMC::ShowUI()
 	}
 	ImGui::EndDisabled();
 
-	ImGui::Checkbox("change the seed", &changeSeed);
-	ImGui::SameLine();
+	ImGui::SetNextItemWidth(200.0f);
 	ImGui::InputInt("Seed", &parameter.seed);
+	ImGui::SameLine();
+	ImGui::Checkbox("change the seed", &changeSeed);
+	ImGui::SetNextItemWidth(200.0f);
 	if (RebinningFactorInput())
 	{
 		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
@@ -97,18 +100,18 @@ void MCMC::GenerateSamples()
 	// use the std of the target distribution as sigmas for proposal functions
 	if (automaticProposalStd)
 	{
-		parameter.proposalSigma[0] = targetDist->GetStdDev(1);
-		parameter.proposalSigma[1] = targetDist->GetStdDev(2);
-		parameter.proposalSigma[2] = targetDist->GetStdDev(3);
+		parameter.proposalSigma[0] = (float)targetDist->GetStdDev(1);
+		parameter.proposalSigma[1] = (float)targetDist->GetStdDev(2);
+		parameter.proposalSigma[2] = (float)targetDist->GetStdDev(3);
 
 		normalDistX = std::normal_distribution<double>(0.0, parameter.proposalSigma[0]);
 		normalDistY = std::normal_distribution<double>(0.0, parameter.proposalSigma[1]);
 		normalDistZ = std::normal_distribution<double>(0.0, parameter.proposalSigma[2]);
 	}
 
-	double nXBins = targetDist->GetXaxis()->GetNbins();
-	double nYBins = targetDist->GetYaxis()->GetNbins();
-	double nZBins = targetDist->GetZaxis()->GetNbins();
+	int nXBins = targetDist->GetXaxis()->GetNbins();
+	int nYBins = targetDist->GetYaxis()->GetNbins();
+	int nZBins = targetDist->GetZaxis()->GetNbins();
 
 	delete m_distribution;
 	m_distribution = new TH3D("generated Histogram", "generated Histogram", 
@@ -128,7 +131,7 @@ void MCMC::GenerateSamples()
 
 	if (changeSeed)
 	{
-		parameter.seed = std::time(0);
+		parameter.seed = (int)std::time(0);
 	}
 	generator.seed(parameter.seed);
 
@@ -289,9 +292,9 @@ bool MCMC::GenerateSingleSample(Point3D& current, double& currentValue, std::mer
 		return false;
 	}
 
-	double x_nBins = targetDist->GetXaxis()->GetNbins();
-	double y_nBins = targetDist->GetYaxis()->GetNbins();
-	double z_nBins = targetDist->GetZaxis()->GetNbins();
+	int x_nBins = targetDist->GetXaxis()->GetNbins();
+	int y_nBins = targetDist->GetYaxis()->GetNbins();
+	int z_nBins = targetDist->GetZaxis()->GetNbins();
 
 	double x_modified = std::min(std::max(x_proposed, targetDist->GetXaxis()->GetBinCenter(1)), targetDist->GetXaxis()->GetBinCenter(x_nBins) - 1e-5);
 	double y_modified = std::min(std::max(y_proposed, targetDist->GetYaxis()->GetBinCenter(1)), targetDist->GetYaxis()->GetBinCenter(y_nBins) - 1e-5);
@@ -412,7 +415,7 @@ void MCMC::PlotAutocorrelation()
 
 void MCMC::PlotProjections()
 {
-	if (!(m_distribution || targetDist))
+	if (!m_distribution || !targetDist)
 	{
 		return;
 	}

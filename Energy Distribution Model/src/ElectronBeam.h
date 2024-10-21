@@ -5,6 +5,7 @@
 #include <TF1.h>
 #include <TVector3.h>
 #include <TH3D.h>
+#include <TProfile2D.h>
 
 #include "Module.h"
 #include "Point3D.h"
@@ -34,10 +35,11 @@ class ElectronBeam : public Module
 public:
 	ElectronBeam();
 	ElectronBeamParameters GetParameter();
+	TH3D* GetDistribution() override;
 	void SetParameter(ElectronBeamParameters params);
 	void SetCurrent(double current);
-	void LoadDensityFile(std::filesystem::path file);
 	std::filesystem::path GetLoadedDensityFile();
+	void SetupDensityDistribution(std::filesystem::path file);
 
 	TVector3 GetDirection(double z);
 	TVector3 GetDirection(Point3D point);
@@ -47,24 +49,50 @@ public:
 private:
 	void ShowUI() override;
 
+	void LoadDensityFile(std::filesystem::path file);
 	void CutZerosFromDistribution();
 	void CreateLargeDistribution();
 
+	void GenerateElectronBeamDensity();
+
 	TVector3 GetNormal(double z);
-	void PlotTrajectory();
 	double Trajectory(double z);
 	double Derivative(double z);
-
 	double DistancePointToTrajectoryOfZ(double z, Point3D point);
+
+	void PlotGeneratedDensities();
+	void PlotTrajectory();
+	void PlotProjections();
 
 private:
 	ElectronBeamParameters parameters;
 	std::filesystem::path loadedDensityFile;
 
+	TH3D* generatedBeamDensity = nullptr;
+	TH3D* generatedBeamDensitySmall = nullptr;
+
+	TH1D* electronBeamProjectionX = nullptr;
+	TH1D* electronBeamProjectionY = nullptr;
+	TH1D* electronBeamProjectionZ = nullptr;
+
+	TH1D* generatedBeamProjectionX = nullptr;
+	TH1D* generatedBeamProjectionY = nullptr;
+	TH1D* generatedBeamProjectionZ = nullptr;
+
+	//TProfile2D* electronBeamProfileXY = nullptr;
+	//TProfile2D* electronBeamProfileXZ = nullptr;
+	//TProfile2D* electronBeamProfileYZ = nullptr;
+
+	bool increaseHist = false;
 	int factor = 3;
-	bool increaseHist = true;
+
 	float sliderZ = 0;
 	float sliderY = 0;
+
+	// parameters for analytical electron beam shape to test model
+	bool useSimpleShape = false;
+	bool includeBend = false;
+	float radius = 0.005;
 };
 
 

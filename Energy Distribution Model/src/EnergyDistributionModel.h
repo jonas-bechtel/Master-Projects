@@ -71,6 +71,7 @@ public:
 
 private:
 	void ShowUI() override;
+	void ShowPlots() override;
 
 	void SetupEnergyDistribution();
 	void PlotEnergyDistributions();
@@ -86,23 +87,24 @@ private:
 	EnergyDistribution currentDistribution;
 	std::vector<double> currentEnergies;
 	
-	TGraph* rateCoefficients;
-	TH1D* labEnergyProjectionX;
-	TH1D* labEnergyProjectionY;
-	TH1D* labEnergyProjectionZ;
+	TGraph* rateCoefficients = nullptr;
+	TH1D* labEnergyProjectionX = nullptr;
+	TH1D* labEnergyProjectionY = nullptr;
+	TH1D* labEnergyProjectionZ = nullptr;
 
-	TH1D* zPositions;
-	TH1D* zWeightByEnergy;
+	TH1D* zPositions = nullptr;
+	TH1D* zWeightByEnergy = nullptr;
 
 	std::filesystem::path loadedEnergyFile;
 	std::filesystem::path currentDescriptionFile;
+	int maxIndex = 0;
 
 	// start/end index in description file to generate distribution for
 	int startIndex = 1;
 	int endIndex = 2;
 	bool doAll = false;
 
-	float energyRange[2] = { 6e-0, 30 };
+	float energyRange[2] = { 6e-0, 100 };
 	bool normalise = true;
 
 	// random number generation things

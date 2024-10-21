@@ -46,7 +46,9 @@ TH3D* FileHandler::LoadMatrixFile(std::filesystem::path filename)
     // Close the file after reading
     file.close();
     
-    std::cout << "loaded file: " << filename << "\n";
+    std::cout << "loaded file: " << filename.parent_path().parent_path().filename() /
+                                    filename.parent_path().filename() /
+                                    filename.filename() << "\n";
     return dataMatrix;
 }
 
@@ -114,6 +116,30 @@ TH3D* FileHandler::LoadMatrixFile(std::filesystem::path filename)
 //
 //    return energyDistributions;
 //}
+
+int FileHandler::GetMaxIndex(std::filesystem::path energiesFile)
+{
+    std::ifstream file(energiesFile);
+
+    // Check if the file was successfully opened
+    if (!file.is_open())
+    {
+        std::cerr << "Error: Could not open the file " << energiesFile << std::endl;
+    }
+
+    int maxIndex = 0;
+    std::string line;
+
+    // throw away first line
+    std::getline(file, line);
+
+    while (std::getline(file, line))
+    {
+        maxIndex = std::max(maxIndex, std::stoi(line.substr(0, 4)));
+    }
+
+    return maxIndex;
+}
 
 std::array<float, 3> FileHandler::GetParamtersFromDescriptionFileAtIndex(std::filesystem::path descriptionFile, int index)
 {

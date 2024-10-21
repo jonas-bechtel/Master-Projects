@@ -19,6 +19,7 @@ public:
 
 	TH3D* LoadMatrixFile(std::filesystem::path filename);
 	//std::vector<EnergyDistribution> LoadEnergiesFile(std::filesystem::path filename);
+	int GetMaxIndex(std::filesystem::path energiesFile);
 	std::array<float, 3> GetParamtersFromDescriptionFileAtIndex(std::filesystem::path descriptionFile, int index);
 
 	void SaveEnergyDistributionToFile(EnergyDistribution energyDistribution);
@@ -35,6 +36,6 @@ private:
 	std::string xDelimiter = "\t";
 	std::string zDelimiter = ";";
 	
-	mutable int matrixSize[3];// = { 100, 100, 100 };
+	mutable int matrixSize[3] = { 100, 100, 100 };
 };
 

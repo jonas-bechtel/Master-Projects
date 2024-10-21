@@ -13,10 +13,12 @@
 EnergyDistributionModel::EnergyDistributionModel()
 	: Module("Energy Distribution Model")
 {
-	m_mainCanvas->cd();
-	m_mainCanvas->Clear();
+	//m_mainCanvas->cd();
+	//m_mainCanvas->Clear();
 	//m_mainCanvas->Divide(1, 2);
-	//m_mainCanvas->SetWindowSize(1000, 1000);
+	m_mainCanvas->SetWindowSize(2000, 500);
+
+	//m_hasPlotWindow = true;
 }
 
 void EnergyDistributionModel::ShowUI()
@@ -26,6 +28,7 @@ void EnergyDistributionModel::ShowUI()
 		std::filesystem::path file = FileHandler::GetInstance().OpenFileExplorer();
 		LoadLabEnergyFile(file);
 		PlotLabEnergyProjections();
+		PlotDistribution();
 	}
 
 	ImGui::InputFloat2("energy range", energyRange, "%.1e");
@@ -43,16 +46,24 @@ void EnergyDistributionModel::ShowUI()
 	ImGui::Checkbox("normalise", &normalise);
 
 	ImGui::SetNextItemWidth(80.0f);
+	ImGui::BeginDisabled(doAll);
 	ImGui::InputInt("start index", &startIndex);
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(80.0f);
 	ImGui::InputInt("end index", &endIndex);
+	ImGui::EndDisabled();
 	ImGui::SameLine();
 	ImGui::Checkbox("all", &doAll);
+	if (doAll)
+	{
+		ImGui::SameLine();
+		ImGui::Text("(max Index: %d)", maxIndex);
+	}
 
 	if (ImGui::Button("select description file"))
 	{
 		currentDescriptionFile = FileHandler::GetInstance().OpenFileExplorer();
+		maxIndex = FileHandler::GetInstance().GetMaxIndex(currentDescriptionFile);
 	}
 	ImGui::SameLine();
 	ImGui::Text(currentDescriptionFile.filename().string().c_str());
@@ -69,14 +80,18 @@ void EnergyDistributionModel::ShowUI()
 	}
 	ImGui::EndDisabled();
 
-	if (ImPlot::BeginPlot("Plot"))
+	if(ImGui::Button("clear plot"))
+	{
+		ClearDistributionList();
+	}
+	if (ImPlot::BeginPlot("collision Energy distribution"))
 	{
 		ImPlot::SetupAxis(ImAxis_X1, "collision energy [eV]");
 		ImPlot::SetupAxis(ImAxis_Y1, "f(E)", ImPlotAxisFlags_AutoFit);
 		ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
 		ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
-		//ImPlot::PlotHistogram("Energy Dist 2", currentEnergies.data(), currentEnergies.size(),
-		//	10000, 1.0, ImPlotRange(), ImPlotHistogramFlags_Density);
+		ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside);
+
 		for (EnergyDistribution eDist : energyDistributions)
 		{
 			if (eDist.distribution)
@@ -84,10 +99,13 @@ void EnergyDistributionModel::ShowUI()
 				ImPlot::PlotLine(eDist.label.c_str(), eDist.binCenters.data(), eDist.binValues.data(), eDist->GetNbinsX());
 			}
 		}
-		
 		ImPlot::EndPlot();
 	}
+}
 
+void EnergyDistributionModel::ShowPlots()
+{
+	
 }
 
 void EnergyDistributionModel::LoadLabEnergyFile(std::filesystem::path file)
@@ -280,7 +298,7 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 
 void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesystem::path file)
 {
-	ClearDistributionList();
+	//ClearDistributionList();
 
 	// get all necessary modules
 	FileHandler fileHandler = FileHandler::GetInstance();
@@ -288,11 +306,14 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 
-	for (int index = startIndex; index <= endIndex; index++)
+	int end = endIndex;
+	if (doAll) end = maxIndex;
+
+	for (int index = startIndex; index <= end; index++)
 	{
 		// get 3 parameters: U drift tube, electron current, center E lab
 		std::array<float, 3> additionalParameter = fileHandler.GetParamtersFromDescriptionFileAtIndex(file, index);
-		std::cout << additionalParameter[0] << "\n";
+
 		// if they are not found the index is not in the file
 		if (!additionalParameter[0]) continue;
 
@@ -304,24 +325,27 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 		std::filesystem::path densityfile = fileHandler.FindFileWithIndex(file.parent_path() / "e-densities", index);
 		std::filesystem::path energyfile = fileHandler.FindFileWithIndex(file.parent_path() / "lab-energies", index);
 		if (densityfile.empty() || energyfile.empty()) continue;
-		eBeam->LoadDensityFile(densityfile);
+
+		eBeam->SetupDensityDistribution(densityfile);
 		LoadLabEnergyFile(energyfile);
 
 		// 2. multiply ion and electron beam
-		//ionBeam->MultiplyWithElectronDensities(eBeam->GetDistribution());
+		TH3D* result = ionBeam->MultiplyWithElectronDensities(eBeam->GetDistribution());
 
 		// 3. sample from this distribution
+		mcmc->SetTargetDistribution(result);
 		mcmc->GenerateSamples();
 
+		// 4. prepare current distribution
 		SetupEnergyDistribution();
 		currentDistribution.driftTubeVoltage = additionalParameter[0];
 		currentDistribution.centerLabEnergy = additionalParameter[2];
-		currentDistribution.label = Form("%4.0d: U drift = %fV", currentDistribution.index, currentDistribution.driftTubeVoltage);
+		currentDistribution.label = Form("%4.0d: U drift = %.2fV ##%d", currentDistribution.index, currentDistribution.driftTubeVoltage, std::time(0));
 
-		// 4. generate energy distribution
+		// 5. generate energy distribution
 		GenerateEnergyDistribution();
 
-		// 5. save it to a file
+		// 6. save it to a file
 		FileHandler::GetInstance().SaveEnergyDistributionToFile(currentDistribution);
 
 		energyDistributions.push_back(currentDistribution);
@@ -355,7 +379,6 @@ void EnergyDistributionModel::PlotEnergyDistributions()
 		{
 			energyDistributions[i]->Draw("HIST SAME");
 		}
-		std::cout << "bla\n";
 	}
 	legend->Draw();
 }
@@ -370,7 +393,6 @@ void EnergyDistributionModel::PlotRateCoefficients()
 	{
 		double E_d = pow(sqrt(energyDistributions[i].centerLabEnergy) - sqrt(energyDistributions[i].eBeamParameter.coolingEnergy), 2);
 		rateCoefficients->SetPoint(i, E_d, energyDistributions[i].rateCoefficient);
-		std::cout << energyDistributions[i].rateCoefficient << "\n";
 	}
 
 	m_secondCanvas->cd(6);

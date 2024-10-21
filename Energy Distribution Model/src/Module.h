@@ -16,7 +16,7 @@ public:
 	static std::unordered_map<std::string, Module*>& GetModuleMap();
 
 	void ShowWindow();
-	TH3D* GetDistribution();
+	virtual TH3D* GetDistribution();
 	void PlotDistribution();
 
 	virtual ~Module();
@@ -34,6 +34,7 @@ private:
 	void UpdateCanvas();
 
 	virtual void ShowUI() = 0;
+	virtual void ShowPlots() {};
 
 protected:
 	static std::unordered_map<std::string, Module*> s_moduleMap;
@@ -45,5 +46,6 @@ protected:
 	TH3D* m_distribution;
 	TH3D* m_distributionSmall;
 
+	bool m_hasPlotWindow = false;
 };
 

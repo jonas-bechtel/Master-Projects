@@ -9,7 +9,7 @@
 struct IonBeamParameters
 {
 	// sigma of gaussian shape in [m]
-	float radius = 0.0010;
+	float radius = 0.0010f;
 	float shift[2] = { 0, 0 };
 
 	std::string String();
@@ -22,7 +22,7 @@ public:
 	float Radius();
 	IonBeamParameters GetParameter();
 	void SetParameter(IonBeamParameters params);
-	void MultiplyWithElectronDensities(TH3D* electronDensities);
+	TH3D* MultiplyWithElectronDensities(TH3D* electronDensities);
 
 private:
 	void ShowUI() override;

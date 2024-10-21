@@ -26,9 +26,9 @@ void IonBeam::SetParameter(IonBeamParameters params)
 	parameter = params;
 }
 
-void IonBeam::MultiplyWithElectronDensities(TH3D* electronDensities)
+TH3D* IonBeam::MultiplyWithElectronDensities(TH3D* electronDensities)
 {
-	if (!electronDensities) return;
+	if (!electronDensities) return nullptr;
 
 	CreateIonBeam(electronDensities);
 
@@ -52,8 +52,7 @@ void IonBeam::MultiplyWithElectronDensities(TH3D* electronDensities)
 		}
 	}
 
-	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
-	mcmc->SetTargetDistribution(result);
+	return result;
 }
 
 void IonBeam::CreateIonBeam(TH3D* referenceDensity)
@@ -66,9 +65,9 @@ void IonBeam::CreateIonBeam(TH3D* referenceDensity)
 		m_distribution->SetTitle("ion density");
 	}
 	m_distribution->Reset();
-	double nXBins = referenceDensity->GetXaxis()->GetNbins();
-	double nYBins = referenceDensity->GetYaxis()->GetNbins();
-	double nZBins = referenceDensity->GetZaxis()->GetNbins();
+	int nXBins = referenceDensity->GetXaxis()->GetNbins();
+	int nYBins = referenceDensity->GetYaxis()->GetNbins();
+	int nZBins = referenceDensity->GetZaxis()->GetNbins();
 
 	for (int i = 1; i <= nXBins; i++) {
 		for (int j = 1; j <= nYBins; j++) {
@@ -92,8 +91,13 @@ void IonBeam::CreateIonBeam(TH3D* referenceDensity)
 
 void IonBeam::ShowUI()
 {
-	if (ImGui::InputFloat("ion beam radius / sigma in [m]", &parameter.radius, 0.001, 0.001, "%.4f") ||
-		ImGui::InputFloat2("shift in x and y [m]", parameter.shift, "%.4f"))
+	bool somethingChanged = false;
+	ImGui::SetNextItemWidth(200.0f);
+	somethingChanged = ImGui::InputFloat("ion beam radius / sigma in [m]", &parameter.radius, 0.001f, 0.001f, "%.4f");
+	ImGui::SetNextItemWidth(200.0f);
+	somethingChanged = ImGui::InputFloat2("shift in x and y [m]", parameter.shift, "%.4f");
+
+	if(somethingChanged)
 	{
 		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 		ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
