@@ -13,12 +13,10 @@
 EnergyDistributionModel::EnergyDistributionModel()
 	: Module("Energy Distribution Model")
 {
-	//m_mainCanvas->cd();
-	//m_mainCanvas->Clear();
-	//m_mainCanvas->Divide(1, 2);
-	m_mainCanvas->SetWindowSize(2000, 500);
-
-	//m_hasPlotWindow = true;
+	m_mainCanvas->cd();
+	m_mainCanvas->Clear();
+	m_mainCanvas->Divide(3,2);
+	m_mainCanvas->SetWindowSize(1500, 800);
 }
 
 void EnergyDistributionModel::ShowUI()
@@ -82,6 +80,8 @@ void EnergyDistributionModel::ShowUI()
 			PLotZweightByEnergy();
 			PlotRateCoefficients();
 			PlotLongkTDistribution();
+			PlotLongVelAddition();
+			PlotDistribution();
 		}
 		ImGui::EndDisabled();
 
@@ -245,9 +245,10 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 
 	delete zPositions;
 	delete zWeightByEnergy;
-	zPositions = new TH1D("z-positions", "z-positions", 100, 0, 0.6);
-	zWeightByEnergy = new TH1D("z weight by energy", "z weight by energy", 100, 0, 0.6);
-	long_ktDistribution = new TH1D("long kT", "long kT", 100, 5e-6, 2e-5);
+	zPositions = new TH1D("z-positions", "z-positions", 100, 0, 0.65);
+	zWeightByEnergy = new TH1D("z weight by energy", "z weight by energy", 100, 0, 0.65);
+	long_ktDistribution = new TH1D("long kT", "long kT", 500, 5e-6, 2e-5);
+	long_VelAddition = new TH1D("long vel add", "long vel add", 500, -1e4, 1e4);
 
 	if (positionSamples.empty())
 	{
@@ -309,6 +310,7 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		double longitudinalAddition = longitudinalNormalDistribution(generator);
 		double transverseAddition = transverseNormalDistribution(generator);
 		double transverseAdditionAngle = angleDistribution(generator);
+		long_VelAddition->Fill(longitudinalAddition);
 
 		transverseDirection.Rotate(transverseAdditionAngle, longitudinalDirection);
 
@@ -438,7 +440,7 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 
 void EnergyDistributionModel::PlotEnergyDistributions()
 {
-	m_mainCanvas->cd();
+	m_mainCanvas->cd(3);
 	int colors[5] = { kRed, kBlue, kGreen, kOrange, kMagenta };
 
 	gPad->SetLogy();
@@ -488,7 +490,7 @@ void EnergyDistributionModel::PlotRateCoefficients()
 
 void EnergyDistributionModel::PlotCurrentEnergyDistribution()
 {
-	m_mainCanvas->cd();
+	m_mainCanvas->cd(3);
 
 	currentDistribution->Draw("HIST");
 
@@ -504,15 +506,15 @@ void EnergyDistributionModel::PlotLabEnergyProjections()
 	delete labEnergyProjectionY;
 	delete labEnergyProjectionZ;
 
-	m_secondCanvas->cd(1);
+	m_mainCanvas->cd(4);
 	labEnergyProjectionX = m_distribution->ProjectionX();
 	labEnergyProjectionX->Draw();
 
-	m_secondCanvas->cd(2);
+	m_mainCanvas->cd(5);
 	labEnergyProjectionY = m_distribution->ProjectionY();
 	labEnergyProjectionY->Draw();
 
-	m_secondCanvas->cd(3);
+	m_mainCanvas->cd(6);
 	labEnergyProjectionZ = m_distribution->ProjectionZ();
 	labEnergyProjectionZ->Draw();
 }
@@ -542,9 +544,16 @@ void EnergyDistributionModel::ClearDistributionList()
 
 void EnergyDistributionModel::PlotLongkTDistribution()
 {
-	m_secondCanvas->cd(6);
+	m_secondCanvas->cd(1);
 
 	long_ktDistribution->Draw();
+}
+
+void EnergyDistributionModel::PlotLongVelAddition()
+{
+	m_secondCanvas->cd(2);
+
+	long_VelAddition->Draw();
 }
 
 std::string EnergyDistribution::String()

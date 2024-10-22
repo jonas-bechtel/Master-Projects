@@ -96,6 +96,7 @@ private:
 	void PlotLabEnergyProjections();
 	void PLotZweightByEnergy();
 	void PlotLongkTDistribution();
+	void PlotLongVelAddition();
 	void ClearDistributionList();
 
 private:
@@ -112,6 +113,7 @@ private:
 	TH1D* zPositions = nullptr;
 	TH1D* zWeightByEnergy = nullptr;
 	TH1D* long_ktDistribution = nullptr;
+	TH1D* long_VelAddition = nullptr;
 
 	// currently loaded files
 	std::filesystem::path currentDescriptionFile;
