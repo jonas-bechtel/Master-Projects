@@ -23,82 +23,112 @@ EnergyDistributionModel::EnergyDistributionModel()
 
 void EnergyDistributionModel::ShowUI()
 {
-	if (ImGui::Button("Load lab energies"))
+	if (ImGui::BeginChild("##bla2", ImVec2(0, 200.0f)))
 	{
-		std::filesystem::path file = FileHandler::GetInstance().OpenFileExplorer();
-		LoadLabEnergyFile(file);
-		PlotLabEnergyProjections();
-		PlotDistribution();
-	}
+		ImGui::Columns(2);
+		if (ImGui::Button("Load lab energies"))
+		{
+			std::filesystem::path file = FileHandler::GetInstance().OpenFileExplorer();
+			LoadLabEnergyFile(file);
+			PlotLabEnergyProjections();
+			PlotDistribution();
+		}
 
-	ImGui::InputFloat2("energy range", energyRange, "%.1e");
+		ImGui::SetNextItemWidth(200.0f);
+		ImGui::InputFloat2("energy range", energyRange, "%.1e");
 
-	if (ImGui::Button("Generate Single Energy Distribution"))
-	{
-		delete currentDistribution.distribution;
-		SetupEnergyDistribution();
-		GenerateEnergyDistribution();
-		PlotCurrentEnergyDistribution();
-		PLotZweightByEnergy();
-		FileHandler::GetInstance().SaveEnergyDistributionToFile(currentDistribution);
-	}
-	ImGui::SameLine();
-	ImGui::Checkbox("normalise", &normalise);
-
-	ImGui::SetNextItemWidth(80.0f);
-	ImGui::BeginDisabled(doAll);
-	ImGui::InputInt("start index", &startIndex);
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(80.0f);
-	ImGui::InputInt("end index", &endIndex);
-	ImGui::EndDisabled();
-	ImGui::SameLine();
-	ImGui::Checkbox("all", &doAll);
-	if (doAll)
-	{
+		if (ImGui::Button("Generate Single Energy Distribution"))
+		{
+			delete currentDistribution.distribution;
+			SetupEnergyDistribution();
+			GenerateEnergyDistribution();
+			PlotCurrentEnergyDistribution();
+			PLotZweightByEnergy();
+			FileHandler::GetInstance().SaveEnergyDistributionToFile(currentDistribution);
+		}
 		ImGui::SameLine();
-		ImGui::Text("(max Index: %d)", maxIndex);
-	}
+		ImGui::Checkbox("normalise", &normalise);
 
-	if (ImGui::Button("select description file"))
-	{
-		currentDescriptionFile = FileHandler::GetInstance().OpenFileExplorer();
-		maxIndex = FileHandler::GetInstance().GetMaxIndex(currentDescriptionFile);
+		ImGui::SetNextItemWidth(80.0f);
+		ImGui::BeginDisabled(doAll);
+		ImGui::InputInt("start index", &startIndex);
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(80.0f);
+		ImGui::InputInt("end index", &endIndex);
+		ImGui::EndDisabled();
+		ImGui::SameLine();
+		ImGui::Checkbox("all", &doAll);
+		if (doAll)
+		{
+			ImGui::SameLine();
+			ImGui::Text("(max Index: %d)", maxIndex);
+		}
+
+		if (ImGui::Button("select description file"))
+		{
+			currentDescriptionFile = FileHandler::GetInstance().OpenFileExplorer();
+			maxIndex = FileHandler::GetInstance().GetMaxIndex(currentDescriptionFile);
+		}
+		ImGui::SameLine();
+		ImGui::Text(currentDescriptionFile.filename().string().c_str());
+
+		ImGui::BeginDisabled(currentDescriptionFile.empty());
+		if (ImGui::Button("Generate Distributions from description File"))
+		{
+			GenerateEnergyDistributionsFromFile(currentDescriptionFile);
+
+			PlotLabEnergyProjections();
+			PlotEnergyDistributions();
+			PLotZweightByEnergy();
+			PlotRateCoefficients();
+			PlotLongkTDistribution();
+		}
+		ImGui::EndDisabled();
+
+		ImGui::SetNextItemWidth(200.0f);
+		ImGui::BeginDisabled(!parameter.cutOutZValues);
+		ImGui::InputFloat2("", parameter.cutOutRange);
+		ImGui::EndDisabled();
+		ImGui::SameLine();
+		ImGui::Checkbox("cut out z range", &parameter.cutOutZValues);
+
+		ImGui::NextColumn();
+		ShowEnergyDistributionList();
+		if (ImGui::Button("clear list"))
+		{
+			ClearDistributionList();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("clear plot"))
+		{
+			for (EnergyDistribution& eDist : energyDistributions)
+			{
+				eDist.plotted = !eDist.plotted;
+			}
+		}
+		ImGui::EndChild();
 	}
+	ImGui::Separator();
+	ImGui::Checkbox("log X", &logX);
 	ImGui::SameLine();
-	ImGui::Text(currentDescriptionFile.filename().string().c_str());
+	ImGui::Checkbox("log Y", &logY);
 
-	ImGui::BeginDisabled(currentDescriptionFile.empty());
-	if (ImGui::Button("Generate Distributions from description File"))
-	{
-		GenerateEnergyDistributionsFromFile(currentDescriptionFile);
-
-		PlotLabEnergyProjections();
-		PlotEnergyDistributions();
-		PLotZweightByEnergy();
-		PlotRateCoefficients();
-	}
-	ImGui::EndDisabled();
-
-	if(ImGui::Button("clear plot"))
-	{
-		ClearDistributionList();
-	}
 	if (ImPlot::BeginPlot("collision Energy distribution"))
 	{
 		ImPlot::SetupAxis(ImAxis_X1, "collision energy [eV]");
 		ImPlot::SetupAxis(ImAxis_Y1, "f(E)", ImPlotAxisFlags_AutoFit);
-		ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
-		ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+		if (logX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
+		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
 		ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside);
 
-		for (EnergyDistribution eDist : energyDistributions)
+		for (EnergyDistribution& eDist : energyDistributions)
 		{
-			if (eDist.distribution)
+			if (eDist.distribution && eDist.plotted)
 			{
 				ImPlot::PlotLine(eDist.label.c_str(), eDist.binCenters.data(), eDist.binValues.data(), eDist->GetNbinsX());
 			}
 		}
+
 		ImPlot::EndPlot();
 	}
 }
@@ -106,6 +136,39 @@ void EnergyDistributionModel::ShowUI()
 void EnergyDistributionModel::ShowPlots()
 {
 	
+}
+
+void EnergyDistributionModel::ShowEnergyDistributionList()
+{
+	if (ImGui::BeginListBox("loaded distributions"))
+	{
+		for (int i = 0; i < energyDistributions.size(); i++)
+		{
+			// Check if the current item is selected
+			//const bool isSelected = (currentItem == i);
+
+			EnergyDistribution& eDist = energyDistributions[i];
+
+			// Render each item as selectable
+			if (ImGui::Selectable(energyDistributions[i].label.c_str(), energyDistributions[i].plotted))
+			{
+				//std::cout << "selected " << i << "\n";
+				//currentItem = i;  // Update selected item
+				
+				eDist.plotted = !eDist.plotted;
+				//std::cout << eDist.plotted << "\n";
+			}
+
+			if (ImGui::BeginItemTooltip())
+			{
+				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+				ImGui::TextUnformatted(eDist.String().c_str());
+				ImGui::PopTextWrapPos();
+				ImGui::EndTooltip();
+			}
+		}
+	}
+	ImGui::EndListBox();
 }
 
 void EnergyDistributionModel::LoadLabEnergyFile(std::filesystem::path file)
@@ -117,7 +180,7 @@ void EnergyDistributionModel::LoadLabEnergyFile(std::filesystem::path file)
 		m_distribution->SetTitle("lab energies");
 		m_distribution->SetName("lab energies");
 		
-		loadedEnergyFile = file;
+		parameter.energyFile = file;
 
 		//PlotDistribution();
 		//PlotLabEnergyProjections();
@@ -135,23 +198,14 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 	currentDistribution.mcmcParameter = mcmc->GetParameter();
 	currentDistribution.eBeamParameter = eBeam->GetParameter();
 	currentDistribution.ionBeamParameter = ionBeam->GetParameter();
+	currentDistribution.eDistParameter = parameter;
 
-	currentDistribution.densityFile = eBeam->GetLoadedDensityFile();
-	currentDistribution.energyFile = loadedEnergyFile;
-
-	currentDistribution.folder = currentDistribution.densityFile.parent_path().parent_path();
-	currentDistribution.index = std::stoi(currentDistribution.densityFile.filename().string().substr(0, 4));
-
-	std::ostringstream indexSS;
-	std::ostringstream eCoolSS;
-	eCoolSS << std::fixed << std::setprecision(3) << currentDistribution.eBeamParameter.coolingEnergy;
-	indexSS << std::setw(4) << std::setfill('0') << currentDistribution.index;
-
-	// name will be used as the filename
-	currentDistribution.outputFileName = indexSS.str() + "_" + currentDistribution.folder.filename().string() +
-							"energyDist_IonBeam" + int(currentDistribution.ionBeamParameter.radius * 1000) + "mm"
-							+ "_Ecool" + eCoolSS.str() + "eV";
-
+	if (!currentDistribution.eBeamParameter.densityFile.empty() && !currentDistribution.eDistParameter.energyFile.empty())
+	{
+		currentDistribution.folder = currentDistribution.eBeamParameter.densityFile.parent_path().parent_path();
+		currentDistribution.index = std::stoi(currentDistribution.eBeamParameter.densityFile.filename().string().substr(0, 4));
+	}
+	
 	float min = std::max(energyRange[0], (float)1e-8);
 	float max = energyRange[1];
 	int binsPerDecade = 2000;
@@ -176,6 +230,10 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 		("Energy Distribution " + histDescription).c_str(), numberBins, binEdges.data());
 }
 
+void EnergyDistributionModel::GenerateLabEnergyMatrix()
+{
+}
+
 void EnergyDistributionModel::GenerateEnergyDistribution()
 {
 	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
@@ -189,6 +247,7 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 	delete zWeightByEnergy;
 	zPositions = new TH1D("z-positions", "z-positions", 100, 0, 0.6);
 	zWeightByEnergy = new TH1D("z weight by energy", "z weight by energy", 100, 0, 0.6);
+	long_ktDistribution = new TH1D("long kT", "long kT", 100, 5e-6, 2e-5);
 
 	if (positionSamples.empty())
 	{
@@ -207,7 +266,12 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		double x = point.x;
 		double y = point.y;
 		double z = point.z;
-
+		if (parameter.cutOutZValues)
+		{
+			if (z < parameter.cutOutRange[0] ||
+				z > parameter.cutOutRange[1])
+				continue;
+		}
 		int numberBinsX = m_distribution->GetXaxis()->GetNbins();
 		int numberBinsY = m_distribution->GetYaxis()->GetNbins();
 		int numberBinsZ = m_distribution->GetZaxis()->GetNbins();
@@ -232,6 +296,7 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		// - calculate longitudinal kT, transverse kT is fixed
 		double long_kT = eBeam->GetLongitudinal_kT(labEnergy);
 		double trans_kT = eBeam->GetTransverse_kT();
+		long_ktDistribution->Fill(long_kT);
 
 		// - use kT to calculate sigmas of gaussians
 		double longSigma = TMath::Sqrt(long_kT * TMath::Qe() / PhysicalConstants::electronMass);
@@ -240,7 +305,7 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		// - sample from gaussians with these sigmas and add that to the electron velocity
 		longitudinalNormalDistribution = std::normal_distribution<double>(0, longSigma);
 		transverseNormalDistribution = std::normal_distribution<double>(0, transSigma);
-
+		//std::cout << "kT: " << long_kT << " sigma: " << longSigma << " vel: " << electronVelocityMagnitude << "\n";
 		double longitudinalAddition = longitudinalNormalDistribution(generator);
 		double transverseAddition = transverseNormalDistribution(generator);
 		double transverseAdditionAngle = angleDistribution(generator);
@@ -248,8 +313,8 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		transverseDirection.Rotate(transverseAdditionAngle, longitudinalDirection);
 
 		TVector3 finalElectronVelocity = electronVelocityMagnitude * longitudinalDirection
-			+ longitudinalAddition * longitudinalDirection
-			+ sqrt(2) * transverseAddition * transverseDirection;
+										 + longitudinalAddition * longitudinalDirection
+										 + sqrt(2) * transverseAddition * transverseDirection;
 
 		// calculate collision velocity vector and magnitude using a fixed ion beam velocity
 		double ionVelocityMagnitude = TMath::Sqrt(2 * eBeam->GetParameter().coolingEnergy * TMath::Qe() / PhysicalConstants::electronMass); // calc from cooling energy;
@@ -298,8 +363,6 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 
 void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesystem::path file)
 {
-	//ClearDistributionList();
-
 	// get all necessary modules
 	FileHandler fileHandler = FileHandler::GetInstance();
 	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
@@ -321,13 +384,29 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 		eBeam->SetCurrent(additionalParameter[1]);
 		
 		// full procedure to generate one energy distribution 
-		// 1. load files
-		std::filesystem::path densityfile = fileHandler.FindFileWithIndex(file.parent_path() / "e-densities", index);
-		std::filesystem::path energyfile = fileHandler.FindFileWithIndex(file.parent_path() / "lab-energies", index);
-		if (densityfile.empty() || energyfile.empty()) continue;
+		// 1. load files if necessary
+		if (eBeam->GetParameter().hasGaussianShape)
+		{
+			eBeam->GenerateElectronBeamDensity();
+		}
+		else
+		{
+			std::filesystem::path densityfile = fileHandler.FindFileWithIndex(file.parent_path() / "e-densities", index);
+			if (densityfile.empty()) continue;
 
-		eBeam->SetupDensityDistribution(densityfile);
-		LoadLabEnergyFile(energyfile);
+			eBeam->LoadDensityFile(densityfile);
+		}
+		if (parameter.useNoDriftTube)
+		{
+			GenerateLabEnergyMatrix();
+		}
+		else
+		{
+			std::filesystem::path energyfile = fileHandler.FindFileWithIndex(file.parent_path() / "lab-energies", index);
+			if (energyfile.empty()) continue;
+
+			LoadLabEnergyFile(energyfile);
+		}
 
 		// 2. multiply ion and electron beam
 		TH3D* result = ionBeam->MultiplyWithElectronDensities(eBeam->GetDistribution());
@@ -337,10 +416,15 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 		mcmc->GenerateSamples();
 
 		// 4. prepare current distribution
+		parameter.driftTubeVoltage = additionalParameter[0];
+		parameter.centerLabEnergy = additionalParameter[2];
 		SetupEnergyDistribution();
-		currentDistribution.driftTubeVoltage = additionalParameter[0];
-		currentDistribution.centerLabEnergy = additionalParameter[2];
-		currentDistribution.label = Form("%4.0d: U drift = %.2fV ##%d", currentDistribution.index, currentDistribution.driftTubeVoltage, std::time(0));
+		std::string tags = "";
+		if (currentDistribution.eBeamParameter.hasGaussianShape) tags += "e-gaus ";
+		if (currentDistribution.eBeamParameter.hasNoBending) tags += "no bend ";
+		if (currentDistribution.eBeamParameter.hasFixedLongitudinalTemperature) tags += "fixed kT|| ";
+
+		currentDistribution.label = Form("%d: U drift = %.2fV %s ##%d", currentDistribution.index, parameter.driftTubeVoltage, tags, std::time(0));
 
 		// 5. generate energy distribution
 		GenerateEnergyDistribution();
@@ -391,7 +475,7 @@ void EnergyDistributionModel::PlotRateCoefficients()
 
 	for (int i = 0; i < energyDistributions.size(); i++)
 	{
-		double E_d = pow(sqrt(energyDistributions[i].centerLabEnergy) - sqrt(energyDistributions[i].eBeamParameter.coolingEnergy), 2);
+		double E_d = pow(sqrt(energyDistributions[i].eDistParameter.centerLabEnergy) - sqrt(energyDistributions[i].eBeamParameter.coolingEnergy), 2);
 		rateCoefficients->SetPoint(i, E_d, energyDistributions[i].rateCoefficient);
 	}
 
@@ -456,16 +540,57 @@ void EnergyDistributionModel::ClearDistributionList()
 	energyDistributions.clear();
 }
 
+void EnergyDistributionModel::PlotLongkTDistribution()
+{
+	m_secondCanvas->cd(6);
+
+	long_ktDistribution->Draw();
+}
+
 std::string EnergyDistribution::String()
 {
-	std::string string = eBeamParameter.String() + ionBeamParameter.String() + mcmcParameter.String();
+	std::string string = Form("# folder: %s\n", folder.filename().string()) + 
+						 eDistParameter.String() +
+						 eBeamParameter.String() +
+						 ionBeamParameter.String() +
+						 mcmcParameter.String();
 
-	string += "# additional parameter:\n";
-	string += Form("# drift tube voltage: %e V\n", driftTubeVoltage);
-	string += Form("# lab energy in center: %e eV\n", centerLabEnergy);
-	string += Form("# density file: %s\n", densityFile.filename().string().c_str());
-	string += Form("# energy file: %s\n", energyFile.filename().string().c_str());
-	string += Form("# folder: %s\n", folder.filename().string());
+	return string;
+}
+
+std::string EnergyDistribution::Filename()
+{
+	std::ostringstream indexSS;
+	std::ostringstream eCoolSS;
+	eCoolSS << std::fixed << std::setprecision(3) << eBeamParameter.coolingEnergy;
+	indexSS << std::setw(4) << std::setfill('0') << index;
+
+	std::string string = indexSS.str() + "_" + folder.filename().string() +
+		"_energyDist_IonBeam" + std::to_string(int(ionBeamParameter.radius * 1000)) + "mm"
+		+ "_Ecool" + eCoolSS.str() + "eV" + ".asc";
+
+	return string;
+}
+
+std::string EnergyDistributionParameters::String()
+{
+	std::string string = std::string(Form("# energy distribution parameter:\n"));
+
+	if (useNoDriftTube)
+	{
+		string += std::string(Form("# using model without drift tube\n"));
+	}
+	else
+	{
+		string += std::string(Form("# energy file: %s\n", energyFile.filename().string().c_str()));
+	}
+	if (cutOutZValues)
+	{
+		string += std::string(Form("# cut out z values between: %f - %f\n", cutOutRange[0], cutOutRange[1]));
+	}
+						 
+	string += std::string(Form("# drift tube voltage: %e V\n", driftTubeVoltage));
+	string += std::string(Form("# lab energy in center: %e eV\n", centerLabEnergy));
 
 	return string;
 }

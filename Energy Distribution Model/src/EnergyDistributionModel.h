@@ -12,6 +12,21 @@
 #include "IonBeam.h"
 #include "Point3D.h"
 
+struct EnergyDistributionParameters
+{
+	double driftTubeVoltage = 0;
+	double centerLabEnergy = 0;
+
+	std::filesystem::path energyFile;
+
+	// parameters for simpler test 
+	bool useNoDriftTube = false;
+	bool cutOutZValues = false;
+	float cutOutRange[2] = { 0, 0.35 };
+
+	std::string String();
+};
+
 struct EnergyDistribution
 {
 	// resulting values
@@ -27,21 +42,17 @@ struct EnergyDistribution
 	MCMC_Parameters mcmcParameter;
 	ElectronBeamParameters eBeamParameter;
 	IonBeamParameters ionBeamParameter;
-
-	std::filesystem::path densityFile;
-	std::filesystem::path energyFile;
+	EnergyDistributionParameters eDistParameter;
 
 	// additional labelling things
-	std::string outputFileName = "";
 	std::string label = "";
 	//std::filesystem::path descriptionFile;
-	// energy range ??
-	std::filesystem::path folder;
+	std::filesystem::path folder = "Test";
 	int index = 0;
-	double driftTubeVoltage = 0;
-	double centerLabEnergy = 0;
 
 	//double cathodeVoltage;
+
+	bool plotted = false;
 
 	TH1D* operator->()
 	{
@@ -49,6 +60,7 @@ struct EnergyDistribution
 	}
 
 	std::string String();
+	std::string Filename();
 
 	//EnergyDistribution()
 	//{
@@ -72,6 +84,9 @@ public:
 private:
 	void ShowUI() override;
 	void ShowPlots() override;
+	void ShowEnergyDistributionList();
+
+	void GenerateLabEnergyMatrix();
 
 	void SetupEnergyDistribution();
 	void PlotEnergyDistributions();
@@ -80,13 +95,15 @@ private:
 
 	void PlotLabEnergyProjections();
 	void PLotZweightByEnergy();
+	void PlotLongkTDistribution();
 	void ClearDistributionList();
 
 private:
 	std::vector<EnergyDistribution> energyDistributions;
 	EnergyDistribution currentDistribution;
-	std::vector<double> currentEnergies;
+	EnergyDistributionParameters parameter;
 	
+	// graphs and plots
 	TGraph* rateCoefficients = nullptr;
 	TH1D* labEnergyProjectionX = nullptr;
 	TH1D* labEnergyProjectionY = nullptr;
@@ -94,18 +111,27 @@ private:
 
 	TH1D* zPositions = nullptr;
 	TH1D* zWeightByEnergy = nullptr;
+	TH1D* long_ktDistribution = nullptr;
 
-	std::filesystem::path loadedEnergyFile;
+	// currently loaded files
 	std::filesystem::path currentDescriptionFile;
 	int maxIndex = 0;
 
 	// start/end index in description file to generate distribution for
 	int startIndex = 1;
-	int endIndex = 2;
+	int endIndex = 1;
 	bool doAll = false;
 
+	// parameters for energy distribution generation
 	float energyRange[2] = { 6e-0, 100 };
 	bool normalise = true;
+
+	// list things
+	//int currentItem = -1;
+
+	// plot parameters
+	bool logX = true;
+	bool logY = true;
 
 	// random number generation things
 	std::mersenne_twister_engine<std::uint_fast64_t,

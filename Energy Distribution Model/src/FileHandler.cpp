@@ -215,7 +215,7 @@ std::filesystem::path FileHandler::FindFileWithIndex(std::filesystem::path folde
 void FileHandler::SaveEnergyDistributionToFile(EnergyDistribution energyDistribution)
 {
     std::filesystem::path file = outputFolder.string() / energyDistribution.folder.filename() /
-        std::filesystem::path(energyDistribution.outputFileName + ".asc");
+        std::filesystem::path(energyDistribution.Filename());
 
     std::filesystem::path dir = std::filesystem::path(file).parent_path();
 

@@ -16,7 +16,7 @@ struct ElectronBeamParameters
 	double transverse_kT = 2.0e-3;
 	//double longitudinal_kT = -3e-4;		// negative value => calculates kTlong automatically from Ie, including LLR and accel. energy spread. Abs(kTlong) still used for resolution estimates - CS binding
 
-	double coolingEnergy = 0.15; // 33.9342;		// cooling energy [eV]
+	double coolingEnergy = 0.15; 		// cooling energy [eV]
 	double cathodeRadius = 0.0012955;
 	double expansionFactor = 30;
 
@@ -26,6 +26,15 @@ struct ElectronBeamParameters
 	double LLR = 1.9;					// llr scaling factor
 	double sigmaLabEnergy = 0.0;		// sigma of gausian spread of the acceleration voltage (Elab) [eV]
 	double extractionEnergy = 31.26;	// extraction voltage for LLR (<=0 -> use Elab)
+
+	std::filesystem::path densityFile;
+
+	// parameters for analytical electron beam shape to test model
+	bool hasGaussianShape = false;
+	bool hasNoBending = false;
+	bool hasFixedLongitudinalTemperature = false;
+	double radius = 0.003;
+	double longitudinal_kT = 3e-4;
 
 	std::string String();
 };
@@ -38,8 +47,9 @@ public:
 	TH3D* GetDistribution() override;
 	void SetParameter(ElectronBeamParameters params);
 	void SetCurrent(double current);
-	std::filesystem::path GetLoadedDensityFile();
-	void SetupDensityDistribution(std::filesystem::path file);
+
+	void LoadDensityFile(std::filesystem::path file);
+	void GenerateElectronBeamDensity();
 
 	TVector3 GetDirection(double z);
 	TVector3 GetDirection(Point3D point);
@@ -49,11 +59,8 @@ public:
 private:
 	void ShowUI() override;
 
-	void LoadDensityFile(std::filesystem::path file);
 	void CutZerosFromDistribution();
 	void CreateLargeDistribution();
-
-	void GenerateElectronBeamDensity();
 
 	TVector3 GetNormal(double z);
 	double Trajectory(double z);
@@ -66,7 +73,6 @@ private:
 
 private:
 	ElectronBeamParameters parameters;
-	std::filesystem::path loadedDensityFile;
 
 	TH3D* generatedBeamDensity = nullptr;
 	TH3D* generatedBeamDensitySmall = nullptr;
@@ -83,16 +89,12 @@ private:
 	//TProfile2D* electronBeamProfileXZ = nullptr;
 	//TProfile2D* electronBeamProfileYZ = nullptr;
 
+	// parameters to increase histogram resolution by interpolation
 	bool increaseHist = false;
 	int factor = 3;
 
 	float sliderZ = 0;
 	float sliderY = 0;
-
-	// parameters for analytical electron beam shape to test model
-	bool useSimpleShape = false;
-	bool includeBend = false;
-	float radius = 0.005;
 };
 
 
