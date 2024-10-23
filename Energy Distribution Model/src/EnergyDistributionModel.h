@@ -20,7 +20,9 @@ struct EnergyDistributionParameters
 	std::filesystem::path energyFile;
 
 	// parameters for simpler test 
-	bool useNoDriftTube = false;
+	bool useUniformEnergies = false;
+	bool useOnlySliceXY = false;
+	float sliceToFill = 0.5;
 	bool cutOutZValues = false;
 	float cutOutRange[2] = { 0, 0.35 };
 
@@ -46,6 +48,7 @@ struct EnergyDistribution
 
 	// additional labelling things
 	std::string label = "";
+	std::string tags = "";
 	//std::filesystem::path descriptionFile;
 	std::filesystem::path folder = "Test";
 	int index = 0;
@@ -86,17 +89,20 @@ private:
 	void ShowPlots() override;
 	void ShowEnergyDistributionList();
 
-	void GenerateLabEnergyMatrix();
+	void GenerateUniformLabEnergy(float energy);
+	void FillEnergiesWithXY_Slice();
 
 	void SetupEnergyDistribution();
-	void PlotEnergyDistributions();
-	void PlotRateCoefficients();
-	void PlotCurrentEnergyDistribution();
 
+	void PlotLabEnergySlice();
+	void PlotEnergyDistributions();
+	void PlotCurrentEnergyDistribution();
 	void PlotLabEnergyProjections();
 	void PLotZweightByEnergy();
 	void PlotLongkTDistribution();
 	void PlotLongVelAddition();
+	void PlotRateCoefficients();
+
 	void ClearDistributionList();
 
 private:
@@ -109,6 +115,7 @@ private:
 	TH1D* labEnergyProjectionX = nullptr;
 	TH1D* labEnergyProjectionY = nullptr;
 	TH1D* labEnergyProjectionZ = nullptr;
+	TH2D* labEnergySliceXY = nullptr;
 
 	TH1D* zPositions = nullptr;
 	TH1D* zWeightByEnergy = nullptr;
@@ -134,6 +141,9 @@ private:
 	// plot parameters
 	bool logX = true;
 	bool logY = true;
+
+	// z value for the xy slice of the lab energies
+	float SliceZ = 0.0f;
 
 	// random number generation things
 	std::mersenne_twister_engine<std::uint_fast64_t,

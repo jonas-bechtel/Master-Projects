@@ -130,6 +130,7 @@ void ElectronBeam::ShowUI()
 		LoadDensityFile(file);
 		PlotDistribution();
 		PlotProjections();
+		PlotDensitySlice();
 
 		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 		TH3D* result = ionBeam->MultiplyWithElectronDensities(m_distribution);
@@ -140,6 +141,11 @@ void ElectronBeam::ShowUI()
 		mcmc->PlotTargetDistribution();
 	}
 	ImGui::SameLine();
+	ImGui::SetNextItemWidth(100.0f);
+	if (ImGui::InputFloat("slice z value", &SliceZ, 0.05f))
+	{
+		PlotDensitySlice();
+	}
 	ImGui::Checkbox("multiply bins", &increaseHist);
 	ImGui::SameLine();
 	ImGui::BeginDisabled(!increaseHist);
@@ -162,6 +168,7 @@ void ElectronBeam::ShowUI()
 		GenerateElectronBeamDensity();
 		PlotGeneratedDensities();
 		PlotProjections();
+		PlotDensitySlice();
 		
 		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 		TH3D* result = ionBeam->MultiplyWithElectronDensities(generatedBeamDensity);
@@ -177,11 +184,11 @@ void ElectronBeam::ShowUI()
 	ImGui::Checkbox("use fixed longitudinal kT", &parameters.hasFixedLongitudinalTemperature); ImGui::SetNextItemWidth(100.0f);
 	ImGui::BeginDisabled(!parameters.hasFixedLongitudinalTemperature);
 	ImGui::InputDouble("longitudinal kT [eV]", &parameters.longitudinal_kT);
-	ImGui::EndDisabled();
-	ImGui::Text("electron current: %e A", parameters.electronCurrent);			ImGui::SetNextItemWidth(100.0f);
+	ImGui::EndDisabled();														ImGui::SetNextItemWidth(100.0f);
 	ImGui::InputDouble("cooling energy [eV]", &parameters.coolingEnergy);		ImGui::SetNextItemWidth(100.0f);
 	ImGui::InputDouble("transverse kT [eV]", &parameters.transverse_kT);		ImGui::SetNextItemWidth(100.0f);
 	ImGui::BeginDisabled(parameters.hasFixedLongitudinalTemperature);
+	ImGui::InputDouble("electron current: [A]", &parameters.electronCurrent, 0.0, 0.0, "%.2e");	ImGui::SetNextItemWidth(100.0f);
 	ImGui::InputDouble("cathode radius [m]", &parameters.cathodeRadius);		ImGui::SetNextItemWidth(100.0f);
 	ImGui::InputDouble("cathode Temperature [K]", &parameters.cathodeTemperature); ImGui::SetNextItemWidth(100.0f);
 	ImGui::InputDouble("extraction energy [eV]", &parameters.extractionEnergy); ImGui::SetNextItemWidth(100.0f);
@@ -363,6 +370,39 @@ void ElectronBeam::GenerateElectronBeamDensity()
 	}
 }
 
+void ElectronBeam::PlotDensitySlice()
+{
+	if (!m_distribution) return;
+	if (densitySliceXY) delete densitySliceXY;
+
+	int z_bin = m_distribution->GetZaxis()->FindBin(SliceZ);
+
+	// Create a new TH2D histogram for the slice
+	int n_bins_x = m_distribution->GetNbinsX();
+	int n_bins_y = m_distribution->GetNbinsY();
+	double x_min = m_distribution->GetXaxis()->GetXmin();
+	double x_max = m_distribution->GetXaxis()->GetXmax();
+	double y_min = m_distribution->GetYaxis()->GetXmin();
+	double y_max = m_distribution->GetYaxis()->GetXmax();
+
+	densitySliceXY = new TH2D("Density Slice", Form("XY Slice at Z = %.2f", SliceZ),
+		n_bins_x, x_min, x_max,
+		n_bins_y, y_min, y_max);
+
+	// Fill the 2D histogram with the contents of the corresponding Z slice
+	for (int x_bin = 1; x_bin <= n_bins_x; x_bin++)
+	{
+		for (int y_bin = 1; y_bin <= n_bins_y; y_bin++)
+		{
+			double content = m_distribution->GetBinContent(x_bin, y_bin, z_bin);
+			densitySliceXY->SetBinContent(x_bin, y_bin, content);
+		}
+	}
+
+	m_mainCanvas->cd(1);
+	densitySliceXY->Draw("COLZ");
+}
+
 void ElectronBeam::PlotGeneratedDensities()
 {
 	if (!generatedBeamDensity) return;
@@ -381,7 +421,7 @@ void ElectronBeam::PlotGeneratedDensities()
 
 void ElectronBeam::PlotTrajectory()
 {
-	m_mainCanvas->cd(1);
+	m_secondCanvas->cd(4);
 	
 	const int N = 1000;
 	double zValues[N];

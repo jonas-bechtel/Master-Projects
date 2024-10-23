@@ -21,7 +21,7 @@ EnergyDistributionModel::EnergyDistributionModel()
 
 void EnergyDistributionModel::ShowUI()
 {
-	if (ImGui::BeginChild("##bla2", ImVec2(0, 200.0f)))
+	if (ImGui::BeginChild("##bla2", ImVec2(0, 300.0f)))
 	{
 		ImGui::Columns(2);
 		if (ImGui::Button("Load lab energies"))
@@ -30,21 +30,53 @@ void EnergyDistributionModel::ShowUI()
 			LoadLabEnergyFile(file);
 			PlotLabEnergyProjections();
 			PlotDistribution();
+			PlotLabEnergySlice();
 		}
-
-		ImGui::SetNextItemWidth(200.0f);
-		ImGui::InputFloat2("energy range", energyRange, "%.1e");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(100.0f);
+		if (ImGui::InputFloat("slice z value", &SliceZ, 0.05f))
+		{
+			PlotLabEnergySlice();
+		}
 
 		if (ImGui::Button("Generate Single Energy Distribution"))
 		{
-			delete currentDistribution.distribution;
+			//delete currentDistribution.distribution;
 			SetupEnergyDistribution();
 			GenerateEnergyDistribution();
 			PlotCurrentEnergyDistribution();
 			PLotZweightByEnergy();
 			FileHandler::GetInstance().SaveEnergyDistributionToFile(currentDistribution);
 		}
+
+		if (ImGui::Button("select description file"))
+		{
+			currentDescriptionFile = FileHandler::GetInstance().OpenFileExplorer();
+			maxIndex = FileHandler::GetInstance().GetMaxIndex(currentDescriptionFile);
+		}
 		ImGui::SameLine();
+		ImGui::Text(currentDescriptionFile.filename().string().c_str());
+
+		ImGui::BeginDisabled(currentDescriptionFile.empty());
+		if (ImGui::Button("Generate Distributions from description File"))
+		{
+			GenerateEnergyDistributionsFromFile(currentDescriptionFile);
+
+			PlotLabEnergySlice();
+			PlotLabEnergyProjections();
+			PlotEnergyDistributions();
+			PLotZweightByEnergy();
+			PlotRateCoefficients();
+			PlotLongkTDistribution();
+			PlotLongVelAddition();
+			PlotDistribution();
+		}
+		ImGui::EndDisabled();
+
+		ImGui::SetNextItemWidth(200.0f);
+		ImGui::InputFloat2("energy range", energyRange, "%.1e");
+
+		//ImGui::SameLine();
 		ImGui::Checkbox("normalise", &normalise);
 
 		ImGui::SetNextItemWidth(80.0f);
@@ -62,35 +94,25 @@ void EnergyDistributionModel::ShowUI()
 			ImGui::Text("(max Index: %d)", maxIndex);
 		}
 
-		if (ImGui::Button("select description file"))
-		{
-			currentDescriptionFile = FileHandler::GetInstance().OpenFileExplorer();
-			maxIndex = FileHandler::GetInstance().GetMaxIndex(currentDescriptionFile);
-		}
-		ImGui::SameLine();
-		ImGui::Text(currentDescriptionFile.filename().string().c_str());
-
-		ImGui::BeginDisabled(currentDescriptionFile.empty());
-		if (ImGui::Button("Generate Distributions from description File"))
-		{
-			GenerateEnergyDistributionsFromFile(currentDescriptionFile);
-
-			PlotLabEnergyProjections();
-			PlotEnergyDistributions();
-			PLotZweightByEnergy();
-			PlotRateCoefficients();
-			PlotLongkTDistribution();
-			PlotLongVelAddition();
-			PlotDistribution();
-		}
-		ImGui::EndDisabled();
-
 		ImGui::SetNextItemWidth(200.0f);
 		ImGui::BeginDisabled(!parameter.cutOutZValues);
 		ImGui::InputFloat2("", parameter.cutOutRange);
 		ImGui::EndDisabled();
 		ImGui::SameLine();
 		ImGui::Checkbox("cut out z range", &parameter.cutOutZValues);
+
+		ImGui::BeginDisabled(parameter.useOnlySliceXY);
+		ImGui::Checkbox("uniform energies", &parameter.useUniformEnergies);
+		ImGui::EndDisabled();
+
+		ImGui::BeginDisabled(parameter.useUniformEnergies);
+		ImGui::Checkbox("fill energies with slice", &parameter.useOnlySliceXY);
+		ImGui::EndDisabled();
+		ImGui::SameLine();
+		ImGui::BeginDisabled(!parameter.useOnlySliceXY);
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputFloat("z slice", &parameter.sliceToFill);
+		ImGui::EndDisabled();
 
 		ImGui::NextColumn();
 		ShowEnergyDistributionList();
@@ -125,7 +147,9 @@ void EnergyDistributionModel::ShowUI()
 		{
 			if (eDist.distribution && eDist.plotted)
 			{
-				ImPlot::PlotLine(eDist.label.c_str(), eDist.binCenters.data(), eDist.binValues.data(), eDist->GetNbinsX());
+				std::string label = eDist.label + Form("##%d", (int)eDist.distribution);
+				//std::cout << label << "\n";
+				ImPlot::PlotLine(label.c_str(), eDist.binCenters.data(), eDist.binValues.data(), eDist->GetNbinsX());
 			}
 		}
 
@@ -140,23 +164,25 @@ void EnergyDistributionModel::ShowPlots()
 
 void EnergyDistributionModel::ShowEnergyDistributionList()
 {
-	if (ImGui::BeginListBox("loaded distributions"))
+	ImGui::Text("loaded distributions");
+	if (ImGui::BeginListBox(""))
 	{
 		for (int i = 0; i < energyDistributions.size(); i++)
 		{
-			// Check if the current item is selected
-			//const bool isSelected = (currentItem == i);
-
 			EnergyDistribution& eDist = energyDistributions[i];
 
-			// Render each item as selectable
-			if (ImGui::Selectable(energyDistributions[i].label.c_str(), energyDistributions[i].plotted))
+			std::string label = eDist.label;
+			if (!eDist.tags.empty())
 			{
-				//std::cout << "selected " << i << "\n";
-				//currentItem = i;  // Update selected item
-				
+				label += "\n";
+				label += eDist.tags;
+			}
+			label += Form("##%d", (int)eDist.distribution);
+
+			// Render each item as selectable
+			if (ImGui::Selectable(label.c_str(), energyDistributions[i].plotted))
+			{
 				eDist.plotted = !eDist.plotted;
-				//std::cout << eDist.plotted << "\n";
 			}
 
 			if (ImGui::BeginItemTooltip())
@@ -230,8 +256,44 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 		("Energy Distribution " + histDescription).c_str(), numberBins, binEdges.data());
 }
 
-void EnergyDistributionModel::GenerateLabEnergyMatrix()
+void EnergyDistributionModel::GenerateUniformLabEnergy(float energy)
 {
+	if (m_distribution) delete m_distribution;
+
+	m_distribution = new TH3D("uniform energies", "uniform energies", 100, -0.1, 0.1, 100, -0.1, 0.1, 100, 0, 0.65);
+	for (int x = 1; x <= m_distribution->GetNbinsX(); x++)
+	{
+		for (int y = 1; y <= m_distribution->GetNbinsY(); y++)
+		{
+			for (int z = 1; z <= m_distribution->GetNbinsZ(); z++)
+			{
+				m_distribution->SetBinContent(x, y, z, energy);
+			}
+		}
+	}
+}
+
+void EnergyDistributionModel::FillEnergiesWithXY_Slice()
+{
+	if (!m_distribution) return;
+
+	int z_bin = m_distribution->GetZaxis()->FindBin(parameter.sliceToFill);
+
+	TH3D* temp = (TH3D*)m_distribution->Clone("slice filled energies");
+
+	for (int x = 1; x <= temp->GetNbinsX(); x++)
+	{
+		for (int y = 1; y <= temp->GetNbinsY(); y++)
+		{
+			for (int z = 1; z <= temp->GetNbinsZ(); z++)
+			{
+				double value = m_distribution->GetBinContent(x, y, z_bin);
+				temp->SetBinContent(x, y, z, value);
+			}
+		}
+	}
+	delete m_distribution;
+	m_distribution = temp;
 }
 
 void EnergyDistributionModel::GenerateEnergyDistribution()
@@ -398,9 +460,9 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 
 			eBeam->LoadDensityFile(densityfile);
 		}
-		if (parameter.useNoDriftTube)
+		if (parameter.useUniformEnergies)
 		{
-			GenerateLabEnergyMatrix();
+			GenerateUniformLabEnergy(additionalParameter[2]);
 		}
 		else
 		{
@@ -408,6 +470,11 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 			if (energyfile.empty()) continue;
 
 			LoadLabEnergyFile(energyfile);
+
+			if (parameter.useOnlySliceXY)
+			{
+				FillEnergiesWithXY_Slice();
+			}
 		}
 
 		// 2. multiply ion and electron beam
@@ -421,12 +488,15 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 		parameter.driftTubeVoltage = additionalParameter[0];
 		parameter.centerLabEnergy = additionalParameter[2];
 		SetupEnergyDistribution();
-		std::string tags = "";
-		if (currentDistribution.eBeamParameter.hasGaussianShape) tags += "e-gaus ";
-		if (currentDistribution.eBeamParameter.hasNoBending) tags += "no bend ";
-		if (currentDistribution.eBeamParameter.hasFixedLongitudinalTemperature) tags += "fixed kT|| ";
 
-		currentDistribution.label = Form("%d: U drift = %.2fV %s ##%d", currentDistribution.index, parameter.driftTubeVoltage, tags, std::time(0));
+		if (currentDistribution.eBeamParameter.hasGaussianShape) currentDistribution.tags += "e-gaus ";
+		if (currentDistribution.eBeamParameter.hasNoBending) currentDistribution.tags += "no bend ";
+		if (currentDistribution.eBeamParameter.hasFixedLongitudinalTemperature) currentDistribution.tags += "fixed kT|| ";
+		if (parameter.useUniformEnergies) currentDistribution.tags += "uniform energy ";
+		if (parameter.useOnlySliceXY) currentDistribution.tags += Form("energy sliced %.3f ", parameter.sliceToFill);
+		if (parameter.cutOutZValues) currentDistribution.tags += Form("z samples %.3f - %.3f", parameter.cutOutRange[0], parameter.cutOutRange[1]);
+
+		currentDistribution.label = Form("%d: U drift = %.2fV", currentDistribution.index, parameter.driftTubeVoltage);
 
 		// 5. generate energy distribution
 		GenerateEnergyDistribution();
@@ -436,6 +506,39 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 
 		energyDistributions.push_back(currentDistribution);
 	}
+}
+
+void EnergyDistributionModel::PlotLabEnergySlice()
+{
+	if (!m_distribution) return;
+	if (labEnergySliceXY) delete labEnergySliceXY;
+
+	int z_bin = m_distribution->GetZaxis()->FindBin(SliceZ);
+
+	// Create a new TH2D histogram for the slice
+	int n_bins_x = m_distribution->GetNbinsX();
+	int n_bins_y = m_distribution->GetNbinsY();
+	double x_min = m_distribution->GetXaxis()->GetXmin();
+	double x_max = m_distribution->GetXaxis()->GetXmax();
+	double y_min = m_distribution->GetYaxis()->GetXmin();
+	double y_max = m_distribution->GetYaxis()->GetXmax();
+
+	labEnergySliceXY = new TH2D("Energy Slice", Form("XY Slice at Z = %.2f", SliceZ),
+		n_bins_x, x_min, x_max,
+		n_bins_y, y_min, y_max);
+
+	// Fill the 2D histogram with the contents of the corresponding Z slice
+	for (int x_bin = 1; x_bin <= n_bins_x; x_bin++)
+	{
+		for (int y_bin = 1; y_bin <= n_bins_y; y_bin++)
+		{
+			double content = m_distribution->GetBinContent(x_bin, y_bin, z_bin);
+			labEnergySliceXY->SetBinContent(x_bin, y_bin, content);
+		}
+	}
+
+	m_mainCanvas->cd(1);
+	labEnergySliceXY->Draw("COLZ");
 }
 
 void EnergyDistributionModel::PlotEnergyDistributions()
@@ -585,17 +688,22 @@ std::string EnergyDistributionParameters::String()
 {
 	std::string string = std::string(Form("# energy distribution parameter:\n"));
 
-	if (useNoDriftTube)
+	if (useUniformEnergies)
 	{
-		string += std::string(Form("# using model without drift tube\n"));
+		string += std::string(Form("# using a uniform energy distribution with the center lab energy\n"));
 	}
 	else
 	{
 		string += std::string(Form("# energy file: %s\n", energyFile.filename().string().c_str()));
+		if (useOnlySliceXY)
+		{
+			string += std::string(Form("# using only one xy slice to fill the rest\n"));
+			string += std::string(Form("# z value of slice: %.3f\n", sliceToFill));
+		}
 	}
 	if (cutOutZValues)
 	{
-		string += std::string(Form("# cut out z values between: %f - %f\n", cutOutRange[0], cutOutRange[1]));
+		string += std::string(Form("# cut out z sample values between: %f - %f\n", cutOutRange[0], cutOutRange[1]));
 	}
 						 
 	string += std::string(Form("# drift tube voltage: %e V\n", driftTubeVoltage));

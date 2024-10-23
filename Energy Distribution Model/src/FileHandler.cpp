@@ -22,8 +22,8 @@ TH3D* FileHandler::LoadMatrixFile(std::filesystem::path filename)
     TH3D* dataMatrix = CreateTH3DfromHeader(file);
 
     std::string line;
-    int currentY = 0;
-    int currentZ = 0;
+    int currentY = 1;
+    int currentZ = 1;
 
     // Read the file line by line
     while (std::getline(file, line)) 
@@ -31,14 +31,14 @@ TH3D* FileHandler::LoadMatrixFile(std::filesystem::path filename)
         if (line.find(zDelimiter) != std::string::npos)
         {
             currentZ++;
-            currentY = 0;
+            currentY = 1;
             continue;
         }
         std::vector<std::string> tokens = SplitLine(line, xDelimiter);
 
-        for (int x = 0; x < tokens.size(); x++)
+        for (int x = 1; x <= tokens.size(); x++)
         {
-            dataMatrix->SetBinContent(x, currentY, currentZ, std::stod(tokens[x]));
+            dataMatrix->SetBinContent(x, currentY, currentZ, std::stod(tokens[x-1]));
         }
         currentY++;
     }

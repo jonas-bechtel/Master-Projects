@@ -90,7 +90,7 @@ void Module::PlotDistribution()
 	m_distributionSmall->GetXaxis()->SetTitle("x-axis");
 	m_distributionSmall->GetYaxis()->SetTitle("y-axis");
 	m_distributionSmall->GetZaxis()->SetTitle("z-axis");
-	m_distributionSmall->Draw("BOX2");
+	m_distributionSmall->Draw("BOX2 COLZ");
 }
 
 bool Module::RebinningFactorInput()

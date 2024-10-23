@@ -67,6 +67,7 @@ private:
 	double Derivative(double z);
 	double DistancePointToTrajectoryOfZ(double z, Point3D point);
 
+	void PlotDensitySlice();
 	void PlotGeneratedDensities();
 	void PlotTrajectory();
 	void PlotProjections();
@@ -76,6 +77,7 @@ private:
 
 	TH3D* generatedBeamDensity = nullptr;
 	TH3D* generatedBeamDensitySmall = nullptr;
+	TH2D* densitySliceXY = nullptr;
 
 	TH1D* electronBeamProjectionX = nullptr;
 	TH1D* electronBeamProjectionY = nullptr;
@@ -95,6 +97,8 @@ private:
 
 	float sliderZ = 0;
 	float sliderY = 0;
+
+	float SliceZ = 0.0f;
 };
 
 
