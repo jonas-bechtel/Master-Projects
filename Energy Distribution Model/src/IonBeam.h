@@ -15,7 +15,7 @@ struct IonBeamParameters
 	std::string String();
 };
 
-class IonBeam : public Module
+class IonBeam : public Distribution3D
 {
 public:
 	IonBeam();
@@ -26,7 +26,6 @@ public:
 
 private:
 	void ShowUI() override;
-	void PlotAllOnMainCanvas() override { PlotDistribution(); }
 
 	void CreateIonBeam(TH3D* referenceDensity);
 private:

@@ -28,7 +28,7 @@ struct MCMC_Parameters
 	std::string String();
 };
 
-class MCMC : public Module
+class MCMC : public Distribution3D
 {
 public:
 	MCMC();

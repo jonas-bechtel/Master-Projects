@@ -8,7 +8,7 @@
 #include "EnergyDistributionModel.h"
 
 MCMC::MCMC()
-	: Module("MCMC")
+	: Distribution3D("MCMC")
 {
 }
 

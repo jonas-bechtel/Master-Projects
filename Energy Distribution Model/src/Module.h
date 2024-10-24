@@ -12,19 +12,12 @@ class Module
 {
 public:
 	Module(std::string name);
+	virtual ~Module();
+
 	static Module* Get(std::string name);
 	static std::unordered_map<std::string, Module*>& GetModuleMap();
 
 	void ShowWindow();
-	virtual TH3D* GetDistribution();
-	void PlotDistribution();
-
-	virtual ~Module();
-
-protected:
-	virtual void PlotAllOnMainCanvas();
-	virtual void PlotAllOnSecondCanvas();
-	bool RebinningFactorInput();
 
 private:
 	bool IsCanvasShown(TCanvas* canvas);
@@ -34,19 +27,32 @@ private:
 	void UpdateCanvas();
 
 	virtual void ShowUI() = 0;
-	virtual void ShowPlots() {};
 
 protected:
 	static std::unordered_map<std::string, Module*> s_moduleMap;
-	static int s_rebinningFactors[3];
-
+	
 	std::string m_name;
 	TCanvas* m_mainCanvas;
 	TCanvas* m_secondCanvas;
+};
 
+class Distribution3D : public Module
+{
+public:
+	Distribution3D(std::string name);
+	virtual TH3D* GetDistribution();
+	void PlotDistribution();
+	 
+	virtual ~Distribution3D() override;
+
+protected:
+	bool RebinningFactorInput();
+
+protected:
 	TH3D* m_distribution;
 	TH3D* m_distributionSmall;
 
-	bool m_hasPlotWindow = false;
+	static int s_rebinningFactors[3];
+
 };
 

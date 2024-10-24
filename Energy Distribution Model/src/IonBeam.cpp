@@ -7,7 +7,7 @@
 #include "MCMC.h"
 
 IonBeam::IonBeam()
-	: Module("Ion Beam")
+	: Distribution3D("Ion Beam")
 {
 }
 

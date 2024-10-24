@@ -18,7 +18,7 @@
 #include <TRootCanvas.h>
 
 ElectronBeam::ElectronBeam()
-	: Module("Electron Beam")
+	: Distribution3D("Electron Beam")
 {
 	PlotTrajectory();
 }

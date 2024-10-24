@@ -81,7 +81,6 @@ public:
 
 private:
 	void ShowUI() override;
-	void ShowPlots() override;
 	void ShowEnergyDistributionList();
 
 	void SetupEnergyDistribution();

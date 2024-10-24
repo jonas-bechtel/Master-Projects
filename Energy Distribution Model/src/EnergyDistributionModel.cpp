@@ -53,7 +53,6 @@ void EnergyDistributionModel::ShowUI()
 			PlotRateCoefficients();
 			PlotLongkTDistribution();
 			PlotLongVelAddition();
-			PlotDistribution();
 		}
 		ImGui::EndDisabled();
 
@@ -125,11 +124,6 @@ void EnergyDistributionModel::ShowUI()
 
 		ImPlot::EndPlot();
 	}
-}
-
-void EnergyDistributionModel::ShowPlots()
-{
-	
 }
 
 void EnergyDistributionModel::ShowEnergyDistributionList()

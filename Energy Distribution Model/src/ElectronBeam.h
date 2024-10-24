@@ -39,7 +39,7 @@ struct ElectronBeamParameters
 	std::string String();
 };
 
-class ElectronBeam : public Module
+class ElectronBeam : public Distribution3D
 {
 public:
 	ElectronBeam();

@@ -16,7 +16,7 @@ struct LabEnergiesParameters
 	std::string String();
 };
 
-class LabEnergies : public Module
+class LabEnergies : public Distribution3D
 {
 public:
 	LabEnergies();

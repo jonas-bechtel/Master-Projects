@@ -5,7 +5,7 @@
 #include <iostream>
 
 std::unordered_map<std::string, Module*> Module::s_moduleMap;
-int Module::s_rebinningFactors[3] = { 10, 10, 10 };
+int Distribution3D::s_rebinningFactors[3] = { 10, 10, 10 };
 
 Module::Module(std::string name)
 	: m_name(name)
@@ -48,54 +48,13 @@ void Module::ShowWindow()
 	}
 	ImGui::End();
 
-	//if (m_hasPlotWindow && ImGui::Begin("Plots"))
-	//{
-	//	ShowPlots();
-	//	ImGui::End();
-	//}
 	UpdateCanvas();
-}
-
-TH3D* Module::GetDistribution()
-{
-	return m_distribution;
 }
 
 Module::~Module()
 {
-	delete m_distribution;
-	delete m_distributionSmall;
 	delete m_mainCanvas;
 	delete m_secondCanvas;
-}
-
-void Module::PlotAllOnMainCanvas()
-{
-}
-
-void Module::PlotAllOnSecondCanvas()
-{
-}
-
-void Module::PlotDistribution()
-{
-	if (!m_distribution) return;
-	if (m_distributionSmall) delete m_distributionSmall;
-
-	m_mainCanvas->cd(2);
-	m_distributionSmall = (TH3D*)m_distribution->Rebin3D(s_rebinningFactors[0],
-														 s_rebinningFactors[1], 
-														 s_rebinningFactors[2], "dist small");
-
-	m_distributionSmall->GetXaxis()->SetTitle("x-axis");
-	m_distributionSmall->GetYaxis()->SetTitle("y-axis");
-	m_distributionSmall->GetZaxis()->SetTitle("z-axis");
-	m_distributionSmall->Draw("BOX2 COLZ");
-}
-
-bool Module::RebinningFactorInput()
-{
-	return ImGui::InputInt3("Rebinning factors", s_rebinningFactors);
 }
 
 bool Module::IsCanvasShown(TCanvas* canvas)
@@ -125,7 +84,7 @@ void Module::ShowHideCanvasButton(TCanvas* canvas)
 		else
 		{
 			ShowCanvas(canvas);
-			canvas == m_mainCanvas ? PlotAllOnMainCanvas() : PlotAllOnSecondCanvas();
+			//canvas == m_mainCanvas ? PlotAllOnMainCanvas() : PlotAllOnSecondCanvas();
 		}
 	}
 }
@@ -139,4 +98,42 @@ void Module::UpdateCanvas()
 	m_secondCanvas->cd();
 	m_secondCanvas->Modified();
 	m_secondCanvas->Update();
+}
+
+Distribution3D::Distribution3D(std::string name)
+	: Module(name)
+{
+
+}
+
+TH3D* Distribution3D::GetDistribution()
+{
+	return m_distribution;
+}
+
+void Distribution3D::PlotDistribution()
+{
+	if (!m_distribution) return;
+	if (m_distributionSmall) delete m_distributionSmall;
+
+	m_mainCanvas->cd(2);
+	m_distributionSmall = (TH3D*)m_distribution->Rebin3D(s_rebinningFactors[0],
+		s_rebinningFactors[1],
+		s_rebinningFactors[2], "dist small");
+
+	m_distributionSmall->GetXaxis()->SetTitle("x-axis");
+	m_distributionSmall->GetYaxis()->SetTitle("y-axis");
+	m_distributionSmall->GetZaxis()->SetTitle("z-axis");
+	m_distributionSmall->Draw("BOX2 COLZ");
+}
+
+Distribution3D::~Distribution3D()
+{
+	delete m_distribution;
+	delete m_distributionSmall;
+}
+
+bool Distribution3D::RebinningFactorInput()
+{
+	return ImGui::InputInt3("Rebinning factors", s_rebinningFactors);
 }

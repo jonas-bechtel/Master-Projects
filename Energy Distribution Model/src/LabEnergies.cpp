@@ -2,7 +2,7 @@
 #include "FileHandler.h"
 
 LabEnergies::LabEnergies()
-	: Module("Lab Energies")
+	: Distribution3D("Lab Energies")
 {
 
 }
