@@ -81,18 +81,17 @@ void EnergyDistributionModel::ShowUI()
 
 		ImGui::SetNextItemWidth(80.0f);
 		ImGui::BeginDisabled(doAll);
-		ImGui::InputInt("start index", &startIndex);
+		ImGui::InputInt("start", &startIndex);
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(80.0f);
-		ImGui::InputInt("end index", &endIndex);
+		ImGui::InputInt("end", &endIndex);
 		ImGui::EndDisabled();
 		ImGui::SameLine();
 		ImGui::Checkbox("all", &doAll);
-		if (doAll)
-		{
-			ImGui::SameLine();
-			ImGui::Text("(max Index: %d)", maxIndex);
-		}
+		ImGui::BeginDisabled(!doAll);
+		ImGui::SameLine();
+		ImGui::Text("(max Index: %d)", maxIndex);
+		ImGui::EndDisabled();
 
 		ImGui::SetNextItemWidth(200.0f);
 		ImGui::BeginDisabled(!parameter.cutOutZValues);
@@ -111,7 +110,7 @@ void EnergyDistributionModel::ShowUI()
 		ImGui::SameLine();
 		ImGui::BeginDisabled(!parameter.useOnlySliceXY);
 		ImGui::SetNextItemWidth(100.0f);
-		ImGui::InputFloat("z slice", &parameter.sliceToFill);
+		ImGui::InputFloat("z slice", &parameter.sliceToFill, 0.05f);
 		ImGui::EndDisabled();
 
 		ImGui::NextColumn();
@@ -165,7 +164,7 @@ void EnergyDistributionModel::ShowPlots()
 void EnergyDistributionModel::ShowEnergyDistributionList()
 {
 	ImGui::Text("loaded distributions");
-	if (ImGui::BeginListBox(""))
+	if (ImGui::BeginListBox("", ImVec2(-1, 250)))
 	{
 		for (int i = 0; i < energyDistributions.size(); i++)
 		{
@@ -207,9 +206,6 @@ void EnergyDistributionModel::LoadLabEnergyFile(std::filesystem::path file)
 		m_distribution->SetName("lab energies");
 		
 		parameter.energyFile = file;
-
-		//PlotDistribution();
-		//PlotLabEnergyProjections();
 	}
 }
 
@@ -237,7 +233,6 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 	int binsPerDecade = 2000;
 	float numberBins = (int)((max - min) / 10 * binsPerDecade);
 	double factor = TMath::Power((max / min), (1 / numberBins));
-	//std::cout << "N: " << numberBins << " factor: " << factor << "\n";
 
 	currentDistribution.binCenters.reserve(numberBins);
 	currentDistribution.binValues.reserve(numberBins);
@@ -247,7 +242,6 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 	binEdges.push_back(min);
 	for (int i = 0; i < numberBins; i++)
 	{
-		//std::cout << binEdges[i] * factor << "\n";
 		binEdges.push_back(binEdges[i] * factor);
 	}
 
@@ -307,6 +301,8 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 
 	delete zPositions;
 	delete zWeightByEnergy;
+	delete long_ktDistribution;
+	delete long_VelAddition;
 	zPositions = new TH1D("z-positions", "z-positions", 100, 0, 0.65);
 	zWeightByEnergy = new TH1D("z weight by energy", "z weight by energy", 100, 0, 0.65);
 	long_ktDistribution = new TH1D("long kT", "long kT", 500, 5e-6, 2e-5);
@@ -434,9 +430,14 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 
 	int end = endIndex;
-	if (doAll) end = maxIndex;
+	int start = startIndex;
+	if (doAll)
+	{
+		start = 1;
+		end = maxIndex;
+	}
 
-	for (int index = startIndex; index <= end; index++)
+	for (int index = start; index <= end; index++)
 	{
 		// get 3 parameters: U drift tube, electron current, center E lab
 		std::array<float, 3> additionalParameter = fileHandler.GetParamtersFromDescriptionFileAtIndex(file, index);
@@ -562,7 +563,6 @@ void EnergyDistributionModel::PlotEnergyDistributions()
 		if (i == 0)
 		{
 			energyDistributions[i]->Draw("HIST");
-			energyDistributions[i]->GetXaxis()->SetRangeUser(energyRange[0], energyRange[1]);
 		}
 		else
 		{
