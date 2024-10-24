@@ -17,8 +17,6 @@ struct EnergyDistributionParameters
 {
 	double driftTubeVoltage = 0;
 
-	std::filesystem::path energyFile;
-
 	// parameters for simpler test 
 	bool cutOutZValues = false;
 	float cutOutRange[2] = { 0, 0.35 };

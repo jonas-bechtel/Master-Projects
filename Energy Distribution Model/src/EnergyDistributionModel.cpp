@@ -182,7 +182,7 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 	currentDistribution.labEnergiesParameter = labEnergies->GetParameter();
 	currentDistribution.eDistParameter = parameter;
 
-	if (!currentDistribution.eBeamParameter.densityFile.empty() && !currentDistribution.eDistParameter.energyFile.empty())
+	if (!currentDistribution.eBeamParameter.densityFile.empty() && !currentDistribution.labEnergiesParameter.energyFile.empty())
 	{
 		currentDistribution.folder = currentDistribution.eBeamParameter.densityFile.parent_path().parent_path();
 		currentDistribution.index = std::stoi(currentDistribution.eBeamParameter.densityFile.filename().string().substr(0, 4));
@@ -503,8 +503,9 @@ void EnergyDistributionModel::PlotLongVelAddition()
 std::string EnergyDistribution::String()
 {
 	std::string string = Form("# folder: %s\n", folder.filename().string()) + 
-						 eDistParameter.String() +
 						 eBeamParameter.String() +
+						 labEnergiesParameter.String() +
+						 eDistParameter.String() +
 						 ionBeamParameter.String() +
 						 mcmcParameter.String();
 
