@@ -10,19 +10,16 @@
 #include "MCMC.h"
 #include "ElectronBeam.h"
 #include "IonBeam.h"
+#include "LabEnergies.h"
 #include "Point3D.h"
 
 struct EnergyDistributionParameters
 {
 	double driftTubeVoltage = 0;
-	double centerLabEnergy = 0;
 
 	std::filesystem::path energyFile;
 
 	// parameters for simpler test 
-	bool useUniformEnergies = false;
-	bool useOnlySliceXY = false;
-	float sliceToFill = 0.5;
 	bool cutOutZValues = false;
 	float cutOutRange[2] = { 0, 0.35 };
 
@@ -44,6 +41,7 @@ struct EnergyDistribution
 	MCMC_Parameters mcmcParameter;
 	ElectronBeamParameters eBeamParameter;
 	IonBeamParameters ionBeamParameter;
+	LabEnergiesParameters labEnergiesParameter;
 	EnergyDistributionParameters eDistParameter;
 
 	// additional labelling things
@@ -80,7 +78,6 @@ class EnergyDistributionModel : public Module
 {
 public:
 	EnergyDistributionModel();
-	void LoadLabEnergyFile(std::filesystem::path file);
 	void GenerateEnergyDistribution();
 	void GenerateEnergyDistributionsFromFile(std::filesystem::path file);
 
@@ -89,15 +86,10 @@ private:
 	void ShowPlots() override;
 	void ShowEnergyDistributionList();
 
-	void GenerateUniformLabEnergy(float energy);
-	void FillEnergiesWithXY_Slice();
-
 	void SetupEnergyDistribution();
 
-	void PlotLabEnergySlice();
 	void PlotEnergyDistributions();
 	void PlotCurrentEnergyDistribution();
-	void PlotLabEnergyProjections();
 	void PLotZweightByEnergy();
 	void PlotLongkTDistribution();
 	void PlotLongVelAddition();
@@ -112,10 +104,6 @@ private:
 	
 	// graphs and plots
 	TGraph* rateCoefficients = nullptr;
-	TH1D* labEnergyProjectionX = nullptr;
-	TH1D* labEnergyProjectionY = nullptr;
-	TH1D* labEnergyProjectionZ = nullptr;
-	TH2D* labEnergySliceXY = nullptr;
 
 	TH1D* zPositions = nullptr;
 	TH1D* zWeightByEnergy = nullptr;
@@ -135,15 +123,9 @@ private:
 	float energyRange[2] = { 6e-0, 100 };
 	bool normalise = true;
 
-	// list things
-	//int currentItem = -1;
-
 	// plot parameters
 	bool logX = true;
 	bool logY = true;
-
-	// z value for the xy slice of the lab energies
-	float SliceZ = 0.0f;
 
 	// random number generation things
 	std::mersenne_twister_engine<std::uint_fast64_t,

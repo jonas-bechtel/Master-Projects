@@ -144,6 +144,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\LabEnergies.cpp" />
     <ClCompile Include="src\Module.cpp" />
     <ClCompile Include="src\IonBeam.cpp" />
     <ClCompile Include="src\Application.cpp" />
@@ -165,6 +166,7 @@
     <ClCompile Include="vendor\tinyfiledialogs\tinyfiledialogs.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\LabEnergies.h" />
     <ClInclude Include="src\Module.h" />
     <ClInclude Include="src\IonBeam.h" />
     <ClInclude Include="src\Application.h" />

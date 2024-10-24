@@ -43,6 +43,7 @@ protected:
 	std::string m_name;
 	TCanvas* m_mainCanvas;
 	TCanvas* m_secondCanvas;
+
 	TH3D* m_distribution;
 	TH3D* m_distributionSmall;
 

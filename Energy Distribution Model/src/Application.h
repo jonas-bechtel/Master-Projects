@@ -22,6 +22,7 @@ private:
 	ElectronBeam electronBeam;
 	IonBeam ionBeam;
 	MCMC mcmc;
+	LabEnergies labEnergies;
 	EnergyDistributionModel model;
 };
 

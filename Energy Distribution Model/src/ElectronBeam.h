@@ -43,6 +43,7 @@ class ElectronBeam : public Module
 {
 public:
 	ElectronBeam();
+	void SetupDistribution(std::filesystem::path densityfile);
 	ElectronBeamParameters GetParameter();
 	TH3D* GetDistribution() override;
 	void SetParameter(ElectronBeamParameters params);

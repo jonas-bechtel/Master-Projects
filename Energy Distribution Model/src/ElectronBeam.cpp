@@ -23,6 +23,18 @@ ElectronBeam::ElectronBeam()
 	PlotTrajectory();
 }
 
+void ElectronBeam::SetupDistribution(std::filesystem::path densityfile)
+{
+	if (parameters.hasGaussianShape)
+	{
+		GenerateElectronBeamDensity();
+	}
+	else
+	{
+		LoadDensityFile(densityfile);
+	}
+}
+
 ElectronBeamParameters ElectronBeam::GetParameter()
 {
 	return parameters;

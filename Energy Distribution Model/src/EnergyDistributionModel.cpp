@@ -24,20 +24,6 @@ void EnergyDistributionModel::ShowUI()
 	if (ImGui::BeginChild("##bla2", ImVec2(0, 300.0f)))
 	{
 		ImGui::Columns(2);
-		if (ImGui::Button("Load lab energies"))
-		{
-			std::filesystem::path file = FileHandler::GetInstance().OpenFileExplorer();
-			LoadLabEnergyFile(file);
-			PlotLabEnergyProjections();
-			PlotDistribution();
-			PlotLabEnergySlice();
-		}
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(100.0f);
-		if (ImGui::InputFloat("slice z value", &SliceZ, 0.05f))
-		{
-			PlotLabEnergySlice();
-		}
 
 		if (ImGui::Button("Generate Single Energy Distribution"))
 		{
@@ -62,8 +48,6 @@ void EnergyDistributionModel::ShowUI()
 		{
 			GenerateEnergyDistributionsFromFile(currentDescriptionFile);
 
-			PlotLabEnergySlice();
-			PlotLabEnergyProjections();
 			PlotEnergyDistributions();
 			PLotZweightByEnergy();
 			PlotRateCoefficients();
@@ -99,19 +83,6 @@ void EnergyDistributionModel::ShowUI()
 		ImGui::EndDisabled();
 		ImGui::SameLine();
 		ImGui::Checkbox("cut out z range", &parameter.cutOutZValues);
-
-		ImGui::BeginDisabled(parameter.useOnlySliceXY);
-		ImGui::Checkbox("uniform energies", &parameter.useUniformEnergies);
-		ImGui::EndDisabled();
-
-		ImGui::BeginDisabled(parameter.useUniformEnergies);
-		ImGui::Checkbox("fill energies with slice", &parameter.useOnlySliceXY);
-		ImGui::EndDisabled();
-		ImGui::SameLine();
-		ImGui::BeginDisabled(!parameter.useOnlySliceXY);
-		ImGui::SetNextItemWidth(100.0f);
-		ImGui::InputFloat("z slice", &parameter.sliceToFill, 0.05f);
-		ImGui::EndDisabled();
 
 		ImGui::NextColumn();
 		ShowEnergyDistributionList();
@@ -196,30 +167,19 @@ void EnergyDistributionModel::ShowEnergyDistributionList()
 	ImGui::EndListBox();
 }
 
-void EnergyDistributionModel::LoadLabEnergyFile(std::filesystem::path file)
-{
-	if (!file.empty())
-	{
-		delete m_distribution;
-		m_distribution = FileHandler::GetInstance().LoadMatrixFile(file);
-		m_distribution->SetTitle("lab energies");
-		m_distribution->SetName("lab energies");
-		
-		parameter.energyFile = file;
-	}
-}
-
 void EnergyDistributionModel::SetupEnergyDistribution()
 {
 	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
 	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
+	LabEnergies* labEnergies = (LabEnergies*)Module::Get("Lab Energies");
 
 	currentDistribution = EnergyDistribution();
 
 	currentDistribution.mcmcParameter = mcmc->GetParameter();
 	currentDistribution.eBeamParameter = eBeam->GetParameter();
 	currentDistribution.ionBeamParameter = ionBeam->GetParameter();
+	currentDistribution.labEnergiesParameter = labEnergies->GetParameter();
 	currentDistribution.eDistParameter = parameter;
 
 	if (!currentDistribution.eBeamParameter.densityFile.empty() && !currentDistribution.eDistParameter.energyFile.empty())
@@ -250,50 +210,11 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 		("Energy Distribution " + histDescription).c_str(), numberBins, binEdges.data());
 }
 
-void EnergyDistributionModel::GenerateUniformLabEnergy(float energy)
-{
-	if (m_distribution) delete m_distribution;
-
-	m_distribution = new TH3D("uniform energies", "uniform energies", 100, -0.1, 0.1, 100, -0.1, 0.1, 100, 0, 0.65);
-	for (int x = 1; x <= m_distribution->GetNbinsX(); x++)
-	{
-		for (int y = 1; y <= m_distribution->GetNbinsY(); y++)
-		{
-			for (int z = 1; z <= m_distribution->GetNbinsZ(); z++)
-			{
-				m_distribution->SetBinContent(x, y, z, energy);
-			}
-		}
-	}
-}
-
-void EnergyDistributionModel::FillEnergiesWithXY_Slice()
-{
-	if (!m_distribution) return;
-
-	int z_bin = m_distribution->GetZaxis()->FindBin(parameter.sliceToFill);
-
-	TH3D* temp = (TH3D*)m_distribution->Clone("slice filled energies");
-
-	for (int x = 1; x <= temp->GetNbinsX(); x++)
-	{
-		for (int y = 1; y <= temp->GetNbinsY(); y++)
-		{
-			for (int z = 1; z <= temp->GetNbinsZ(); z++)
-			{
-				double value = m_distribution->GetBinContent(x, y, z_bin);
-				temp->SetBinContent(x, y, z, value);
-			}
-		}
-	}
-	delete m_distribution;
-	m_distribution = temp;
-}
-
 void EnergyDistributionModel::GenerateEnergyDistribution()
 {
 	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
+	LabEnergies* labEnergies = (LabEnergies*)Module::Get("Lab Energies");
 
 	// sample positions from electron density multiplied with ion density given from outside
 	std::vector<Point3D> positionSamples = mcmc->GetSamples();
@@ -313,8 +234,8 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		std::cout << "no sampled positions were given\n";
 		return; 
 	}
-
-	if (!m_distribution)
+	
+	if (!labEnergies->GetDistribution())
 	{
 		std::cout << "no lab energies were given\n";
 		return; 
@@ -331,20 +252,13 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 				z > parameter.cutOutRange[1])
 				continue;
 		}
-		int numberBinsX = m_distribution->GetXaxis()->GetNbins();
-		int numberBinsY = m_distribution->GetYaxis()->GetNbins();
-		int numberBinsZ = m_distribution->GetZaxis()->GetNbins();
-
-		double x_modified = std::min(std::max(x, m_distribution->GetXaxis()->GetBinCenter(1)), m_distribution->GetXaxis()->GetBinCenter(numberBinsX) - 1e-4);
-		double y_modified = std::min(std::max(y, m_distribution->GetYaxis()->GetBinCenter(1)), m_distribution->GetYaxis()->GetBinCenter(numberBinsY) - 1e-4);
-		double z_modified = std::min(std::max(z, m_distribution->GetZaxis()->GetBinCenter(1)), m_distribution->GetZaxis()->GetBinCenter(numberBinsZ) - 1e-4);
-
+		
 		// calculate velocity magnitude from lab energy given as matrix (TH3D) from outside
-		double labEnergy = m_distribution->Interpolate(x_modified, y_modified, z_modified);
+		double labEnergy = labEnergies->Get(x, y, z);
 		double electronVelocityMagnitude = TMath::Sqrt(2 * labEnergy * TMath::Qe() / PhysicalConstants::electronMass);
 
-		zPositions->Fill(z_modified);
-		zWeightByEnergy->Fill(z_modified, labEnergy);
+		zPositions->Fill(z);
+		zWeightByEnergy->Fill(z, labEnergy);
 
 		// determine direction of velocity based on beam trajectory function
 		TVector3 longitudinalDirection = eBeam->GetDirection(point.z);
@@ -428,6 +342,7 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
 	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
+	LabEnergies* labEnergies = (LabEnergies*)Module::Get("Lab Energies");
 
 	int end = endIndex;
 	int start = startIndex;
@@ -445,38 +360,19 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 		// if they are not found the index is not in the file
 		if (!additionalParameter[0]) continue;
 
-		// set read electron current
+		// set read electron current and center lab energy
 		eBeam->SetCurrent(additionalParameter[1]);
+		labEnergies->SetCenterLabEnergy(additionalParameter[2]);
 		
 		// full procedure to generate one energy distribution 
 		// 1. load files if necessary
-		if (eBeam->GetParameter().hasGaussianShape)
-		{
-			eBeam->GenerateElectronBeamDensity();
-		}
-		else
-		{
-			std::filesystem::path densityfile = fileHandler.FindFileWithIndex(file.parent_path() / "e-densities", index);
-			if (densityfile.empty()) continue;
+		std::filesystem::path densityfile = fileHandler.FindFileWithIndex(file.parent_path() / "e-densities", index);
+		if (densityfile.empty()) continue;
+		eBeam->SetupDistribution(densityfile);
 
-			eBeam->LoadDensityFile(densityfile);
-		}
-		if (parameter.useUniformEnergies)
-		{
-			GenerateUniformLabEnergy(additionalParameter[2]);
-		}
-		else
-		{
-			std::filesystem::path energyfile = fileHandler.FindFileWithIndex(file.parent_path() / "lab-energies", index);
-			if (energyfile.empty()) continue;
-
-			LoadLabEnergyFile(energyfile);
-
-			if (parameter.useOnlySliceXY)
-			{
-				FillEnergiesWithXY_Slice();
-			}
-		}
+		std::filesystem::path energyfile = FileHandler::GetInstance().FindFileWithIndex(file.parent_path() / "lab-energies", index);
+		if (energyfile.empty()) continue;
+		labEnergies->SetupDistribution(energyfile);
 
 		// 2. multiply ion and electron beam
 		TH3D* result = ionBeam->MultiplyWithElectronDensities(eBeam->GetDistribution());
@@ -487,14 +383,13 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 
 		// 4. prepare current distribution
 		parameter.driftTubeVoltage = additionalParameter[0];
-		parameter.centerLabEnergy = additionalParameter[2];
 		SetupEnergyDistribution();
 
 		if (currentDistribution.eBeamParameter.hasGaussianShape) currentDistribution.tags += "e-gaus ";
 		if (currentDistribution.eBeamParameter.hasNoBending) currentDistribution.tags += "no bend ";
 		if (currentDistribution.eBeamParameter.hasFixedLongitudinalTemperature) currentDistribution.tags += "fixed kT|| ";
-		if (parameter.useUniformEnergies) currentDistribution.tags += "uniform energy ";
-		if (parameter.useOnlySliceXY) currentDistribution.tags += Form("energy sliced %.3f ", parameter.sliceToFill);
+		if (currentDistribution.labEnergiesParameter.useUniformEnergies) currentDistribution.tags += "uniform energy ";
+		if (currentDistribution.labEnergiesParameter.useOnlySliceXY) currentDistribution.tags += Form("energy sliced %.3f ", currentDistribution.labEnergiesParameter.sliceToFill);
 		if (parameter.cutOutZValues) currentDistribution.tags += Form("z samples %.3f - %.3f", parameter.cutOutRange[0], parameter.cutOutRange[1]);
 
 		currentDistribution.label = Form("%d: U drift = %.2fV", currentDistribution.index, parameter.driftTubeVoltage);
@@ -507,39 +402,6 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 
 		energyDistributions.push_back(currentDistribution);
 	}
-}
-
-void EnergyDistributionModel::PlotLabEnergySlice()
-{
-	if (!m_distribution) return;
-	if (labEnergySliceXY) delete labEnergySliceXY;
-
-	int z_bin = m_distribution->GetZaxis()->FindBin(SliceZ);
-
-	// Create a new TH2D histogram for the slice
-	int n_bins_x = m_distribution->GetNbinsX();
-	int n_bins_y = m_distribution->GetNbinsY();
-	double x_min = m_distribution->GetXaxis()->GetXmin();
-	double x_max = m_distribution->GetXaxis()->GetXmax();
-	double y_min = m_distribution->GetYaxis()->GetXmin();
-	double y_max = m_distribution->GetYaxis()->GetXmax();
-
-	labEnergySliceXY = new TH2D("Energy Slice", Form("XY Slice at Z = %.2f", SliceZ),
-		n_bins_x, x_min, x_max,
-		n_bins_y, y_min, y_max);
-
-	// Fill the 2D histogram with the contents of the corresponding Z slice
-	for (int x_bin = 1; x_bin <= n_bins_x; x_bin++)
-	{
-		for (int y_bin = 1; y_bin <= n_bins_y; y_bin++)
-		{
-			double content = m_distribution->GetBinContent(x_bin, y_bin, z_bin);
-			labEnergySliceXY->SetBinContent(x_bin, y_bin, content);
-		}
-	}
-
-	m_mainCanvas->cd(1);
-	labEnergySliceXY->Draw("COLZ");
 }
 
 void EnergyDistributionModel::PlotEnergyDistributions()
@@ -580,7 +442,7 @@ void EnergyDistributionModel::PlotRateCoefficients()
 
 	for (int i = 0; i < energyDistributions.size(); i++)
 	{
-		double E_d = pow(sqrt(energyDistributions[i].eDistParameter.centerLabEnergy) - sqrt(energyDistributions[i].eBeamParameter.coolingEnergy), 2);
+		double E_d = pow(sqrt(energyDistributions[i].labEnergiesParameter.centerLabEnergy) - sqrt(energyDistributions[i].eBeamParameter.coolingEnergy), 2);
 		rateCoefficients->SetPoint(i, E_d, energyDistributions[i].rateCoefficient);
 	}
 
@@ -599,27 +461,6 @@ void EnergyDistributionModel::PlotCurrentEnergyDistribution()
 
 	gPad->SetLogy();
 	gPad->SetLogx();
-}
-
-void EnergyDistributionModel::PlotLabEnergyProjections()
-{
-	if (!m_distribution) return;
-
-	delete labEnergyProjectionX; 
-	delete labEnergyProjectionY;
-	delete labEnergyProjectionZ;
-
-	m_mainCanvas->cd(4);
-	labEnergyProjectionX = m_distribution->ProjectionX();
-	labEnergyProjectionX->Draw();
-
-	m_mainCanvas->cd(5);
-	labEnergyProjectionY = m_distribution->ProjectionY();
-	labEnergyProjectionY->Draw();
-
-	m_mainCanvas->cd(6);
-	labEnergyProjectionZ = m_distribution->ProjectionZ();
-	labEnergyProjectionZ->Draw();
 }
 
 void EnergyDistributionModel::PLotZweightByEnergy()
@@ -688,26 +529,12 @@ std::string EnergyDistributionParameters::String()
 {
 	std::string string = std::string(Form("# energy distribution parameter:\n"));
 
-	if (useUniformEnergies)
-	{
-		string += std::string(Form("# using a uniform energy distribution with the center lab energy\n"));
-	}
-	else
-	{
-		string += std::string(Form("# energy file: %s\n", energyFile.filename().string().c_str()));
-		if (useOnlySliceXY)
-		{
-			string += std::string(Form("# using only one xy slice to fill the rest\n"));
-			string += std::string(Form("# z value of slice: %.3f\n", sliceToFill));
-		}
-	}
 	if (cutOutZValues)
 	{
 		string += std::string(Form("# cut out z sample values between: %f - %f\n", cutOutRange[0], cutOutRange[1]));
 	}
 						 
 	string += std::string(Form("# drift tube voltage: %e V\n", driftTubeVoltage));
-	string += std::string(Form("# lab energy in center: %e eV\n", centerLabEnergy));
 
 	return string;
 }
