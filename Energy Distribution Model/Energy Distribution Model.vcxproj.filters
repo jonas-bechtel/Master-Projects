@@ -75,6 +75,9 @@
     <ClCompile Include="src\LabEnergies.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\CrossSection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Application.h">
@@ -138,6 +141,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\LabEnergies.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\CrossSection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
