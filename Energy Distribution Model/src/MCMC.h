@@ -32,7 +32,8 @@ class MCMC : public Distribution3D
 {
 public:
 	MCMC();
-	void SetTargetDistribution(TH3D* targetDist);
+	void SetupDistribution(std::filesystem::path file = "") override;
+	//void SetTargetDistribution(TH3D* targetDist);
 	std::vector<Point3D>& GetSamples();
 	MCMC_Parameters GetParameter();
 	void SetParameter(MCMC_Parameters params);

@@ -86,7 +86,6 @@ private:
 	void SetupEnergyDistribution();
 
 	void PlotEnergyDistributions();
-	void PlotCurrentEnergyDistribution();
 	void PLotZweightByEnergy();
 	void PlotLongkTDistribution();
 	void PlotLongVelAddition();

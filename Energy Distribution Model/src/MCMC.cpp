@@ -12,20 +12,34 @@ MCMC::MCMC()
 {
 }
 
-void MCMC::SetTargetDistribution(TH3D* targetDist)
+void MCMC::SetupDistribution(std::filesystem::path file)
 {
-	if (targetDist)
-	{
-		this->targetDist = targetDist;
-		this->targetDist->SetTitle("target density");
-		axisRanges[0] = targetDist->GetXaxis()->GetXmin();
-		axisRanges[1] = targetDist->GetXaxis()->GetXmax();
-		axisRanges[2] = targetDist->GetYaxis()->GetXmin();
-		axisRanges[3] = targetDist->GetYaxis()->GetXmax();
-		axisRanges[4] = targetDist->GetZaxis()->GetXmin();
-		axisRanges[5] = targetDist->GetZaxis()->GetXmax();
-	}
+	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
+	targetDist = ionBeam->MultiplyWithElectronDensities();
+
+	targetDist->SetTitle("target density");
+	axisRanges[0] = targetDist->GetXaxis()->GetXmin();
+	axisRanges[1] = targetDist->GetXaxis()->GetXmax();
+	axisRanges[2] = targetDist->GetYaxis()->GetXmin();
+	axisRanges[3] = targetDist->GetYaxis()->GetXmax();
+	axisRanges[4] = targetDist->GetZaxis()->GetXmin();
+	axisRanges[5] = targetDist->GetZaxis()->GetXmax();
 }
+
+//void MCMC::SetTargetDistribution(TH3D* targetDist)
+//{
+//	if (targetDist)
+//	{
+//		this->targetDist = targetDist;
+//		this->targetDist->SetTitle("target density");
+//		axisRanges[0] = targetDist->GetXaxis()->GetXmin();
+//		axisRanges[1] = targetDist->GetXaxis()->GetXmax();
+//		axisRanges[2] = targetDist->GetYaxis()->GetXmin();
+//		axisRanges[3] = targetDist->GetYaxis()->GetXmax();
+//		axisRanges[4] = targetDist->GetZaxis()->GetXmin();
+//		axisRanges[5] = targetDist->GetZaxis()->GetXmax();
+//	}
+//}
 
 std::vector<Point3D>& MCMC::GetSamples()
 {

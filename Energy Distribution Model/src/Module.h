@@ -4,6 +4,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <filesystem>
 
 #include <TCanvas.h>
 #include <TH3D.h>
@@ -40,6 +41,7 @@ class Distribution3D : public Module
 {
 public:
 	Distribution3D(std::string name);
+	virtual void SetupDistribution(std::filesystem::path = "") = 0;
 	virtual TH3D* GetDistribution();
 	void PlotDistribution();
 	 

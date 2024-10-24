@@ -19,15 +19,15 @@ class IonBeam : public Distribution3D
 {
 public:
 	IonBeam();
-	float Radius();
+	float GetRadius();
+	void SetupDistribution(std::filesystem::path file = "") override;
 	IonBeamParameters GetParameter();
 	void SetParameter(IonBeamParameters params);
-	TH3D* MultiplyWithElectronDensities(TH3D* electronDensities);
+	TH3D* MultiplyWithElectronDensities();
 
 private:
 	void ShowUI() override;
 
-	void CreateIonBeam(TH3D* referenceDensity);
 private:
 	IonBeamParameters parameter;
 };

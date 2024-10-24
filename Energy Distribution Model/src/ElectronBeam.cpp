@@ -145,11 +145,11 @@ void ElectronBeam::ShowUI()
 		PlotDensitySlice();
 
 		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
-		TH3D* result = ionBeam->MultiplyWithElectronDensities(m_distribution);
+		ionBeam->SetupDistribution();
 		ionBeam->PlotDistribution();
 
 		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
-		mcmc->SetTargetDistribution(result);
+		mcmc->SetupDistribution();
 		mcmc->PlotTargetDistribution();
 	}
 	ImGui::SameLine();
@@ -183,11 +183,11 @@ void ElectronBeam::ShowUI()
 		PlotDensitySlice();
 		
 		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
-		TH3D* result = ionBeam->MultiplyWithElectronDensities(generatedBeamDensity);
+		ionBeam->SetupDistribution();
 		ionBeam->PlotDistribution();
 
 		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
-		mcmc->SetTargetDistribution(result);
+		mcmc->SetupDistribution();
 		mcmc->PlotTargetDistribution();
 	}
 	ImGui::EndDisabled();
@@ -361,9 +361,12 @@ void ElectronBeam::GenerateElectronBeamDensity()
 																				nYBins, ymin, ymax,
 																				nZBins, zmin, zmax);
 
-	for (int i = 1; i <= nXBins; i++) {
-		for (int j = 1; j <= nYBins; j++) {
-			for (int k = 1; k <= nZBins; k++) {
+	for (int i = 1; i <= nXBins; i++) 
+	{
+		for (int j = 1; j <= nYBins; j++)
+		{
+			for (int k = 1; k <= nZBins; k++)
+			{
 				// Calculate the coordinates for this bin
 				double x = generatedBeamDensity->GetXaxis()->GetBinCenter(i);
 				double y = generatedBeamDensity->GetYaxis()->GetBinCenter(j);
@@ -510,7 +513,6 @@ void ElectronBeam::PlotProjections()
 	}
 	if (generatedBeamDensity)
 	{
-		std::cout << "hi\n";
 		delete generatedBeamProjectionX;
 		delete generatedBeamProjectionY;
 		delete generatedBeamProjectionZ;
@@ -536,26 +538,6 @@ void ElectronBeam::PlotProjections()
 		m_secondCanvas->cd(3);
 		generatedBeamProjectionZ->Draw("Same hist");
 	}
-
-	
-
-	//delete electronBeamProfileXY;
-	//delete electronBeamProfileXZ;
-	//delete electronBeamProfileYZ;
-
-	
-
-	//m_secondCanvas->cd(4);
-	//electronBeamProfileXY = m_distribution->Project3DProfile("xy");
-	//electronBeamProfileXY->Draw("COLZ");
-	//
-	//m_secondCanvas->cd(5);
-	//electronBeamProfileXZ = m_distribution->Project3DProfile("xz");
-	//electronBeamProfileXZ->Draw("COLZ");
-	//
-	//m_secondCanvas->cd(6);
-	//electronBeamProfileYZ = m_distribution->Project3DProfile("yz");
-	//electronBeamProfileYZ->Draw("COLZ");
 }
 
 // returns the y value as function of z

@@ -27,12 +27,11 @@ void EnergyDistributionModel::ShowUI()
 
 		if (ImGui::Button("Generate Single Energy Distribution"))
 		{
-			//delete currentDistribution.distribution;
 			SetupEnergyDistribution();
 			GenerateEnergyDistribution();
-			PlotCurrentEnergyDistribution();
+
+			PlotEnergyDistributions();
 			PLotZweightByEnergy();
-			FileHandler::GetInstance().SaveEnergyDistributionToFile(currentDistribution);
 		}
 
 		if (ImGui::Button("select description file"))
@@ -181,7 +180,16 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 		currentDistribution.folder = currentDistribution.eBeamParameter.densityFile.parent_path().parent_path();
 		currentDistribution.index = std::stoi(currentDistribution.eBeamParameter.densityFile.filename().string().substr(0, 4));
 	}
+
+	if (currentDistribution.eBeamParameter.hasGaussianShape) currentDistribution.tags += "e-gaus ";
+	if (currentDistribution.eBeamParameter.hasNoBending) currentDistribution.tags += "no bend ";
+	if (currentDistribution.eBeamParameter.hasFixedLongitudinalTemperature) currentDistribution.tags += "fixed kT|| ";
+	if (currentDistribution.labEnergiesParameter.useUniformEnergies) currentDistribution.tags += "uniform energy ";
+	if (currentDistribution.labEnergiesParameter.useOnlySliceXY) currentDistribution.tags += Form("energy sliced %.3f ", currentDistribution.labEnergiesParameter.sliceToFill);
+	if (parameter.cutOutZValues) currentDistribution.tags += Form("z samples %.3f - %.3f", parameter.cutOutRange[0], parameter.cutOutRange[1]);
 	
+	currentDistribution.label = Form("%d: U drift = %.2fV", currentDistribution.index, parameter.driftTubeVoltage);
+
 	float min = std::max(energyRange[0], (float)1e-8);
 	float max = energyRange[1];
 	int binsPerDecade = 2000;
@@ -326,7 +334,9 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		currentDistribution.binCenters.push_back(currentDistribution->GetBinCenter(i));
 		currentDistribution.binValues.push_back(currentDistribution->GetBinContent(i));
 	}
-	
+
+	energyDistributions.push_back(currentDistribution);
+	FileHandler::GetInstance().SaveEnergyDistributionToFile(currentDistribution);
 }
 
 void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesystem::path file)
@@ -355,11 +365,12 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 		if (!additionalParameter[0]) continue;
 
 		// set read electron current and center lab energy
+		parameter.driftTubeVoltage = additionalParameter[0];
 		eBeam->SetCurrent(additionalParameter[1]);
 		labEnergies->SetCenterLabEnergy(additionalParameter[2]);
 		
 		// full procedure to generate one energy distribution 
-		// 1. load files if necessary
+		// 1. setup necessary distributions
 		std::filesystem::path densityfile = fileHandler.FindFileWithIndex(file.parent_path() / "e-densities", index);
 		if (densityfile.empty()) continue;
 		eBeam->SetupDistribution(densityfile);
@@ -368,33 +379,17 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 		if (energyfile.empty()) continue;
 		labEnergies->SetupDistribution(energyfile);
 
-		// 2. multiply ion and electron beam
-		TH3D* result = ionBeam->MultiplyWithElectronDensities(eBeam->GetDistribution());
+		ionBeam->SetupDistribution();
+		mcmc->SetupDistribution();
 
-		// 3. sample from this distribution
-		mcmc->SetTargetDistribution(result);
+		// 2. sample from this distribution
 		mcmc->GenerateSamples();
 
-		// 4. prepare current distribution
-		parameter.driftTubeVoltage = additionalParameter[0];
+		// 3. prepare current distribution
 		SetupEnergyDistribution();
 
-		if (currentDistribution.eBeamParameter.hasGaussianShape) currentDistribution.tags += "e-gaus ";
-		if (currentDistribution.eBeamParameter.hasNoBending) currentDistribution.tags += "no bend ";
-		if (currentDistribution.eBeamParameter.hasFixedLongitudinalTemperature) currentDistribution.tags += "fixed kT|| ";
-		if (currentDistribution.labEnergiesParameter.useUniformEnergies) currentDistribution.tags += "uniform energy ";
-		if (currentDistribution.labEnergiesParameter.useOnlySliceXY) currentDistribution.tags += Form("energy sliced %.3f ", currentDistribution.labEnergiesParameter.sliceToFill);
-		if (parameter.cutOutZValues) currentDistribution.tags += Form("z samples %.3f - %.3f", parameter.cutOutRange[0], parameter.cutOutRange[1]);
-
-		currentDistribution.label = Form("%d: U drift = %.2fV", currentDistribution.index, parameter.driftTubeVoltage);
-
-		// 5. generate energy distribution
-		GenerateEnergyDistribution();
-
-		// 6. save it to a file
-		FileHandler::GetInstance().SaveEnergyDistributionToFile(currentDistribution);
-
-		energyDistributions.push_back(currentDistribution);
+		// 4. generate energy distribution
+		GenerateEnergyDistribution();		
 	}
 }
 
@@ -445,16 +440,6 @@ void EnergyDistributionModel::PlotRateCoefficients()
 	rateCoefficients->GetXaxis()->SetTitle("E_d [eV]");
 	rateCoefficients->GetYaxis()->SetTitle("alpha [m^3/s]");
 	rateCoefficients->Draw("ALP");
-}
-
-void EnergyDistributionModel::PlotCurrentEnergyDistribution()
-{
-	m_mainCanvas->cd(3);
-
-	currentDistribution->Draw("HIST");
-
-	gPad->SetLogy();
-	gPad->SetLogx();
 }
 
 void EnergyDistributionModel::PLotZweightByEnergy()

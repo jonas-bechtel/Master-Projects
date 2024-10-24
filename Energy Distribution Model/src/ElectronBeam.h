@@ -43,7 +43,7 @@ class ElectronBeam : public Distribution3D
 {
 public:
 	ElectronBeam();
-	void SetupDistribution(std::filesystem::path densityfile);
+	void SetupDistribution(std::filesystem::path densityfile = "") override;
 	ElectronBeamParameters GetParameter();
 	TH3D* GetDistribution() override;
 	void SetParameter(ElectronBeamParameters params);
@@ -87,10 +87,6 @@ private:
 	TH1D* generatedBeamProjectionX = nullptr;
 	TH1D* generatedBeamProjectionY = nullptr;
 	TH1D* generatedBeamProjectionZ = nullptr;
-
-	//TProfile2D* electronBeamProfileXY = nullptr;
-	//TProfile2D* electronBeamProfileXZ = nullptr;
-	//TProfile2D* electronBeamProfileYZ = nullptr;
 
 	// parameters to increase histogram resolution by interpolation
 	bool increaseHist = false;

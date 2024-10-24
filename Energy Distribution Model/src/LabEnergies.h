@@ -23,7 +23,7 @@ public:
 	double Get(double x, double y, double z);
 	LabEnergiesParameters GetParameter();
 	void SetCenterLabEnergy(double energy);
-	void SetupDistribution(std::filesystem::path energyfile);
+	void SetupDistribution(std::filesystem::path energyfile = "") override;
 
 private:
 	void ShowUI() override;
