@@ -19,6 +19,11 @@ EnergyDistributionModel::EnergyDistributionModel()
 	m_mainCanvas->SetWindowSize(1500, 800);
 }
 
+std::vector<EnergyDistribution>& EnergyDistributionModel::GetEnergyDistributions()
+{
+	return energyDistributions;
+}
+
 void EnergyDistributionModel::ShowUI()
 {
 	if (ImGui::BeginChild("##bla2", ImVec2(0, 300.0f)))
@@ -59,7 +64,7 @@ void EnergyDistributionModel::ShowUI()
 		ImGui::InputFloat2("energy range", energyRange, "%.1e");
 
 		//ImGui::SameLine();
-		ImGui::Checkbox("normalise", &normalise);
+		ImGui::Checkbox("normalise", &parameter.normalise);
 
 		ImGui::SetNextItemWidth(80.0f);
 		ImGui::BeginDisabled(doAll);
@@ -93,7 +98,7 @@ void EnergyDistributionModel::ShowUI()
 		{
 			for (EnergyDistribution& eDist : energyDistributions)
 			{
-				eDist.plotted = !eDist.plotted;
+				eDist.plotted = false;
 			}
 		}
 		ImGui::EndChild();
@@ -181,20 +186,21 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 		currentDistribution.index = std::stoi(currentDistribution.eBeamParameter.densityFile.filename().string().substr(0, 4));
 	}
 
-	if (currentDistribution.eBeamParameter.hasGaussianShape) currentDistribution.tags += "e-gaus ";
-	if (currentDistribution.eBeamParameter.hasNoBending) currentDistribution.tags += "no bend ";
-	if (currentDistribution.eBeamParameter.hasFixedLongitudinalTemperature) currentDistribution.tags += "fixed kT|| ";
-	if (currentDistribution.labEnergiesParameter.useUniformEnergies) currentDistribution.tags += "uniform energy ";
-	if (currentDistribution.labEnergiesParameter.useOnlySliceXY) currentDistribution.tags += Form("energy sliced %.3f ", currentDistribution.labEnergiesParameter.sliceToFill);
-	if (parameter.cutOutZValues) currentDistribution.tags += Form("z samples %.3f - %.3f", parameter.cutOutRange[0], parameter.cutOutRange[1]);
+	if (currentDistribution.eBeamParameter.hasGaussianShape) currentDistribution.tags += "e-gaus, ";
+	if (currentDistribution.eBeamParameter.hasNoBending) currentDistribution.tags += "no bend, ";
+	if (currentDistribution.eBeamParameter.hasFixedLongitudinalTemperature) currentDistribution.tags += "fixed kT||, ";
+	if (currentDistribution.labEnergiesParameter.useUniformEnergies) currentDistribution.tags += "uniform energy, ";
+	if (currentDistribution.labEnergiesParameter.useOnlySliceXY) currentDistribution.tags += Form("energy sliced %.3f, ", currentDistribution.labEnergiesParameter.sliceToFill);
+	if (parameter.cutOutZValues) currentDistribution.tags += Form("z samples %.3f - %.3f, ", parameter.cutOutRange[0], parameter.cutOutRange[1]);
+	if (!parameter.normalise) currentDistribution.tags += "not normalised, ";
 	
 	currentDistribution.label = Form("%d: U drift = %.2fV", currentDistribution.index, parameter.driftTubeVoltage);
 
-	float min = std::max(energyRange[0], (float)1e-8);
+	float min = std::max(energyRange[0], 1e-9f);
 	float max = energyRange[1];
-	int binsPerDecade = 2000;
-	float numberBins = (int)((max - min) / 10 * binsPerDecade);
-	double factor = TMath::Power((max / min), (1 / numberBins));
+	int binsPerDecade = 20000;
+	int numberBins = log10(max / min) * binsPerDecade;
+	double factor = TMath::Power((max / min), (1.0 / numberBins));
 
 	currentDistribution.binCenters.reserve(numberBins);
 	currentDistribution.binValues.reserve(numberBins);
@@ -318,16 +324,16 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 	currentDistribution.rateCoefficient /= positionSamples.size();
 
 	// normalisation
-	if (normalise)
+	if (parameter.normalise)
 	{
 		for (int i = 1; i <= currentDistribution->GetNbinsX(); i++)
 		{
 			currentDistribution->SetBinContent(i, currentDistribution->GetBinContent(i) / currentDistribution->GetBinWidth(i));
 			currentDistribution->SetBinError(i, currentDistribution->GetBinError(i) / currentDistribution->GetBinWidth(i));
 		}
-		if(currentDistribution->Integral())
-			currentDistribution->Scale(1.0 / currentDistribution->Integral());
 	}
+	if(currentDistribution->Integral())
+		currentDistribution->Scale(1.0 / currentDistribution->Integral());
 
 	for (int i = 1; i <= currentDistribution->GetNbinsX(); i++)
 	{

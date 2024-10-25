@@ -10,12 +10,9 @@
 #include "Module.h"
 #include "Point3D.h"
 
-
 struct ElectronBeamParameters
 {
 	double transverse_kT = 2.0e-3;
-	//double longitudinal_kT = -3e-4;		// negative value => calculates kTlong automatically from Ie, including LLR and accel. energy spread. Abs(kTlong) still used for resolution estimates - CS binding
-
 	double coolingEnergy = 0.15; 		// cooling energy [eV]
 	double cathodeRadius = 0.0012955;
 	double expansionFactor = 30;

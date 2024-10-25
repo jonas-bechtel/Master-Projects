@@ -16,6 +16,7 @@
 struct EnergyDistributionParameters
 {
 	double driftTubeVoltage = 0;
+	bool normalise = true;
 
 	// parameters for simpler test 
 	bool cutOutZValues = false;
@@ -76,6 +77,7 @@ class EnergyDistributionModel : public Module
 {
 public:
 	EnergyDistributionModel();
+	std::vector<EnergyDistribution>& GetEnergyDistributions();
 	void GenerateEnergyDistribution();
 	void GenerateEnergyDistributionsFromFile(std::filesystem::path file);
 
@@ -107,17 +109,16 @@ private:
 	TH1D* long_VelAddition = nullptr;
 
 	// currently loaded files
-	std::filesystem::path currentDescriptionFile;
+	std::filesystem::path currentDescriptionFile = std::filesystem::path("C:\\Users\\bechtel\\Desktop\\Master project\\Master Projects\\Energy Distribution Model\\data\\C60\\100x100x100_Ie0.012_Ucath47.0_RelTol-1e-3_sort_energies.asc");
 	int maxIndex = 0;
 
 	// start/end index in description file to generate distribution for
 	int startIndex = 1;
-	int endIndex = 1;
+	int endIndex = 2;
 	bool doAll = false;
 
 	// parameters for energy distribution generation
-	float energyRange[2] = { 6e-0, 100 };
-	bool normalise = true;
+	float energyRange[2] = { 1e-8, 100 };
 
 	// plot parameters
 	bool logX = true;
