@@ -21,9 +21,13 @@ private:
 	std::vector<double> binValues;
 	int nBins = 100;
 
-	TGraph* rateCoefficients1 = nullptr;
-	TGraph* rateCoefficients2 = nullptr;
+	TGraph* rateCoefficients1 = new TGraph();
+	TGraph* rateCoefficients2 = new TGraph();
 
 	bool useSigmaHist = false;
+
+	// plot parameters
+	bool logX = true;
+	bool logY = true;
 };
 

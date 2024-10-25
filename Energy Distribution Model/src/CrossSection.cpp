@@ -13,6 +13,8 @@ void CrossSection::GenerateCrossSection()
 	if (crossSection) delete crossSection;
 
 	crossSection = new TH1D("generated cross section", "generated cross section", nBins, 1e-8, 100);
+	binCenters.clear();
+	binValues.clear();
 	binCenters.reserve(nBins);
 	binValues.reserve(nBins);
 	for (int i = 1; i <= nBins; i++)
@@ -30,44 +32,44 @@ void CrossSection::CalculateRateCoefficients()
 	EnergyDistributionModel* model = (EnergyDistributionModel*)Module::Get("Energy Distribution Model");
 	std::vector<EnergyDistribution> energyDistributions = model->GetEnergyDistributions();
 	
-	if (!rateCoefficients1)
+	if (useSigmaHist)
 	{
-		//delete rateCoefficients1;
+		delete rateCoefficients1; 
 		rateCoefficients1 = new TGraph();
-	}
 
-	if (!rateCoefficients2)
-	{
-		//delete rateCoefficients2;
-		rateCoefficients2 = new TGraph();
-	}
-
-	for (auto& eDist : energyDistributions)
-	{
-		if (eDist.collisionEnergies.empty() || useSigmaHist)
+		for (auto& eDist : energyDistributions)
 		{
-			if (!eDist.distribution || !crossSection) continue;
-
-			TH1D* temp = (TH1D*)eDist.distribution->Clone("temp");
-			temp->Reset();
-
-			for (int i = 1; i <= temp->GetNbinsX(); i++)
+			if (eDist.distribution && crossSection)
 			{
-				double collisionEnergy = eDist.distribution->GetBinContent(i);
-				double collosionVelocity = TMath::Sqrt(2 * collisionEnergy * TMath::Qe() / PhysicalConstants::electronMass);
-				double crossSectionValue = crossSection->Interpolate(collisionEnergy);
+				TH1D* temp = (TH1D*)eDist.distribution->Clone("temp");
+				temp->Reset();
 
-				double value = collisionEnergy * collosionVelocity * crossSectionValue;
-				temp->SetBinContent(i, value);
+				for (int i = 1; i <= temp->GetNbinsX(); i++)
+				{
+					double collisionEnergyProbability = eDist.distribution->GetBinContent(i);
+					double collisionEnergy = eDist.distribution->GetBinCenter(i);
+					double collosionVelocity = TMath::Sqrt(2 * collisionEnergy * TMath::Qe() / PhysicalConstants::electronMass);
+					double crossSectionValue = crossSection->Interpolate(collisionEnergy);
+					//std::cout << "hist value: " << crossSectionValue << " theo: " << 1 / collisionEnergy << "\n";
+
+					double value = collisionEnergyProbability * collosionVelocity * crossSectionValue;
+					temp->SetBinContent(i, value);
+				}
+				double E_d = pow(sqrt(eDist.labEnergiesParameter.centerLabEnergy) - sqrt(eDist.eBeamParameter.coolingEnergy), 2);
+				rateCoefficients1->AddPoint(E_d, temp->Integral());
+				delete temp;
 			}
-			double E_d = pow(sqrt(eDist.labEnergiesParameter.centerLabEnergy) - sqrt(eDist.eBeamParameter.coolingEnergy), 2);
-			rateCoefficients1->AddPoint(E_d, temp->Integral());
-			std::cout <<E_d << " " << temp->Integral() << "\n";
-			std::cout << rateCoefficients1->GetN() << "\n";
-			delete temp;
 		}
-		else
+	}
+	else
+	{
+		delete rateCoefficients2;
+		rateCoefficients2 = new TGraph();
+
+		for (auto& eDist : energyDistributions)
 		{
+			if (eDist.collisionEnergies.empty()) continue;
+
 			for (double collisionEnergy : eDist.collisionEnergies)
 			{
 				double crossSectionValue = 1 / collisionEnergy;
@@ -78,10 +80,8 @@ void CrossSection::CalculateRateCoefficients()
 
 			double E_d = pow(sqrt(eDist.labEnergiesParameter.centerLabEnergy) - sqrt(eDist.eBeamParameter.coolingEnergy), 2);
 			rateCoefficients2->AddPoint(E_d, eDist.rateCoefficient);
-			//rateCoefficients1->AddPoint(E_d, eDist.rateCoefficient);
 		}
 	}
-	
 }
 
 void CrossSection::PlotRateCoefficients()
@@ -105,7 +105,7 @@ void CrossSection::PlotRateCoefficients()
 	{
 		rateCoefficients2->SetLineColor(kRed);
 		rateCoefficients2->SetMarkerStyle(21);
-		rateCoefficients2->Draw("ALP");
+		rateCoefficients2->Draw("ALP SAME");
 	}
 }
 
@@ -126,6 +126,23 @@ void CrossSection::ShowUI()
 
 		ImPlot::PlotLine("cross section", binCenters.data(), binValues.data(), binCenters.size());
 
+		ImPlot::EndPlot();
+	}
+	ImGui::Checkbox("log X", &logX);
+	ImGui::SameLine();
+	ImGui::Checkbox("log Y", &logY);
+	if (ImPlot::BeginPlot("rate coefficient"))
+	{
+		ImPlot::SetupAxis(ImAxis_X1, "energy [eV]");
+		ImPlot::SetupAxis(ImAxis_Y1, "rate coefficient");
+		if (logX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
+		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+
+		ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
+		ImPlot::PlotLine("rate coefficient1", rateCoefficients1->GetX(), rateCoefficients1->GetY(), rateCoefficients1->GetN());
+		ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
+		ImPlot::PlotLine("rate coefficient2", rateCoefficients2->GetX(), rateCoefficients2->GetY(), rateCoefficients2->GetN());
+		
 		ImPlot::EndPlot();
 	}
 

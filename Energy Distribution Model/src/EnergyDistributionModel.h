@@ -109,7 +109,7 @@ private:
 	TH1D* long_VelAddition = nullptr;
 
 	// currently loaded files
-	std::filesystem::path currentDescriptionFile = std::filesystem::path("C:\\Users\\bechtel\\Desktop\\Master project\\Master Projects\\Energy Distribution Model\\data\\C60\\100x100x100_Ie0.012_Ucath47.0_RelTol-1e-3_sort_energies.asc");
+	std::filesystem::path currentDescriptionFile = std::filesystem::path("data\\C60\\100x100x100_Ie0.012_Ucath47.0_RelTol-1e-3_sort_energies.asc");
 	int maxIndex = 0;
 
 	// start/end index in description file to generate distribution for
