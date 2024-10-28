@@ -16,7 +16,8 @@
 struct EnergyDistributionParameters
 {
 	double driftTubeVoltage = 0;
-	bool normalise = true;
+	bool normaliseByBinWidth = true;
+	bool energyDefinedBinning = true;
 
 	// parameters for simpler test 
 	bool cutOutZValues = false;
@@ -114,11 +115,12 @@ private:
 
 	// start/end index in description file to generate distribution for
 	int startIndex = 1;
-	int endIndex = 2;
+	int endIndex = 1;
 	bool doAll = false;
 
 	// parameters for energy distribution generation
 	float energyRange[2] = { 1e-8, 100 };
+	int binsPerDecade = 20000;
 
 	// plot parameters
 	bool logX = true;

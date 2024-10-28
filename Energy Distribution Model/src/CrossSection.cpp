@@ -116,6 +116,7 @@ void CrossSection::ShowUI()
 		GenerateCrossSection();
 	}
 	ImGui::SameLine();
+	ImGui::SetNextItemWidth(100.0f);
 	ImGui::InputInt("number bins", &nBins, 100);
 
 	if (ImPlot::BeginPlot("cross section"))

@@ -19,7 +19,7 @@
 
 struct MCMC_Parameters
 {
-	int numberSamples = (int)1e5;
+	int numberSamples = (int)3e5;
 	int burnIn = 1000;
 	int lag = 30;
 	float proposalSigma[3] = { 0.005f, 0.005f, 0.2f };

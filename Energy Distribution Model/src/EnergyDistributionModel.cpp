@@ -61,10 +61,18 @@ void EnergyDistributionModel::ShowUI()
 		ImGui::EndDisabled();
 
 		ImGui::SetNextItemWidth(200.0f);
+		ImGui::Checkbox("energy defined binning", &parameter.energyDefinedBinning);
+		
+		ImGui::BeginDisabled(parameter.energyDefinedBinning);
+		ImGui::SetNextItemWidth(150.0f);
 		ImGui::InputFloat2("energy range", energyRange, "%.1e");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputInt("bins per decade", &binsPerDecade);
+		ImGui::EndDisabled();
 
 		//ImGui::SameLine();
-		ImGui::Checkbox("normalise", &parameter.normalise);
+		ImGui::Checkbox("normalise by bin width", &parameter.normaliseByBinWidth);
 
 		ImGui::SetNextItemWidth(80.0f);
 		ImGui::BeginDisabled(doAll);
@@ -192,30 +200,87 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 	if (currentDistribution.labEnergiesParameter.useUniformEnergies) currentDistribution.tags += "uniform energy, ";
 	if (currentDistribution.labEnergiesParameter.useOnlySliceXY) currentDistribution.tags += Form("energy sliced %.3f, ", currentDistribution.labEnergiesParameter.sliceToFill);
 	if (parameter.cutOutZValues) currentDistribution.tags += Form("z samples %.3f - %.3f, ", parameter.cutOutRange[0], parameter.cutOutRange[1]);
-	if (!parameter.normalise) currentDistribution.tags += "not normalised, ";
+	if (!parameter.normaliseByBinWidth) currentDistribution.tags += "not normalised by bin width, ";
 	
 	currentDistribution.label = Form("%d: U drift = %.2fV", currentDistribution.index, parameter.driftTubeVoltage);
 
-	float min = std::max(energyRange[0], 1e-9f);
-	float max = energyRange[1];
-	int binsPerDecade = 20000;
-	int numberBins = log10(max / min) * binsPerDecade;
-	double factor = TMath::Power((max / min), (1.0 / numberBins));
 
-	currentDistribution.binCenters.reserve(numberBins);
-	currentDistribution.binValues.reserve(numberBins);
-
+	//setup binning
+	int numberBins;
 	std::vector<double> binEdges;
-	binEdges.reserve(numberBins + 1);
-	binEdges.push_back(min);
-	for (int i = 0; i < numberBins; i++)
-	{
-		binEdges.push_back(binEdges[i] * factor);
-	}
 
+	if (parameter.energyDefinedBinning)
+	{
+		double kT_trans = currentDistribution.eBeamParameter.transverse_kT;
+		double kT_long = eBeam->GetLongitudinal_kT(currentDistribution.labEnergiesParameter.centerLabEnergy);
+		double maxEnergy = 100; //just a gues, not fixed
+		double factor = 1;
+
+		binEdges.push_back(0);
+		binEdges.push_back(factor * kT_trans / 20);
+
+		for (int i = 1; binEdges[i] < kT_trans; i++)
+		{
+			binEdges.push_back(factor * 2 * binEdges[i]);
+			//std::cout << binEdges[i + 1] << "\n";
+		}
+		while (binEdges[binEdges.size() - 1] < maxEnergy)
+		{
+			double previousEdge = binEdges[binEdges.size() - 1];
+			double delta_E = sqrt(pow((kT_trans * log(2)), 2) + 16 * log(2) * kT_long * previousEdge);
+			binEdges.push_back(previousEdge + factor * delta_E);
+
+			//std::cout << previousEdge << " " << delta_E << "\n";
+			//std::cout << binEdges[binEdges.size()] << "\n";
+			//std::cout << (binEdges[binEdges.size()] < maxEnergy) << "\n";
+		}
+
+		numberBins = binEdges.size() - 1;
+		std::cout << numberBins << "\n";
+	}
+	else
+	{
+		float min = std::max(energyRange[0], 1e-9f);
+		float max = energyRange[1];
+		numberBins = log10(max / min) * binsPerDecade;
+		double factor = TMath::Power((max / min), (1.0 / numberBins));
+	
+		currentDistribution.binCenters.reserve(numberBins);
+		currentDistribution.binValues.reserve(numberBins);
+		
+		binEdges.reserve(numberBins + 1);
+		binEdges.push_back(min);
+		for (int i = 0; i < numberBins; i++)
+		{
+			binEdges.push_back(binEdges[i] * factor);
+		}
+		std::cout << "number bins " << binEdges.size() - 1 << "\n";
+	}
+	//else
+	//{
+	//	float min = 1e-4; // std::max(energyRange[0], 1e-9f);
+	//	float max = energyRange[1];
+	//	numberBins = log10(max / min) * binsPerDecade;
+	//	double factor = TMath::Power((max / min), (1.0 / numberBins));
+	//
+	//	currentDistribution.binCenters.reserve(numberBins);
+	//	currentDistribution.binValues.reserve(numberBins);
+	//
+	//	binEdges.reserve(numberBins + 1);
+	//	binEdges.push_back(0);
+	//	for (int i = 0; binEdges[binEdges.size() - 1] < max; i++)
+	//	{
+	//		double nextBin = binEdges[i] * factor;
+	//		double difference = std::max(nextBin - binEdges[i], 1e-5);
+	//		binEdges.push_back(binEdges[i] + difference);
+	//		//std::cout << binEdges[binEdges.size() - 1] << " " << nextBin << " " << difference << " \n";
+	//	}
+	//	std::cout << "number bins " << binEdges.size() - 1 << "\n";
+	//}
+	
 	std::string histDescription = currentDistribution.folder.filename().string() + " " + std::to_string(currentDistribution.index);
 	currentDistribution.distribution = new TH1D(("Energy Distribution " + histDescription).c_str(),
-		("Energy Distribution " + histDescription).c_str(), numberBins, binEdges.data());
+		("Energy Distribution " + histDescription).c_str(), binEdges.size() - 1, binEdges.data());
 }
 
 void EnergyDistributionModel::GenerateEnergyDistribution()
@@ -228,15 +293,6 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 	std::vector<Point3D> positionSamples = mcmc->GetSamples();
 	currentDistribution.collisionEnergies.reserve(positionSamples.size());
 
-	delete zPositions;
-	delete zWeightByEnergy;
-	delete long_ktDistribution;
-	delete long_VelAddition;
-	zPositions = new TH1D("z-positions", "z-positions", 100, 0, 0.65);
-	zWeightByEnergy = new TH1D("z weight by energy", "z weight by energy", 100, 0, 0.65);
-	long_ktDistribution = new TH1D("long kT", "long kT", 500, 5e-6, 2e-5);
-	long_VelAddition = new TH1D("long vel add", "long vel add", 500, -1e4, 1e4);
-
 	if (positionSamples.empty())
 	{
 		std::cout << "no sampled positions were given\n";
@@ -248,6 +304,19 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		std::cout << "no lab energies were given\n";
 		return; 
 	}
+
+	double kTLongGuess = eBeam->GetLongitudinal_kT(currentDistribution.labEnergiesParameter.centerLabEnergy);
+	double sigmaGuess = TMath::Sqrt(kTLongGuess * TMath::Qe() / PhysicalConstants::electronMass);
+	std::cout << "long kT guess: " << kTLongGuess << "\n";
+
+	delete zPositions;
+	delete zWeightByEnergy;
+	delete long_ktDistribution;
+	delete long_VelAddition;
+	zPositions = new TH1D("z-positions", "z-positions", 100, 0, 0.65);
+	zWeightByEnergy = new TH1D("z weight by energy", "z weight by energy", 100, 0, 0.65);
+	long_ktDistribution = new TH1D("long kT", "long kT", 1000, 0, kTLongGuess * 3);
+	long_VelAddition = new TH1D("long vel add", "long vel add", 500, -4 * sigmaGuess, 4 * sigmaGuess);
 
 	for (const Point3D& point : positionSamples)
 	{
@@ -324,7 +393,10 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 	currentDistribution.rateCoefficient /= positionSamples.size();
 
 	// normalisation
-	if (parameter.normalise)
+	if (currentDistribution->Integral())
+		currentDistribution->Scale(1.0 / currentDistribution->Integral());
+
+	if (parameter.normaliseByBinWidth)
 	{
 		for (int i = 1; i <= currentDistribution->GetNbinsX(); i++)
 		{
@@ -332,9 +404,7 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 			currentDistribution->SetBinError(i, currentDistribution->GetBinError(i) / currentDistribution->GetBinWidth(i));
 		}
 	}
-	if(currentDistribution->Integral())
-		currentDistribution->Scale(1.0 / currentDistribution->Integral());
-
+	
 	for (int i = 1; i <= currentDistribution->GetNbinsX(); i++)
 	{
 		currentDistribution.binCenters.push_back(currentDistribution->GetBinCenter(i));
@@ -435,6 +505,9 @@ void EnergyDistributionModel::PlotRateCoefficients()
 	rateCoefficients = new TGraph(energyDistributions.size());
 	rateCoefficients->SetTitle("rate Coefficients");
 
+	gPad->SetLogy();
+	gPad->SetLogx();
+
 	for (int i = 0; i < energyDistributions.size(); i++)
 	{
 		double E_d = pow(sqrt(energyDistributions[i].labEnergiesParameter.centerLabEnergy) - sqrt(energyDistributions[i].eBeamParameter.coolingEnergy), 2);
@@ -474,6 +547,9 @@ void EnergyDistributionModel::ClearDistributionList()
 void EnergyDistributionModel::PlotLongkTDistribution()
 {
 	m_secondCanvas->cd(1);
+
+	gPad->SetLogy();
+	gPad->SetLogx();
 
 	long_ktDistribution->Draw();
 }
