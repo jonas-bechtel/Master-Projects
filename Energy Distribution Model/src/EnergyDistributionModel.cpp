@@ -4,11 +4,13 @@
 
 #include <math.h>
 #include <filesystem>
+#include <vector>
 #include <sstream>
 
 #include <TRootCanvas.h>
 #include <TLegend.h>
 
+std::unordered_map<double, EnergyDistribution*> EnergyDistribution::s_allDistributions;
 
 EnergyDistributionModel::EnergyDistributionModel()
 	: Module("Energy Distribution Model")
@@ -19,7 +21,7 @@ EnergyDistributionModel::EnergyDistributionModel()
 	m_mainCanvas->SetWindowSize(1500, 800);
 }
 
-std::vector<EnergyDistribution>& EnergyDistributionModel::GetEnergyDistributions()
+std::vector<EnergyDistribution*>& EnergyDistributionModel::GetEnergyDistributions()
 {
 	return energyDistributions;
 }
@@ -61,18 +63,18 @@ void EnergyDistributionModel::ShowUI()
 		ImGui::EndDisabled();
 
 		ImGui::SetNextItemWidth(200.0f);
-		ImGui::Checkbox("energy defined binning", &parameter.energyDefinedBinning);
+		ImGui::Checkbox("limit lower bin size", &parameter.limitBinSize);
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputDouble("min bin size", &parameter.minBinSize, 0, 0, "%.1e");
 		
-		ImGui::BeginDisabled(parameter.energyDefinedBinning);
+		ImGui::BeginDisabled(parameter.limitBinSize);
 		ImGui::SetNextItemWidth(150.0f);
 		ImGui::InputFloat2("energy range", energyRange, "%.1e");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(100.0f);
 		ImGui::InputInt("bins per decade", &binsPerDecade);
 		ImGui::EndDisabled();
-
-		//ImGui::SameLine();
-		ImGui::Checkbox("normalise by bin width", &parameter.normaliseByBinWidth);
 
 		ImGui::SetNextItemWidth(80.0f);
 		ImGui::BeginDisabled(doAll);
@@ -104,9 +106,25 @@ void EnergyDistributionModel::ShowUI()
 		ImGui::SameLine();
 		if (ImGui::Button("clear plot"))
 		{
-			for (EnergyDistribution& eDist : energyDistributions)
+			for (EnergyDistribution* eDist : energyDistributions)
 			{
-				eDist.plotted = false;
+				eDist->plotted = false;
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("normalise all"))
+		{
+			for (EnergyDistribution* eDist : energyDistributions)
+			{
+				eDist->showNormalisedByWidth = true;
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("unnormalise all"))
+		{
+			for (EnergyDistribution* eDist : energyDistributions)
+			{
+				eDist->showNormalisedByWidth = false;
 			}
 		}
 		ImGui::EndChild();
@@ -124,13 +142,20 @@ void EnergyDistributionModel::ShowUI()
 		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
 		ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside);
 
-		for (EnergyDistribution& eDist : energyDistributions)
+		for (EnergyDistribution* eDist : energyDistributions)
 		{
-			if (eDist.distribution && eDist.plotted)
+			if (eDist->distribution && eDist->plotted)
 			{
-				std::string label = eDist.label + Form("##%d", (int)eDist.distribution);
+				std::string label = eDist->label + Form("##%d", (int)eDist->distribution);
 				//std::cout << label << "\n";
-				ImPlot::PlotLine(label.c_str(), eDist.binCenters.data(), eDist.binValues.data(), eDist->GetNbinsX());
+				if (eDist->showNormalisedByWidth)
+				{
+					ImPlot::PlotLine(label.c_str(), eDist->binCenters.data(), eDist->binValuesNormalisedByWidth.data(), eDist->binCenters.size());
+				}
+				else
+				{
+					ImPlot::PlotLine(label.c_str(), eDist->binCenters.data(), eDist->binValues.data(), eDist->binCenters.size());
+				}
 			}
 		}
 
@@ -145,29 +170,35 @@ void EnergyDistributionModel::ShowEnergyDistributionList()
 	{
 		for (int i = 0; i < energyDistributions.size(); i++)
 		{
-			EnergyDistribution& eDist = energyDistributions[i];
-
-			std::string label = eDist.label;
-			if (!eDist.tags.empty())
+			ImGui::PushID(i);
+			EnergyDistribution* eDist = energyDistributions[i];
+	
+			std::string label = eDist->label;
+			if (!eDist->tags.empty())
 			{
 				label += "\n";
-				label += eDist.tags;
+				label += eDist->tags;
 			}
-			label += Form("##%d", (int)eDist.distribution);
-
+			label += Form("##%d", (int)eDist->distribution);
+	
 			// Render each item as selectable
-			if (ImGui::Selectable(label.c_str(), energyDistributions[i].plotted))
+			if (ImGui::Selectable(label.c_str(), eDist->plotted, ImGuiSelectableFlags_AllowItemOverlap))
 			{
-				eDist.plotted = !eDist.plotted;
+				eDist->plotted = !eDist->plotted;
 			}
-
+			
 			if (ImGui::BeginItemTooltip())
 			{
 				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-				ImGui::TextUnformatted(eDist.String().c_str());
+				ImGui::TextUnformatted(eDist->String().c_str());
 				ImGui::PopTextWrapPos();
 				ImGui::EndTooltip();
 			}
+
+			ImGui::SameLine();
+			ImGui::Checkbox("normalised", &eDist->showNormalisedByWidth);
+
+			ImGui::PopID();
 		}
 	}
 	ImGui::EndListBox();
@@ -180,73 +211,72 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 	LabEnergies* labEnergies = (LabEnergies*)Module::Get("Lab Energies");
 
-	currentDistribution = EnergyDistribution();
+	currentDistribution = new EnergyDistribution();
 
-	currentDistribution.mcmcParameter = mcmc->GetParameter();
-	currentDistribution.eBeamParameter = eBeam->GetParameter();
-	currentDistribution.ionBeamParameter = ionBeam->GetParameter();
-	currentDistribution.labEnergiesParameter = labEnergies->GetParameter();
-	currentDistribution.eDistParameter = parameter;
+	currentDistribution->mcmcParameter = mcmc->GetParameter();
+	currentDistribution->eBeamParameter = eBeam->GetParameter();
+	currentDistribution->ionBeamParameter = ionBeam->GetParameter();
+	currentDistribution->labEnergiesParameter = labEnergies->GetParameter();
+	currentDistribution->eDistParameter = parameter;
+	currentDistribution->eDistParameter.detuningEnergy = pow(sqrt(currentDistribution->labEnergiesParameter.centerLabEnergy) - sqrt(currentDistribution->eBeamParameter.coolingEnergy), 2);
 
-	if (!currentDistribution.eBeamParameter.densityFile.empty() && !currentDistribution.labEnergiesParameter.energyFile.empty())
+	if (!currentDistribution->eBeamParameter.densityFile.empty() && !currentDistribution->labEnergiesParameter.energyFile.empty())
 	{
-		currentDistribution.folder = currentDistribution.eBeamParameter.densityFile.parent_path().parent_path();
-		currentDistribution.index = std::stoi(currentDistribution.eBeamParameter.densityFile.filename().string().substr(0, 4));
+		currentDistribution->folder = currentDistribution->eBeamParameter.densityFile.parent_path().parent_path();
+		currentDistribution->index = std::stoi(currentDistribution->eBeamParameter.densityFile.filename().string().substr(0, 4));
 	}
 
-	if (currentDistribution.eBeamParameter.hasGaussianShape) currentDistribution.tags += "e-gaus, ";
-	if (currentDistribution.eBeamParameter.hasNoBending) currentDistribution.tags += "no bend, ";
-	if (currentDistribution.eBeamParameter.hasFixedLongitudinalTemperature) currentDistribution.tags += "fixed kT||, ";
-	if (currentDistribution.labEnergiesParameter.useUniformEnergies) currentDistribution.tags += "uniform energy, ";
-	if (currentDistribution.labEnergiesParameter.useOnlySliceXY) currentDistribution.tags += Form("energy sliced %.3f, ", currentDistribution.labEnergiesParameter.sliceToFill);
-	if (parameter.cutOutZValues) currentDistribution.tags += Form("z samples %.3f - %.3f, ", parameter.cutOutRange[0], parameter.cutOutRange[1]);
-	if (!parameter.normaliseByBinWidth) currentDistribution.tags += "not normalised by bin width, ";
-	
-	currentDistribution.label = Form("%d: U drift = %.2fV", currentDistribution.index, parameter.driftTubeVoltage);
-
+	if (currentDistribution->eBeamParameter.hasGaussianShape) currentDistribution->tags += "e-gaus, ";
+	if (currentDistribution->eBeamParameter.hasNoBending) currentDistribution->tags += "no bend, ";
+	if (currentDistribution->eBeamParameter.hasFixedLongitudinalTemperature) currentDistribution->tags += "fixed kT||, ";
+	if (currentDistribution->labEnergiesParameter.useUniformEnergies) currentDistribution->tags += "uniform energy, ";
+	if (currentDistribution->labEnergiesParameter.useOnlySliceXY) currentDistribution->tags += Form("energy sliced %.3f, ", currentDistribution->labEnergiesParameter.sliceToFill);
+	if (parameter.cutOutZValues) currentDistribution->tags += Form("z samples %.3f - %.3f, ", parameter.cutOutRange[0], parameter.cutOutRange[1]);
+	currentDistribution->label = Form("%d: U drift = %.2fV", currentDistribution->index, parameter.driftTubeVoltage);
 
 	//setup binning
 	int numberBins;
 	std::vector<double> binEdges;
 
-	if (parameter.energyDefinedBinning)
-	{
-		double kT_trans = currentDistribution.eBeamParameter.transverse_kT;
-		double kT_long = eBeam->GetLongitudinal_kT(currentDistribution.labEnergiesParameter.centerLabEnergy);
-		double maxEnergy = 100; //just a gues, not fixed
-		double factor = 1;
-
-		binEdges.push_back(0);
-		binEdges.push_back(factor * kT_trans / 20);
-
-		for (int i = 1; binEdges[i] < kT_trans; i++)
-		{
-			binEdges.push_back(factor * 2 * binEdges[i]);
-			//std::cout << binEdges[i + 1] << "\n";
-		}
-		while (binEdges[binEdges.size() - 1] < maxEnergy)
-		{
-			double previousEdge = binEdges[binEdges.size() - 1];
-			double delta_E = sqrt(pow((kT_trans * log(2)), 2) + 16 * log(2) * kT_long * previousEdge);
-			binEdges.push_back(previousEdge + factor * delta_E);
-
-			//std::cout << previousEdge << " " << delta_E << "\n";
-			//std::cout << binEdges[binEdges.size()] << "\n";
-			//std::cout << (binEdges[binEdges.size()] < maxEnergy) << "\n";
-		}
-
-		numberBins = binEdges.size() - 1;
-		std::cout << numberBins << "\n";
-	}
-	else
+	//if (parameter.energyDefinedBinning)
+	//{
+	//	double kT_trans = currentDistribution->eBeamParameter.transverse_kT;
+	//	double kT_long = eBeam->GetLongitudinal_kT(currentDistribution->labEnergiesParameter.centerLabEnergy);
+	//	double maxEnergy = 100; //just a gues, not fixed
+	//	double factor = 1;
+	//
+	//	binEdges.push_back(0);
+	//	binEdges.push_back(factor * kT_trans / 20);
+	//
+	//	for (int i = 1; binEdges[i] < kT_trans; i++)
+	//	{
+	//		binEdges.push_back(factor * 2 * binEdges[i]);
+	//		//std::cout << binEdges[i + 1] << "\n";
+	//	}
+	//	while (binEdges[binEdges.size() - 1] < maxEnergy)
+	//	{
+	//		double previousEdge = binEdges[binEdges.size() - 1];
+	//		double delta_E = sqrt(pow((kT_trans * log(2)), 2) + 16 * log(2) * kT_long * previousEdge);
+	//		binEdges.push_back(previousEdge + factor * delta_E);
+	//
+	//		//std::cout << previousEdge << " " << delta_E << "\n";
+	//		//std::cout << binEdges[binEdges.size()] << "\n";
+	//		//std::cout << (binEdges[binEdges.size()] < maxEnergy) << "\n";
+	//	}
+	//
+	//	numberBins = binEdges.size() - 1;
+	//	std::cout << numberBins << "\n";
+	//}
+	//else
+	if(!parameter.limitBinSize)
 	{
 		float min = std::max(energyRange[0], 1e-9f);
 		float max = energyRange[1];
 		numberBins = log10(max / min) * binsPerDecade;
 		double factor = TMath::Power((max / min), (1.0 / numberBins));
 	
-		currentDistribution.binCenters.reserve(numberBins);
-		currentDistribution.binValues.reserve(numberBins);
+		currentDistribution->binCenters.reserve(numberBins);
+		currentDistribution->binValues.reserve(numberBins);
 		
 		binEdges.reserve(numberBins + 1);
 		binEdges.push_back(min);
@@ -256,30 +286,30 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 		}
 		std::cout << "number bins " << binEdges.size() - 1 << "\n";
 	}
-	//else
-	//{
-	//	float min = 1e-4; // std::max(energyRange[0], 1e-9f);
-	//	float max = energyRange[1];
-	//	numberBins = log10(max / min) * binsPerDecade;
-	//	double factor = TMath::Power((max / min), (1.0 / numberBins));
-	//
-	//	currentDistribution.binCenters.reserve(numberBins);
-	//	currentDistribution.binValues.reserve(numberBins);
-	//
-	//	binEdges.reserve(numberBins + 1);
-	//	binEdges.push_back(0);
-	//	for (int i = 0; binEdges[binEdges.size() - 1] < max; i++)
-	//	{
-	//		double nextBin = binEdges[i] * factor;
-	//		double difference = std::max(nextBin - binEdges[i], 1e-5);
-	//		binEdges.push_back(binEdges[i] + difference);
-	//		//std::cout << binEdges[binEdges.size() - 1] << " " << nextBin << " " << difference << " \n";
-	//	}
-	//	std::cout << "number bins " << binEdges.size() - 1 << "\n";
-	//}
+	else
+	{
+		double min = 1e-6; // std::max(energyRange[0], 1e-9f);
+		float max = energyRange[1];
+		numberBins = log10(max / min) * binsPerDecade;
+		double factor = TMath::Power((max / min), (1.0 / numberBins));
 	
-	std::string histDescription = currentDistribution.folder.filename().string() + " " + std::to_string(currentDistribution.index);
-	currentDistribution.distribution = new TH1D(("Energy Distribution " + histDescription).c_str(),
+		currentDistribution->binCenters.reserve(numberBins);
+		currentDistribution->binValues.reserve(numberBins);
+	
+		binEdges.reserve(numberBins + 1);
+		binEdges.push_back(0);
+		for (int i = 0; binEdges[binEdges.size() - 1] < max; i++)
+		{
+			double nextBin = binEdges[i] * factor;
+			double difference = std::max(nextBin - binEdges[i], parameter.minBinSize);
+			binEdges.push_back(binEdges[i] + difference);
+			//std::cout << binEdges[binEdges.size() - 1] << " " << nextBin << " " << difference << " \n";
+		}
+		std::cout << "number bins " << binEdges.size() - 1 << "\n";
+	}
+	
+	std::string histDescription = currentDistribution->folder.filename().string() + " " + std::to_string(currentDistribution->index);
+	currentDistribution->distribution = new TH1D(("Energy Distribution " + histDescription).c_str(),
 		("Energy Distribution " + histDescription).c_str(), binEdges.size() - 1, binEdges.data());
 }
 
@@ -291,7 +321,7 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 
 	// sample positions from electron density multiplied with ion density given from outside
 	std::vector<Point3D> positionSamples = mcmc->GetSamples();
-	currentDistribution.collisionEnergies.reserve(positionSamples.size());
+	currentDistribution->collisionEnergies.reserve(positionSamples.size());
 
 	if (positionSamples.empty())
 	{
@@ -305,7 +335,7 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		return; 
 	}
 
-	double kTLongGuess = eBeam->GetLongitudinal_kT(currentDistribution.labEnergiesParameter.centerLabEnergy);
+	double kTLongGuess = eBeam->GetLongitudinal_kT(currentDistribution->labEnergiesParameter.centerLabEnergy);
 	double sigmaGuess = TMath::Sqrt(kTLongGuess * TMath::Qe() / PhysicalConstants::electronMass);
 	std::cout << "long kT guess: " << kTLongGuess << "\n";
 
@@ -375,11 +405,11 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 
 		// calculate collision energy [eV] and put it in a histogram
 		double collisionEnergy = 0.5 * PhysicalConstants::electronMass * collosionVelocity * collosionVelocity / TMath::Qe();
-		currentDistribution->Fill(collisionEnergy);
-		currentDistribution.collisionEnergies.push_back(collisionEnergy);
+		currentDistribution->distribution->Fill(collisionEnergy);
+		currentDistribution->collisionEnergies.push_back(collisionEnergy);
 
 		double sigma = 1 / collisionEnergy;
-		currentDistribution.rateCoefficient += sigma * collosionVelocity;
+		currentDistribution->rateCoefficient += sigma * collosionVelocity;
 
 		//std::cout << "position: (" << x << " " << y << " " << z << ")\n";
 		////std::cout << "modified: (" << x_modified << " " << y_modified << " " << z_modified << ")\n";
@@ -390,29 +420,24 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 		//std::cout << "collision energy: " << collisionEnergy << " eV\n";
 		//std::cout << "\n";
 	}
-	currentDistribution.rateCoefficient /= positionSamples.size();
+	currentDistribution->rateCoefficient /= positionSamples.size();
 
 	// normalisation
-	if (currentDistribution->Integral())
-		currentDistribution->Scale(1.0 / currentDistribution->Integral());
+	if (currentDistribution->distribution->Integral())
+		currentDistribution->distribution->Scale(1.0 / currentDistribution->distribution->Integral());
 
-	if (parameter.normaliseByBinWidth)
+	for (int i = 1; i <= currentDistribution->distribution->GetNbinsX(); i++)
 	{
-		for (int i = 1; i <= currentDistribution->GetNbinsX(); i++)
-		{
-			currentDistribution->SetBinContent(i, currentDistribution->GetBinContent(i) / currentDistribution->GetBinWidth(i));
-			currentDistribution->SetBinError(i, currentDistribution->GetBinError(i) / currentDistribution->GetBinWidth(i));
-		}
+		currentDistribution->binCenters.push_back(currentDistribution->distribution->GetBinCenter(i));
+		currentDistribution->binValues.push_back(currentDistribution->distribution->GetBinContent(i));
+		currentDistribution->binValuesNormalisedByWidth.push_back(currentDistribution->distribution->GetBinContent(i) / currentDistribution->distribution->GetBinWidth(i));
 	}
-	
-	for (int i = 1; i <= currentDistribution->GetNbinsX(); i++)
-	{
-		currentDistribution.binCenters.push_back(currentDistribution->GetBinCenter(i));
-		currentDistribution.binValues.push_back(currentDistribution->GetBinContent(i));
-	}
+	RemoveEdgeZeros();
 
 	energyDistributions.push_back(currentDistribution);
-	FileHandler::GetInstance().SaveEnergyDistributionToFile(currentDistribution);
+	EnergyDistribution::s_allDistributions[currentDistribution->eDistParameter.detuningEnergy] = currentDistribution;
+	std::cout << "Ed1: " << currentDistribution->eDistParameter.detuningEnergy << "\n";
+	FileHandler::GetInstance().SaveEnergyDistributionToFile(*currentDistribution);
 }
 
 void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesystem::path file)
@@ -482,18 +507,18 @@ void EnergyDistributionModel::PlotEnergyDistributions()
 
 	for (int i = 0; i < energyDistributions.size(); i++)
 	{
-		if (!energyDistributions[i].distribution) return;
+		if (!energyDistributions[i]->distribution) return;
 		
-		energyDistributions[i]->SetLineColor(colors[i % 5]);
-		legend->AddEntry(energyDistributions[i].distribution, energyDistributions[i].label.c_str(), "l");
+		energyDistributions[i]->distribution->SetLineColor(colors[i % 5]);
+		legend->AddEntry(energyDistributions[i]->distribution, energyDistributions[i]->label.c_str(), "l");
 
 		if (i == 0)
 		{
-			energyDistributions[i]->Draw("HIST");
+			energyDistributions[i]->distribution->Draw("HIST");
 		}
 		else
 		{
-			energyDistributions[i]->Draw("HIST SAME");
+			energyDistributions[i]->distribution->Draw("HIST SAME");
 		}
 	}
 	legend->Draw();
@@ -510,8 +535,7 @@ void EnergyDistributionModel::PlotRateCoefficients()
 
 	for (int i = 0; i < energyDistributions.size(); i++)
 	{
-		double E_d = pow(sqrt(energyDistributions[i].labEnergiesParameter.centerLabEnergy) - sqrt(energyDistributions[i].eBeamParameter.coolingEnergy), 2);
-		rateCoefficients->SetPoint(i, E_d, energyDistributions[i].rateCoefficient);
+		rateCoefficients->SetPoint(i, energyDistributions[i]->eDistParameter.detuningEnergy, energyDistributions[i]->rateCoefficient);
 	}
 
 	m_secondCanvas->cd(6);
@@ -535,9 +559,9 @@ void EnergyDistributionModel::PLotZweightByEnergy()
 
 void EnergyDistributionModel::ClearDistributionList()
 {
-	for (EnergyDistribution& distribution : energyDistributions) 
+	for (EnergyDistribution* eDist : energyDistributions) 
 	{
-		delete distribution.distribution;
+		delete eDist->distribution;
 
 		//distribution->Delete();
 	}
@@ -559,6 +583,41 @@ void EnergyDistributionModel::PlotLongVelAddition()
 	m_secondCanvas->cd(2);
 
 	long_VelAddition->Draw();
+}
+
+void EnergyDistributionModel::RemoveEdgeZeros()
+{
+	std::vector<double>& values = currentDistribution->binValues;
+	std::vector<double>& valuesNorm = currentDistribution->binValuesNormalisedByWidth;
+	std::vector<double>& centers = currentDistribution->binCenters;
+
+	// Find the first non-zero element
+	auto start = std::find_if(values.begin(), values.end(), [](double x) { return x != 0; });
+
+	// Find the last non-zero element
+	auto end = std::find_if(values.rbegin(), values.rend(), [](double x) { return x != 0; }).base();
+
+	// Check if we have any non-zero elements at all
+	if (start < end) 
+	{
+		// Create new vectors with the range [start, end)
+		int startIndex = std::distance(values.begin(), start);
+		int endIndex = std::distance(values.begin(), end);
+		values = std::vector<double>(start, end);
+
+		valuesNorm = std::vector<double>(valuesNorm.begin() + startIndex,
+										 valuesNorm.begin() + endIndex);
+		
+		centers = std::vector<double>(centers.begin() + startIndex,
+									  centers.begin() + endIndex);
+	}
+	else 
+	{
+		// Clear the vector if it's all zeros
+		values.clear(); 
+		valuesNorm.clear(); 
+		centers.clear();
+	}
 }
 
 std::string EnergyDistribution::String()
@@ -585,6 +644,16 @@ std::string EnergyDistribution::Filename()
 		+ "_Ecool" + eCoolSS.str() + "eV" + ".asc";
 
 	return string;
+}
+
+EnergyDistribution* EnergyDistribution::FindByEd(double detuningEnergy)
+{
+	if (s_allDistributions.find(detuningEnergy) == s_allDistributions.end())
+	{
+		std::cout << "no energy distribution with E_d = " << detuningEnergy << " was found\n";
+		return nullptr;
+	}
+	return s_allDistributions.at(detuningEnergy);
 }
 
 std::string EnergyDistributionParameters::String()

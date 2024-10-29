@@ -1,5 +1,6 @@
 #pragma once
 #include "Module.h"
+
 #include <TGraph.h>
 
 class CrossSection : public Module
@@ -12,6 +13,9 @@ private:
 	void GenerateCrossSection();
 
 	void CalculateRateCoefficients();
+	void CalculatePsis();
+	void FitCrossSectionHistogram();
+	double FitFunction(double* x, double* params);
 
 	void PlotRateCoefficients();
 
@@ -19,10 +23,14 @@ private:
 	TH1D* crossSection = nullptr;
 	std::vector<double> binCenters;
 	std::vector<double> binValues;
-	int nBins = 100;
+	int nBins = 10;
 
-	TGraph* rateCoefficients1 = new TGraph();
-	TGraph* rateCoefficients2 = new TGraph();
+	TH1D* crossSectionFit = nullptr;
+	std::vector<double> binCentersFit;
+	std::vector<double> binValuesFit;
+
+	TGraph* rateCoefficients = new TGraph();
+	TGraph* rateCoefficientsFit = new TGraph();
 
 	bool useSigmaHist = false;
 

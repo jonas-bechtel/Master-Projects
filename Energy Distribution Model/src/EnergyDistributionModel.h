@@ -16,8 +16,10 @@
 struct EnergyDistributionParameters
 {
 	double driftTubeVoltage = 0;
-	bool normaliseByBinWidth = true;
-	bool energyDefinedBinning = true;
+	double detuningEnergy = 0;
+
+	bool limitBinSize = true;
+	double minBinSize = 1e-5;
 
 	// parameters for simpler test 
 	bool cutOutZValues = false;
@@ -36,6 +38,7 @@ struct EnergyDistribution
 	std::vector<double> collisionEnergies;
 	std::vector<double> binCenters;
 	std::vector<double> binValues;
+	std::vector<double> binValuesNormalisedByWidth;
 
 	// all the things used to create it
 	MCMC_Parameters mcmcParameter;
@@ -53,15 +56,18 @@ struct EnergyDistribution
 
 	//double cathodeVoltage;
 
-	bool plotted = false;
+	// fitting things done by the Cross Section class
+	std::vector<double> psi;
 
-	TH1D* operator->()
-	{
-		return distribution;
-	}
+	// plot parameters
+	bool plotted = false;
+	bool showNormalisedByWidth = false;
 
 	std::string String();
 	std::string Filename();
+
+	static EnergyDistribution* FindByEd(double detuningEnergy);
+	static std::unordered_map<double, EnergyDistribution*> s_allDistributions;
 
 	//EnergyDistribution()
 	//{
@@ -78,7 +84,7 @@ class EnergyDistributionModel : public Module
 {
 public:
 	EnergyDistributionModel();
-	std::vector<EnergyDistribution>& GetEnergyDistributions();
+	std::vector<EnergyDistribution*>& GetEnergyDistributions();
 	void GenerateEnergyDistribution();
 	void GenerateEnergyDistributionsFromFile(std::filesystem::path file);
 
@@ -87,6 +93,7 @@ private:
 	void ShowEnergyDistributionList();
 
 	void SetupEnergyDistribution();
+	void RemoveEdgeZeros();
 
 	void PlotEnergyDistributions();
 	void PLotZweightByEnergy();
@@ -97,8 +104,8 @@ private:
 	void ClearDistributionList();
 
 private:
-	std::vector<EnergyDistribution> energyDistributions;
-	EnergyDistribution currentDistribution;
+	std::vector<EnergyDistribution*> energyDistributions;
+	EnergyDistribution* currentDistribution;
 	EnergyDistributionParameters parameter;
 	
 	// graphs and plots

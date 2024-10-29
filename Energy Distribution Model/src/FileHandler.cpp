@@ -232,11 +232,12 @@ void FileHandler::SaveEnergyDistributionToFile(EnergyDistribution energyDistribu
     }
     outfile << energyDistribution.String();
 
-    outfile << "# bin center [eV]\tbin value\n";
-    for (int i = 1; i <= energyDistribution->GetNbinsX(); i++)
+    outfile << "# bin center [eV]\tbin value\tbin value normalised by bin width\n";
+    for (int i = 0; i < energyDistribution.binCenters.size(); i++)
     {
-        outfile << energyDistribution->GetBinCenter(i) << "\t";
-        outfile << energyDistribution->GetBinContent(i) << "\n";
+        outfile << energyDistribution.binCenters[i] << "\t";
+        outfile << energyDistribution.binValues[i]<< "\t";
+        outfile << energyDistribution.binValuesNormalisedByWidth[i] << "\n";
     }
     
     outfile.close();
