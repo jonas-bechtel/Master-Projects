@@ -25,6 +25,8 @@ public:
 	void SaveEnergyDistributionHistToFile(EnergyDistribution* energyDistribution);
 	void SaveEnergyDistributionSamplesToFile(EnergyDistribution* energyDistribution);
 
+	
+
 private:
 	std::vector<std::string> SplitLine(std::string& string, std::string delimiter) const;
 	TH3D* CreateTH3DfromHeader(std::ifstream& file) const;
