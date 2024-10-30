@@ -50,11 +50,9 @@ struct EnergyDistribution
 	// additional labelling things
 	std::string label = "";
 	std::string tags = "";
-	//std::filesystem::path descriptionFile;
 	std::filesystem::path folder = "Test";
+	std::filesystem::path subFolder = "";
 	int index = 0;
-
-	//double cathodeVoltage;
 
 	// fitting things done by the Cross Section class
 	std::vector<double> psi;
@@ -124,6 +122,9 @@ private:
 	int startIndex = 1;
 	int endIndex = 1;
 	bool doAll = false;
+
+	// save all sampled values in a file to load it again
+	bool saveSamplesToFile = false;
 
 	// parameters for energy distribution generation
 	float energyRange[2] = { 1e-8, 100 };

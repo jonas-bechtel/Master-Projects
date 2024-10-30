@@ -212,11 +212,16 @@ std::filesystem::path FileHandler::FindFileWithIndex(std::filesystem::path folde
     return std::filesystem::path();
 }
 
-void FileHandler::SaveEnergyDistributionToFile(EnergyDistribution energyDistribution)
+void FileHandler::SaveEnergyDistributionHistToFile(EnergyDistribution* energyDistribution)
 {
-    std::filesystem::path file = outputFolder.string() / energyDistribution.folder.filename() /
-        std::filesystem::path(energyDistribution.Filename());
+    // set the output filepath
+    std::filesystem::path file = outputFolder.string() /        // general output folder
+        std::filesystem::path("histogram files") /              // folder for files with histogram of distribution
+        energyDistribution->folder.filename() /                  // folder of corresponfding desription file
+        energyDistribution->subFolder.filename() /               // subfolder with specific parameters
+        std::filesystem::path(energyDistribution->Filename());   // filename
 
+    // extract the directory 
     std::filesystem::path dir = std::filesystem::path(file).parent_path();
 
     // Create the directories if they don't exist
@@ -230,16 +235,51 @@ void FileHandler::SaveEnergyDistributionToFile(EnergyDistribution energyDistribu
         std::cerr << "Error opening file" << std::endl;
         return ;
     }
-    outfile << energyDistribution.String();
+    outfile << energyDistribution->String();
 
     outfile << "# bin center [eV]\tbin value\tbin value normalised by bin width\n";
-    for (int i = 0; i < energyDistribution.binCenters.size(); i++)
+    for (int i = 0; i < energyDistribution->binCenters.size(); i++)
     {
-        outfile << energyDistribution.binCenters[i] << "\t";
-        outfile << energyDistribution.binValues[i]<< "\t";
-        outfile << energyDistribution.binValuesNormalisedByWidth[i] << "\n";
+        outfile << energyDistribution->binCenters[i] << "\t";
+        outfile << energyDistribution->binValues[i]<< "\t";
+        outfile << energyDistribution->binValuesNormalisedByWidth[i] << "\n";
     }
     
+    outfile.close();
+}
+
+void FileHandler::SaveEnergyDistributionSamplesToFile(EnergyDistribution* energyDistribution)
+{
+    // set the output filepath
+    std::filesystem::path file = outputFolder.string() /        // general output folder
+        std::filesystem::path("sample files") /                 // special folder for files with all samples in it
+        energyDistribution->folder.filename() /                  // folder of corresponfding desription file
+        energyDistribution->subFolder.filename() /               // subfolder with specific parameters
+        std::filesystem::path(energyDistribution->Filename());   // filename
+
+    // extract the directory 
+    std::filesystem::path dir = std::filesystem::path(file).parent_path();
+
+    // Create the directories if they don't exist
+    if (!std::filesystem::exists(dir)) {
+        std::filesystem::create_directories(dir);
+    }
+
+    std::ofstream outfile(file);
+
+    if (!outfile.is_open()) {
+        std::cerr << "Error opening file" << std::endl;
+        return;
+    }
+
+    outfile << energyDistribution->String();
+
+    outfile << "# sampled collision energy values\n";
+    for (double energy : energyDistribution->collisionEnergies)
+    {
+        outfile << energy << "\n";
+    }
+
     outfile.close();
 }
 

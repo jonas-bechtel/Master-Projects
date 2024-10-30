@@ -22,7 +22,8 @@ public:
 	int GetMaxIndex(std::filesystem::path energiesFile);
 	std::array<float, 3> GetParamtersFromDescriptionFileAtIndex(std::filesystem::path descriptionFile, int index);
 
-	void SaveEnergyDistributionToFile(EnergyDistribution energyDistribution);
+	void SaveEnergyDistributionHistToFile(EnergyDistribution* energyDistribution);
+	void SaveEnergyDistributionSamplesToFile(EnergyDistribution* energyDistribution);
 
 private:
 	std::vector<std::string> SplitLine(std::string& string, std::string delimiter) const;

@@ -31,7 +31,7 @@ struct ElectronBeamParameters
 	bool hasNoBending = false;
 	bool hasFixedLongitudinalTemperature = false;
 	double radius = 0.003;
-	double longitudinal_kT = 3e-4;
+	double longitudinal_kT = 0.0;
 
 	std::string String();
 };
@@ -45,6 +45,7 @@ public:
 	TH3D* GetDistribution() override;
 	void SetParameter(ElectronBeamParameters params);
 	void SetCurrent(double current);
+	void SetLong_kTFromCenterLabEnergy(double centerLabEnergy);
 
 	void LoadDensityFile(std::filesystem::path file);
 	void GenerateElectronBeamDensity();

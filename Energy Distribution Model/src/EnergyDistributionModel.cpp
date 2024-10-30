@@ -61,6 +61,8 @@ void EnergyDistributionModel::ShowUI()
 			PlotLongVelAddition();
 		}
 		ImGui::EndDisabled();
+		ImGui::SameLine();
+		ImGui::Checkbox("save energy samples", &saveSamplesToFile);
 
 		ImGui::SetNextItemWidth(200.0f);
 		ImGui::Checkbox("limit lower bin size", &parameter.limitBinSize);
@@ -223,6 +225,8 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 	if (!currentDistribution->eBeamParameter.densityFile.empty() && !currentDistribution->labEnergiesParameter.energyFile.empty())
 	{
 		currentDistribution->folder = currentDistribution->eBeamParameter.densityFile.parent_path().parent_path();
+		currentDistribution->subFolder = Form("E_cool %.3feV I_e %.2eA r_ion %.4fm", currentDistribution->eBeamParameter.coolingEnergy,
+			currentDistribution->eBeamParameter.electronCurrent, currentDistribution->ionBeamParameter.radius);
 		currentDistribution->index = std::stoi(currentDistribution->eBeamParameter.densityFile.filename().string().substr(0, 4));
 	}
 
@@ -232,7 +236,8 @@ void EnergyDistributionModel::SetupEnergyDistribution()
 	if (currentDistribution->labEnergiesParameter.useUniformEnergies) currentDistribution->tags += "uniform energy, ";
 	if (currentDistribution->labEnergiesParameter.useOnlySliceXY) currentDistribution->tags += Form("energy sliced %.3f, ", currentDistribution->labEnergiesParameter.sliceToFill);
 	if (parameter.cutOutZValues) currentDistribution->tags += Form("z samples %.3f - %.3f, ", parameter.cutOutRange[0], parameter.cutOutRange[1]);
-	currentDistribution->label = Form("%d: U drift = %.2fV", currentDistribution->index, parameter.driftTubeVoltage);
+	currentDistribution->label = Form("%d: U drift = %.2fV, E_d = %.4f", currentDistribution->index, parameter.driftTubeVoltage,
+																		 currentDistribution->eDistParameter.detuningEnergy);
 
 	//setup binning
 	int numberBins;
@@ -437,7 +442,11 @@ void EnergyDistributionModel::GenerateEnergyDistribution()
 	energyDistributions.push_back(currentDistribution);
 	EnergyDistribution::s_allDistributions[currentDistribution->eDistParameter.detuningEnergy] = currentDistribution;
 	std::cout << "Ed1: " << currentDistribution->eDistParameter.detuningEnergy << "\n";
-	FileHandler::GetInstance().SaveEnergyDistributionToFile(*currentDistribution);
+	FileHandler::GetInstance().SaveEnergyDistributionHistToFile(currentDistribution);
+	if (saveSamplesToFile)
+	{
+		FileHandler::GetInstance().SaveEnergyDistributionSamplesToFile(currentDistribution);
+	}
 }
 
 void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesystem::path file)
@@ -469,6 +478,7 @@ void EnergyDistributionModel::GenerateEnergyDistributionsFromFile(std::filesyste
 		parameter.driftTubeVoltage = additionalParameter[0];
 		eBeam->SetCurrent(additionalParameter[1]);
 		labEnergies->SetCenterLabEnergy(additionalParameter[2]);
+		eBeam->SetLong_kTFromCenterLabEnergy(additionalParameter[2]);
 		
 		// full procedure to generate one energy distribution 
 		// 1. setup necessary distributions
@@ -639,9 +649,7 @@ std::string EnergyDistribution::Filename()
 	eCoolSS << std::fixed << std::setprecision(3) << eBeamParameter.coolingEnergy;
 	indexSS << std::setw(4) << std::setfill('0') << index;
 
-	std::string string = indexSS.str() + "_" + folder.filename().string() +
-		"_energyDist_IonBeam" + std::to_string(int(ionBeamParameter.radius * 1000)) + "mm"
-		+ "_Ecool" + eCoolSS.str() + "eV" + ".asc";
+	std::string string = indexSS.str() + std::string(Form(" E_d %.4feV.asc", eDistParameter.detuningEnergy));
 
 	return string;
 }

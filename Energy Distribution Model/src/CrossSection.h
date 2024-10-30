@@ -12,10 +12,15 @@ private:
 	void ShowUI() override;
 	void GenerateCrossSection();
 
+	void test();
+
+	void SetupFitCrossSectionHist();
 	void CalculateRateCoefficients();
 	void CalculatePsis();
 	void FitCrossSectionHistogram();
 	double FitFunction(double* x, double* params);
+
+	void FillFitPlots(double* crossSectionParamater);
 
 	void PlotRateCoefficients();
 
@@ -32,7 +37,13 @@ private:
 	TGraph* rateCoefficients = new TGraph();
 	TGraph* rateCoefficientsFit = new TGraph();
 
-	bool useSigmaHist = false;
+	const char* binningOptions[3] = {"paper binning" , "const binning", "factor binning"};
+	//bool optionUsed[3] = { true, false ,false };
+	int currentOption = 0;
+
+	int numberBins = 100;
+	bool limitBinSize = false;
+	double minBinSize = 1e-5;
 
 	// plot parameters
 	bool logX = true;

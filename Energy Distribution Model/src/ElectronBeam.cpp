@@ -59,6 +59,11 @@ void ElectronBeam::SetCurrent(double current)
 	parameters.electronCurrent = current;
 }
 
+void ElectronBeam::SetLong_kTFromCenterLabEnergy(double centerLabEnergy)
+{
+	parameters.longitudinal_kT = GetLongitudinal_kT(centerLabEnergy);
+}
+
 void ElectronBeam::LoadDensityFile(std::filesystem::path file)
 {
 	if (!file.empty())

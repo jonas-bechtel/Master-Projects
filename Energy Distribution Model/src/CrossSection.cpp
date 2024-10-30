@@ -29,6 +29,116 @@ void CrossSection::GenerateCrossSection()
 	}
 }
 
+void CrossSection::test()
+{
+	SetupFitCrossSectionHist();
+
+	CalculatePsis();
+
+	binValuesFit.clear();
+	binCentersFit.clear();
+	binValuesFit.reserve(crossSectionFit->GetNbinsX());
+	binCentersFit.reserve(crossSectionFit->GetNbinsX());
+
+	std::vector<double> params;
+	params.reserve(crossSectionFit->GetNbinsX());
+
+	for (int i = 1; i <= crossSectionFit->GetNbinsX(); i++)
+	{
+		params.push_back(1 / crossSectionFit->GetBinCenter(i));
+	}
+
+	FillFitPlots(params.data());
+}
+
+void CrossSection::SetupFitCrossSectionHist()
+{
+	EnergyDistributionModel* model = (EnergyDistributionModel*)Module::Get("Energy Distribution Model");
+	std::vector<EnergyDistribution*>& energyDistributions = model->GetEnergyDistributions();
+
+	std::vector<double> binEdges;
+	double maxEnergy = 100; //just a gues, not fixed
+	
+	// binning like in the paper 
+	if (currentOption == 0)
+	{
+		EnergyDistribution* representativeEnergyDist = energyDistributions[energyDistributions.size() - 1];
+		double kT_trans = representativeEnergyDist->eBeamParameter.transverse_kT;
+		double kT_long = 0.00047; // representativeEnergyDist->eBeamParameter.longitudinal_kT; //eBeam->GetLongitudinal_kT(currentDistribution->labEnergiesParameter.centerLabEnergy);
+
+		double factor = 1;
+
+		binEdges.push_back(0);
+		binEdges.push_back(factor * kT_trans / 20);
+
+		for (int i = 1; binEdges[i] < kT_trans; i++)
+		{
+			binEdges.push_back(factor * 2 * binEdges[i]);
+			//std::cout << binEdges[i + 1] << "\n";
+		}
+		while (binEdges[binEdges.size() - 1] < maxEnergy)
+		{
+			double previousEdge = binEdges[binEdges.size() - 1];
+			double delta_E = sqrt(pow((kT_trans * log(2)), 2) + 16 * log(2) * kT_long * previousEdge);
+			binEdges.push_back(previousEdge + factor * delta_E);
+
+			//std::cout << previousEdge << " " << delta_E << "\n";
+			//std::cout << binEdges[binEdges.size()] << "\n";
+			//std::cout << (binEdges[binEdges.size()] < maxEnergy) << "\n";
+		}
+	}
+	// constant binning
+	if (currentOption == 1)
+	{
+		binEdges.reserve(numberBins + 1);
+		binEdges.push_back(0);
+		double binWidth = maxEnergy / numberBins;
+		for (int i = 0; i < numberBins; i++)
+		{
+			binEdges.push_back(binWidth * (i + 1));
+		}
+	}
+	// bin width increses by a constant factor
+	if (currentOption == 2)
+	{
+		if (limitBinSize)
+		{
+			double min = 1e-6; // std::max(energyRange[0], 1e-9f);
+			double factor = TMath::Power((maxEnergy / min), (1.0 / numberBins));
+
+			binEdges.reserve(numberBins + 1);
+			binEdges.push_back(0);
+			for (int i = 0; binEdges[binEdges.size() - 1] < maxEnergy; i++)
+			{
+				double nextBin = binEdges[i] * factor;
+				double difference = std::max(nextBin - binEdges[i], minBinSize);
+				binEdges.push_back(binEdges[i] + difference);
+			}
+		}
+		else
+		{
+			float min = 1e-6f;
+			double factor = TMath::Power((maxEnergy / min), (1.0 / numberBins));
+
+			binEdges.reserve(numberBins + 1);
+			binEdges.push_back(min);
+			for (int i = 0; i < numberBins; i++)
+			{
+				binEdges.push_back(binEdges[i] * factor);
+			}
+		}
+		
+	}
+	
+	//for (double edge : binEdges)
+	//{
+	//	std::cout << edge << "\n";
+	//}
+	std::cout << "number cross section bins: " << binEdges.size() - 1 << "\n";
+
+	crossSectionFit = new TH1D("cross section fit", "cross section fit", binEdges.size() - 1, binEdges.data());
+}
+
 void CrossSection::CalculateRateCoefficients()
 {
 	EnergyDistributionModel* model = (EnergyDistributionModel*)Module::Get("Energy Distribution Model");
@@ -94,60 +204,50 @@ void CrossSection::CalculatePsis()
 	for (EnergyDistribution* distribution : energyDistributions)
 	{
 		distribution->psi.clear();
-		distribution->psi.resize(crossSection->GetNbinsX());
+		distribution->psi.resize(crossSectionFit->GetNbinsX());
 
 		for (double energy : distribution->collisionEnergies)
 		{
-			int bin = crossSection->FindBin(energy);
+			int bin = crossSectionFit->FindBin(energy);
 			double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
-			distribution->psi[bin] += velocity;
+			distribution->psi[bin - 1] += velocity;
 		}
 		for (int i = 0; i < distribution->psi.size(); i++)
 		{
 			distribution->psi[i] /= distribution->collisionEnergies.size();
+			//std::cout << "psi_" << i << ": " << distribution->psi[i] << " " << crossSectionFit->GetBinLowEdge(i+1)
+			//	 << " - " << crossSectionFit->GetBinLowEdge(i+2) << "\n";
 		}
 	}
 }
 
 void CrossSection::FitCrossSectionHistogram()
 {
+	// create Fit cross section
+	SetupFitCrossSectionHist();
+
 	CalculatePsis();
 
-	TF1* fitFunction = new TF1("fit function", this, &CrossSection::FitFunction, 0, 99, crossSection->GetNbinsX());
-	std::cout << fitFunction->GetNpar() << "\n";
-	std::vector<double> initialGuess = std::vector<double>(crossSection->GetNbinsX(), 1);
-	fitFunction->SetParameters(initialGuess.data());
-
-	rateCoefficients->Fit(fitFunction, "R");
-
-	double* parameter = fitFunction->GetParameters();
-
-	// create Fit cross section
-	crossSectionFit = (TH1D*)crossSection->Clone("cross section Fit");
-	crossSectionFit->Reset();
 	binValuesFit.clear();
 	binCentersFit.clear();
 	binValuesFit.reserve(crossSectionFit->GetNbinsX());
 	binCentersFit.reserve(crossSectionFit->GetNbinsX());
 
+	TF1* fitFunction = new TF1("fit function", this, &CrossSection::FitFunction, 0, 99, crossSectionFit->GetNbinsX());
+	//std::cout << fitFunction->GetNpar() << "\n";
+
+	// just a random guess of all 1s
+	std::vector<double> initialGuess; // = std::vector<double>(crossSectionFit->GetNbinsX(), 0.1);
 	for (int i = 1; i <= crossSectionFit->GetNbinsX(); i++)
 	{
-		crossSectionFit->SetBinContent(i, parameter[i-1]);
-		binValuesFit.push_back(parameter[i-1]);
-		binCentersFit.push_back(crossSectionFit->GetBinCenter(i));
+		initialGuess.push_back(2 / crossSectionFit->GetBinCenter(i));
 	}
+	fitFunction->SetParameters(initialGuess.data());
 
-	// create rate coefficient fit
-	EnergyDistributionModel* model = (EnergyDistributionModel*)Module::Get("Energy Distribution Model");
-	std::vector<EnergyDistribution*>& energyDistributions = model->GetEnergyDistributions();
+	rateCoefficients->Fit(fitFunction, "R");
 
-	delete rateCoefficientsFit;
-	rateCoefficientsFit = new TGraph();
-	for (EnergyDistribution* eDist : energyDistributions)
-	{
-		double x[1] = {eDist->eDistParameter.detuningEnergy};
-		rateCoefficientsFit->AddPoint(x[0], FitFunction(x, parameter));
-	}
+	double* parameter = fitFunction->GetParameters();
+	FillFitPlots(parameter);
 }
 
 double CrossSection::FitFunction(double* x, double* params)
@@ -162,7 +262,7 @@ double CrossSection::FitFunction(double* x, double* params)
 	EnergyDistribution* distribution = EnergyDistribution::FindByEd(detuningEnergy);
 	if (!distribution) return 0.0;
 
-	for (int i = 0; i < crossSection->GetNbinsX(); i++)
+	for (int i = 0; i < crossSectionFit->GetNbinsX(); i++)
 	{
 		//std::cout << i << " ";
 		//std::cout << distribution->psi[i] << " ";
@@ -171,6 +271,28 @@ double CrossSection::FitFunction(double* x, double* params)
 	}
 	//std::cout << "sum " << sum << "\n";
 	return sum;
+}
+
+void CrossSection::FillFitPlots(double* crossSectionParamater)
+{
+	for (int i = 1; i <= crossSectionFit->GetNbinsX(); i++)
+	{
+		crossSectionFit->SetBinContent(i, crossSectionParamater[i - 1]);
+		binValuesFit.push_back(crossSectionParamater[i - 1]);
+		binCentersFit.push_back(crossSectionFit->GetBinCenter(i));
+	}
+
+	// create rate coefficient fit
+	EnergyDistributionModel* model = (EnergyDistributionModel*)Module::Get("Energy Distribution Model");
+	std::vector<EnergyDistribution*>& energyDistributions = model->GetEnergyDistributions();
+
+	delete rateCoefficientsFit;
+	rateCoefficientsFit = new TGraph();
+	for (EnergyDistribution* eDist : energyDistributions)
+	{
+		double x[1] = { eDist->eDistParameter.detuningEnergy };
+		rateCoefficientsFit->AddPoint(x[0], FitFunction(x, crossSectionParamater));
+	}
 }
 
 void CrossSection::PlotRateCoefficients()
@@ -200,19 +322,22 @@ void CrossSection::PlotRateCoefficients()
 
 void CrossSection::ShowUI()
 {
-	if (ImGui::Button("generate Cross section"))
-	{
-		GenerateCrossSection();
-	}
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputInt("number bins", &nBins, 100);
+	//if (ImGui::Button("generate Cross section"))
+	//{
+	//	GenerateCrossSection();
+	//}
+	//ImGui::SameLine();
+	//ImGui::SetNextItemWidth(100.0f);
+	//ImGui::InputInt("number bins", &nBins, 100);
 
 	if (ImPlot::BeginPlot("cross section"))
 	{
 		ImPlot::SetupAxis(ImAxis_X1, "energy [eV]");
-		ImPlot::SetupAxis(ImAxis_Y1, "sigma(E)", ImPlotAxisFlags_AutoFit);
-		//ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside);
+		ImPlot::SetupAxis(ImAxis_Y1, "sigma(E)");
+		if (logX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
+		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+
+		ImPlot::SetupLegend(ImPlotLocation_NorthEast);
 
 		ImPlot::PlotLine("cross section", binCenters.data(), binValues.data(), binCenters.size());
 		ImPlot::PlotLine("cross section Fit", binCentersFit.data(), binValuesFit.data(), binCentersFit.size());
@@ -229,6 +354,8 @@ void CrossSection::ShowUI()
 		if (logX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
 		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
 
+		ImPlot::SetupLegend(ImPlotLocation_NorthEast);
+
 		ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
 		ImPlot::PlotLine("rate coefficient", rateCoefficients->GetX(), rateCoefficients->GetY(), rateCoefficients->GetN());
 		ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
@@ -242,10 +369,33 @@ void CrossSection::ShowUI()
 		CalculateRateCoefficients();
 		PlotRateCoefficients();
 	}
-	ImGui::SameLine();
-	ImGui::Checkbox("use binned cross section", &useSigmaHist);
+
+	ImGui::SetNextItemWidth(150.0f);
+	ImGui::Combo("binning options", &currentOption, binningOptions, IM_ARRAYSIZE(binningOptions));
+	
+	if (currentOption == 1 || currentOption == 2)
+	{
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputInt("number bins", &numberBins);
+	}
+	if (currentOption == 2)
+	{
+		ImGui::SameLine();
+		ImGui::Checkbox("limit bin size", &limitBinSize);
+		ImGui::SameLine();
+		ImGui::BeginDisabled(!limitBinSize);
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputDouble("min bin size", &minBinSize, 0.0, 0.0, "%.1e");
+		ImGui::EndDisabled();
+	}
 	if (ImGui::Button("fit cross section"))
 	{
 		FitCrossSectionHistogram();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("test"))
+	{
+		test();
 	}
 }
