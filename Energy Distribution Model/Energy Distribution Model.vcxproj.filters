@@ -21,7 +21,7 @@
     <ClCompile Include="src\ElectronBeam.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\EnergyDistributionModel.cpp">
+    <ClCompile Include="src\EnergyDistributionManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\FileHandler.cpp">
@@ -78,6 +78,9 @@
     <ClCompile Include="src\CrossSection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\EnergyDistribution.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Application.h">
@@ -86,7 +89,7 @@
     <ClInclude Include="src\ElectronBeam.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\EnergyDistributionModel.h">
+    <ClInclude Include="src\EnergyDistributionManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\FileHandler.h">
@@ -144,6 +147,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\CrossSection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\EnergyDistribution.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

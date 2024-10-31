@@ -5,7 +5,7 @@
 #include "MCMC.h"
 #include "ElectronBeam.h"
 #include "IonBeam.h"
-#include "EnergyDistributionModel.h"
+#include "EnergyDistributionManager.h"
 
 MCMC::MCMC()
 	: Distribution3D("MCMC")

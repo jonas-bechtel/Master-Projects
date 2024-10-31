@@ -1,5 +1,5 @@
 #pragma once
-#include "EnergyDistributionModel.h"
+#include "EnergyDistributionManager.h"
 
 #include <filesystem>
 #include <vector>

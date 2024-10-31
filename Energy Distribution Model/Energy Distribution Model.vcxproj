@@ -144,13 +144,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\EnergyDistribution.cpp" />
     <ClCompile Include="src\CrossSection.cpp" />
     <ClCompile Include="src\LabEnergies.cpp" />
     <ClCompile Include="src\Module.cpp" />
     <ClCompile Include="src\IonBeam.cpp" />
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\ElectronBeam.cpp" />
-    <ClCompile Include="src\EnergyDistributionModel.cpp" />
+    <ClCompile Include="src\EnergyDistributionManager.cpp" />
     <ClCompile Include="src\FileHandler.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\MCMC.cpp" />
@@ -167,13 +168,14 @@
     <ClCompile Include="vendor\tinyfiledialogs\tinyfiledialogs.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\EnergyDistribution.h" />
     <ClInclude Include="src\CrossSection.h" />
     <ClInclude Include="src\LabEnergies.h" />
     <ClInclude Include="src\Module.h" />
     <ClInclude Include="src\IonBeam.h" />
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\ElectronBeam.h" />
-    <ClInclude Include="src\EnergyDistributionModel.h" />
+    <ClInclude Include="src\EnergyDistributionManager.h" />
     <ClInclude Include="src\FileHandler.h" />
     <ClInclude Include="src\MCMC.h" />
     <ClInclude Include="src\PhysicalConstants.h" />

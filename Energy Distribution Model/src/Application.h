@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MCMC.h"
-#include "EnergyDistributionModel.h"
+#include "EnergyDistributionManager.h"
 #include "CrossSection.h"
 
 #include <TApplication.h>  // For initializing the ROOT application
@@ -24,7 +24,7 @@ private:
 	IonBeam ionBeam;
 	MCMC mcmc;
 	LabEnergies labEnergies;
-	EnergyDistributionModel model;
+	EnergyDistributionManager model;
 
 	CrossSection crossSection;
 };

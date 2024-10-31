@@ -1,5 +1,5 @@
 #include "CrossSection.h"
-#include "EnergyDistributionModel.h"
+#include "EnergyDistributionManager.h"
 #include "PhysicalConstants.h"
 
 #include <TF1.h>
@@ -53,7 +53,7 @@ void CrossSection::test()
 
 void CrossSection::SetupFitCrossSectionHist()
 {
-	EnergyDistributionModel* model = (EnergyDistributionModel*)Module::Get("Energy Distribution Model");
+	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
 	std::vector<EnergyDistribution*>& energyDistributions = model->GetEnergyDistributions();
 
 	std::vector<double> binEdges;
@@ -63,8 +63,8 @@ void CrossSection::SetupFitCrossSectionHist()
 	if (currentOption == 0)
 	{
 		EnergyDistribution* representativeEnergyDist = energyDistributions[energyDistributions.size() - 1];
-		double kT_trans = representativeEnergyDist->eBeamParameter.transverse_kT;
-		double kT_long = 0.00047; // representativeEnergyDist->eBeamParameter.longitudinal_kT; //eBeam->GetLongitudinal_kT(currentDistribution->labEnergiesParameter.centerLabEnergy);
+		double kT_trans = representativeEnergyDist->GetElectronBeamParameter().transverse_kT;
+		double kT_long = 0.00047; // representativeEnergyDist->eBeamParameter.longitudinal_kT; //eBeam->GetLongitudinal_kT(labEnergiesParameter.centerLabEnergy);
 
 		double factor = 1;
 
@@ -141,7 +141,7 @@ void CrossSection::SetupFitCrossSectionHist()
 
 void CrossSection::CalculateRateCoefficients()
 {
-	EnergyDistributionModel* model = (EnergyDistributionModel*)Module::Get("Energy Distribution Model");
+	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
 	std::vector<EnergyDistribution*>& energyDistributions = model->GetEnergyDistributions();
 	
 	//if (useSigmaHist)
@@ -180,42 +180,42 @@ void CrossSection::CalculateRateCoefficients()
 
 		for (EnergyDistribution* eDist : energyDistributions)
 		{
-			if (eDist->collisionEnergies.empty()) continue;
+			if (eDist->GetCollisionEnergies().empty()) continue;
 
-			for (double collisionEnergy : eDist->collisionEnergies)
+			for (double collisionEnergy : eDist->GetCollisionEnergies())
 			{
 				double crossSectionValue = 1 / collisionEnergy;
 				double collosionVelocity = TMath::Sqrt(2 * collisionEnergy * TMath::Qe() / PhysicalConstants::electronMass);
-				eDist->rateCoefficient += crossSectionValue * collosionVelocity;
+				eDist->GetRateCoefficient() += crossSectionValue * collosionVelocity;
 			}
-			eDist->rateCoefficient /= eDist->collisionEnergies.size();
+			eDist->GetRateCoefficient() /= eDist->GetCollisionEnergies().size();
 
-			double E_d = pow(sqrt(eDist->labEnergiesParameter.centerLabEnergy) - sqrt(eDist->eBeamParameter.coolingEnergy), 2);
-			rateCoefficients->AddPoint(E_d, eDist->rateCoefficient);
+			double E_d = pow(sqrt(eDist->GetLabEnergyParameter().centerLabEnergy) - sqrt(eDist->GetElectronBeamParameter().coolingEnergy), 2);
+			rateCoefficients->AddPoint(E_d, eDist->GetRateCoefficient());
 		}
 	}
 }
 
 void CrossSection::CalculatePsis()
 {
-	EnergyDistributionModel* model = (EnergyDistributionModel*)Module::Get("Energy Distribution Model");
+	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
 	std::vector<EnergyDistribution*>& energyDistributions = model->GetEnergyDistributions();
 
 	for (EnergyDistribution* distribution : energyDistributions)
 	{
-		distribution->psi.clear();
-		distribution->psi.resize(crossSectionFit->GetNbinsX());
+		distribution->GetPsis().clear();
+		distribution->GetPsis().resize(crossSectionFit->GetNbinsX());
 
-		for (double energy : distribution->collisionEnergies)
+		for (double energy : distribution->GetCollisionEnergies())
 		{
 			int bin = crossSectionFit->FindBin(energy);
 			double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
-			distribution->psi[bin - 1] += velocity;
+			distribution->GetPsis()[bin - 1] += velocity;
 		}
-		for (int i = 0; i < distribution->psi.size(); i++)
+		for (int i = 0; i < distribution->GetPsis().size(); i++)
 		{
-			distribution->psi[i] /= distribution->collisionEnergies.size();
-			//std::cout << "psi_" << i << ": " << distribution->psi[i] << " " << crossSectionFit->GetBinLowEdge(i+1)
+			distribution->GetPsis()[i] /= distribution->GetCollisionEnergies().size();
+			//std::cout << "GetPsis()_" << i << ": " << distribution->GetPsis()[i] << " " << crossSectionFit->GetBinLowEdge(i+1)
 			//	 << " - " << crossSectionFit->GetBinLowEdge(i+2) << "\n";
 		}
 	}
@@ -265,9 +265,9 @@ double CrossSection::FitFunction(double* x, double* params)
 	for (int i = 0; i < crossSectionFit->GetNbinsX(); i++)
 	{
 		//std::cout << i << " ";
-		//std::cout << distribution->psi[i] << " ";
+		//std::cout << distribution->GetPsis()[i] << " ";
 		//std::cout << params[i] << "\n";
-		sum += distribution->psi[i] * params[i];
+		sum += distribution->GetPsis()[i] * params[i];
 	}
 	//std::cout << "sum " << sum << "\n";
 	return sum;
@@ -283,14 +283,14 @@ void CrossSection::FillFitPlots(double* crossSectionParamater)
 	}
 
 	// create rate coefficient fit
-	EnergyDistributionModel* model = (EnergyDistributionModel*)Module::Get("Energy Distribution Model");
+	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
 	std::vector<EnergyDistribution*>& energyDistributions = model->GetEnergyDistributions();
 
 	delete rateCoefficientsFit;
 	rateCoefficientsFit = new TGraph();
 	for (EnergyDistribution* eDist : energyDistributions)
 	{
-		double x[1] = { eDist->eDistParameter.detuningEnergy };
+		double x[1] = { eDist->GetEnergyDistributionParameter().detuningEnergy};
 		rateCoefficientsFit->AddPoint(x[0], FitFunction(x, crossSectionParamater));
 	}
 }

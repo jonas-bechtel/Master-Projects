@@ -11,7 +11,7 @@
 #include "ElectronBeam.h"
 #include "IonBeam.h"
 #include "LabEnergies.h"
-#include "Point3D.h"
+#include "EnergyDistribution.h"
 
 struct EnergyDistributionParameters
 {
@@ -28,76 +28,34 @@ struct EnergyDistributionParameters
 	std::string String();
 };
 
-struct EnergyDistribution
-{
-	// resulting values
-	double rateCoefficient = 0;
-
-	// actual distribution
-	TH1D* distribution = nullptr;
-	std::vector<double> collisionEnergies;
-	std::vector<double> binCenters;
-	std::vector<double> binValues;
-	std::vector<double> binValuesNormalisedByWidth;
-
-	// all the things used to create it
-	MCMC_Parameters mcmcParameter;
-	ElectronBeamParameters eBeamParameter;
-	IonBeamParameters ionBeamParameter;
-	LabEnergiesParameters labEnergiesParameter;
-	EnergyDistributionParameters eDistParameter;
-
-	// additional labelling things
-	std::string label = "";
-	std::string tags = "";
-	std::filesystem::path folder = "Test";
-	std::filesystem::path subFolder = "";
-	int index = 0;
-
-	// fitting things done by the Cross Section class
-	std::vector<double> psi;
-
-	// plot parameters
-	bool plotted = false;
-	bool showNormalisedByWidth = false;
-
-	std::string String();
-	std::string Filename();
-
-	static EnergyDistribution* FindByEd(double detuningEnergy);
-	static std::unordered_map<double, EnergyDistribution*> s_allDistributions;
-
-	//EnergyDistribution()
-	//{
-	//	std::cout << "creating energy distribution\n";
-	//}
-	//~EnergyDistribution()
-	//{
-	//	std::cout << "deleting energy distribution\n";
-	//	delete distribution;
-	//}
-};
-
-class EnergyDistributionModel : public Module
+class EnergyDistributionManager : public Module
 {
 public:
-	EnergyDistributionModel();
+	EnergyDistributionManager();
+	EnergyDistributionParameters GetParameter();
+	float* GetEnergyRange();
+	int GetBinsPerDecade();
 	std::vector<EnergyDistribution*>& GetEnergyDistributions();
 	void GenerateEnergyDistribution();
 	void GenerateEnergyDistributionsFromFile(std::filesystem::path file);
 
 private:
 	void ShowUI() override;
+	void ShowSettings();
 	void ShowEnergyDistributionList();
+	void ShowEnergyDistributionPlot();
 
-	void SetupEnergyDistribution();
-	void RemoveEdgeZeros();
+	void GenerateAnalyticalDistribution();
+	double AnalyticalEnergyDistribution(double* x, double* params);
+	double AnalyticalEnergyDistribution(double Ecm, double Ed, double Ttr, double Tlong);
+	double ComplexErrorFunction(double* x, double* par);
+	double DawsonIntegral(double* x, double* par);
+	double ExpDiff(double* x, double* par);
 
 	void PlotEnergyDistributions();
 	void PLotZweightByEnergy();
 	void PlotLongkTDistribution();
 	void PlotLongVelAddition();
-	void PlotRateCoefficients();
 
 	void ClearDistributionList();
 
@@ -107,15 +65,13 @@ private:
 	EnergyDistributionParameters parameter;
 	
 	// graphs and plots
-	TGraph* rateCoefficients = nullptr;
-
 	TH1D* zPositions = nullptr;
 	TH1D* zWeightByEnergy = nullptr;
 	TH1D* long_ktDistribution = nullptr;
 	TH1D* long_VelAddition = nullptr;
 
 	// currently loaded files
-	std::filesystem::path currentDescriptionFile = std::filesystem::path("data\\C60\\100x100x100_Ie0.012_Ucath47.0_RelTol-1e-3_sort_energies.asc");
+	std::filesystem::path currentDescriptionFile = std::filesystem::path("data\\C60 (2)\\100x100x100_Ie11.3_Ucath44.2_RelTol0_sort_energies.asc");
 	int maxIndex = 0;
 
 	// start/end index in description file to generate distribution for
@@ -128,7 +84,14 @@ private:
 
 	// parameters for energy distribution generation
 	float energyRange[2] = { 1e-8, 100 };
-	int binsPerDecade = 20000;
+	int binsPerDecade = 2000;
+
+	// parameters for analytical energy distribution generation
+	float analyticalEnergyRange[2] = { 1e-1, 10 };
+	int analyticalNumberBins = 1000;
+	double detuningEnergy = 1;
+	double longitudinalTemperature = 0.0005;
+	double transversTemperature = 0.002;	
 
 	// plot parameters
 	bool logX = true;
