@@ -52,70 +52,47 @@ TH3D* FileHandler::LoadMatrixFile(std::filesystem::path filename)
     return dataMatrix;
 }
 
-//std::vector<EnergyDistribution> FileHandler::LoadEnergiesFile(std::filesystem::path filename)
-//{
-//    std::ifstream file(filename);
-//
-//    std::vector<EnergyDistribution> energyDistributions;
-//
-//    // Check if the file was successfully opened
-//    if (!file.is_open())
-//    {
-//        std::cerr << "Error: Could not open the file " << filename << std::endl;
-//        return energyDistributions;
-//    }
-//
-//    std::filesystem::path baseDirectory = filename.parent_path();
-//    std::filesystem::path densityDirectory = baseDirectory / "e-densities";
-//    std::filesystem::path energyDirectory = baseDirectory / "lab-energies";
-//
-//    std::string line;
-//
-//    // trow away first line
-//    std::getline(file, line);
-//
-//    // Read the file line by line
-//    while (std::getline(file, line))
-//    {
-//        std::vector<std::string> tokens = SplitLine(line, "\t");
-//        EnergyDistribution distribution;
-//        distribution.index = std::stoi(tokens[0]);
-//        distribution.driftTubeVoltage = std::stod(tokens[1]);
-//        distribution.centerLabEnergy = std::stod(tokens[3]);
-//
-//        // look through density dir to find matching index
-//        for (const auto& file : std::filesystem::directory_iterator(densityDirectory))
-//        {
-//            // Check if it's a regular file
-//            if (std::filesystem::is_regular_file(file.status()))
-//            {
-//                // compare first 4 characters to index
-//                if (std::stoi(file.path().filename().string().substr(0, 4)) == distribution.index)
-//                {
-//                    distribution.densityFile = file.path();
-//                    break;
-//                }
-//            }
-//        }
-//        // look through energy dir to find matching index
-//        for (const auto& file : std::filesystem::directory_iterator(energyDirectory))
-//        {
-//            // Check if it's a regular file
-//            if (std::filesystem::is_regular_file(file.status()))
-//            {
-//                // compare first 4 characters to index
-//                if (std::stoi(file.path().filename().string().substr(0, 4)) == distribution.index)
-//                {
-//                    distribution.energyFile = file.path();
-//                    break;
-//                }
-//            }
-//        }
-//        energyDistributions.push_back(distribution);
-//    }
-//
-//    return energyDistributions;
-//}
+EnergyDistribution* FileHandler::LoadEnergyDistributionSamples(std::filesystem::path filename)
+{
+    std::ifstream file(filename);
+
+    // Check if the file was successfully opened
+    if (!file.is_open())
+    {
+        std::cerr << "Error: Could not open the file " << filename << std::endl;
+        return nullptr;
+    }
+    
+    std::string line;
+    std::string header = "";
+
+    while (std::getline(file, line))
+    {
+        // Exit header when reaching non-header or data lines
+        if (line.empty() || line[0] != '#')
+        {
+            break;
+        }
+        
+        header += line;
+    }
+
+    EnergyDistribution* distribution = new EnergyDistribution();
+    distribution->SetupFromHeader(header);
+    std::vector<double> collisionEnergies = distribution->GetCollisionEnergies();
+    collisionEnergies.reserve(distribution->GetMCMC_Parameter().numberSamples);
+
+    // Read the file line by line
+    while (std::getline(file, line))
+    {
+        // skip the header
+        if (line.find("#") != std::string::npos) continue;
+
+        collisionEnergies.push_back(std::stod(line));
+    }
+
+    return distribution;
+}
 
 int FileHandler::GetMaxIndex(std::filesystem::path energiesFile)
 {

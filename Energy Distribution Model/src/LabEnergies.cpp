@@ -4,7 +4,11 @@
 LabEnergies::LabEnergies()
 	: Distribution3D("Lab Energies")
 {
-
+	m_parameters.Add("center lab energy", 0, "eV");
+	m_parameters.Add("energy file", "");
+	m_parameters.Add("use xy slice", false);
+	m_parameters.Add("fill slice", 0.0);
+	m_parameters.Add("use uniform energy", false);
 }
 
 double LabEnergies::Get(double x, double y, double z)
@@ -27,12 +31,15 @@ LabEnergiesParameters LabEnergies::GetParameter()
 
 void LabEnergies::SetCenterLabEnergy(double energy)
 {
-	parameter.centerLabEnergy = energy;
+	m_parameters.Set("center lab energy", energy);
+	//parameter.centerLabEnergy = energy;
 }
 
 void LabEnergies::SetupDistribution(std::filesystem::path energyfile)
 {
-	if (parameter.useUniformEnergies && parameter.centerLabEnergy)
+	bool bla = m_parameters.Get("center lab energy");
+
+	if (m_parameters.Get("use uniform energy") && (double)m_parameters.Get("center lab energy"))
 	{
 		GenerateUniformLabEnergy();
 	}
@@ -40,7 +47,7 @@ void LabEnergies::SetupDistribution(std::filesystem::path energyfile)
 	{
 		LoadLabEnergyFile(energyfile);
 
-		if (parameter.useOnlySliceXY)
+		if (m_parameters.Get("use xy slice"))
 		{
 			FillEnergiesWithXY_Slice();
 		}
@@ -57,7 +64,8 @@ void LabEnergies::LoadLabEnergyFile(std::filesystem::path file)
 		m_distribution->SetTitle("lab energies");
 		m_distribution->SetName("lab energies");
 
-		parameter.energyFile = file;
+		m_parameters.Set("energy file", file);
+		//parameter.energyFile = file;
 	}
 }
 
@@ -77,18 +85,18 @@ void LabEnergies::ShowUI()
 	{
 		PlotLabEnergySlice();
 	}
-
-	ImGui::BeginDisabled(parameter.useOnlySliceXY);
-	ImGui::Checkbox("uniform energies", &parameter.useUniformEnergies);
+	
+	ImGui::BeginDisabled(m_parameters.Get("use xy slice"));
+	ImGui::Checkbox("uniform energies", (bool*)&m_parameters.Get("use uniform energy"));
 	ImGui::EndDisabled();
 
-	ImGui::BeginDisabled(parameter.useUniformEnergies);
-	ImGui::Checkbox("fill energies with slice", &parameter.useOnlySliceXY);
+	ImGui::BeginDisabled(m_parameters.Get("use uniform energy"));
+	ImGui::Checkbox("fill energies with slice", (bool*)&m_parameters.Get("use xy slice"));
 	ImGui::EndDisabled();
 	ImGui::SameLine();
-	ImGui::BeginDisabled(!parameter.useOnlySliceXY);
+	ImGui::BeginDisabled(!m_parameters.Get("use xy slice"));
 	ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputFloat("z slice", &parameter.sliceToFill, 0.05f);
+	//ImGui::InputDouble("z slice", &m_parameters.Get("fill slice"), 0.05f);
 	ImGui::EndDisabled();
 }
 
@@ -103,7 +111,7 @@ void LabEnergies::GenerateUniformLabEnergy()
 		{
 			for (int z = 1; z <= m_distribution->GetNbinsZ(); z++)
 			{
-				m_distribution->SetBinContent(x, y, z, parameter.centerLabEnergy);
+				m_distribution->SetBinContent(x, y, z, m_parameters.Get("center lab energy"));
 			}
 		}
 	}
@@ -113,7 +121,7 @@ void LabEnergies::FillEnergiesWithXY_Slice()
 {
 	if (!m_distribution) return;
 
-	int z_bin = m_distribution->GetZaxis()->FindBin(parameter.sliceToFill);
+	int z_bin = m_distribution->GetZaxis()->FindBin(m_parameters.Get("fill slice"));
 
 	TH3D* temp = (TH3D*)m_distribution->Clone("slice filled energies");
 
@@ -190,20 +198,20 @@ std::string LabEnergiesParameters::String()
 {
 	std::string string = std::string(Form("# lab energy parameter:\n"));
 
-	if (useUniformEnergies)
-	{
-		string += std::string(Form("# using a uniform energy distribution with the center lab energy\n"));
-	}
-	else
-	{
-		string += std::string(Form("# energy file: %s\n", energyFile.filename().string().c_str()));
-		if (useOnlySliceXY)
-		{
-			string += std::string(Form("# using only one xy slice to fill the rest\n"));
-			string += std::string(Form("# z value of slice: %.3f\n", sliceToFill));
-		}
-	}
-	string += std::string(Form("# lab energy in center: %e eV\n", centerLabEnergy));
+	//if (m_parameters.Get<bool>("use uniform energy"))
+	//{
+	//	string += std::string(Form("# using a uniform energy distribution with the center lab energy\n"));
+	//}
+	//else
+	//{
+	//	string += std::string(Form("# energy file: %s\n", energyFile.filename().string().c_str()));
+	//	if (useOnlySliceXY)
+	//	{
+	//		string += std::string(Form("# using only one xy slice to fill the rest\n"));
+	//		string += std::string(Form("# z value of slice: %.3f\n", sliceToFill));
+	//	}
+	//}
+	//string += std::string(Form("# lab energy in center: %e eV\n", centerLabEnergy));
 
 	return string;
 }

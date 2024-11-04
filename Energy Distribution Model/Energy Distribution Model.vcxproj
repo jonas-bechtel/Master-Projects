@@ -79,6 +79,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)vendor\tinyfiledialogs;$(ProjectDir)vendor\imgui_plot;$(ROOT_DIR)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -97,6 +98,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)vendor\tinyfiledialogs;$(ProjectDir)vendor\imgui_plot;$(ROOT_DIR)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -115,6 +117,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)vendor\tinyfiledialogs;$(ProjectDir)vendor\imgui_plot;$(ROOT_DIR)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,6 +136,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)vendor\tinyfiledialogs;$(ProjectDir)vendor\imgui_plot;$(ROOT_DIR)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,8 +148,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\EnergyDistribution.cpp" />
+    <ClCompile Include="src\Parameter.cpp" />
     <ClCompile Include="src\CrossSection.cpp" />
+    <ClCompile Include="src\EnergyDistribution.cpp" />
     <ClCompile Include="src\LabEnergies.cpp" />
     <ClCompile Include="src\Module.cpp" />
     <ClCompile Include="src\IonBeam.cpp" />
@@ -168,8 +173,9 @@
     <ClCompile Include="vendor\tinyfiledialogs\tinyfiledialogs.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\EnergyDistribution.h" />
+    <ClInclude Include="src\Parameter.h" />
     <ClInclude Include="src\CrossSection.h" />
+    <ClInclude Include="src\EnergyDistribution.h" />
     <ClInclude Include="src\LabEnergies.h" />
     <ClInclude Include="src\Module.h" />
     <ClInclude Include="src\IonBeam.h" />

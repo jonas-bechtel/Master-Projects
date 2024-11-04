@@ -5,13 +5,10 @@
 #include <random>
 #include <filesystem>
 
-#include <TH3D.h>
-
 #include "MCMC.h"
 #include "ElectronBeam.h"
 #include "IonBeam.h"
 #include "LabEnergies.h"
-#include "EnergyDistribution.h"
 
 struct EnergyDistributionParameters
 {
@@ -25,8 +22,11 @@ struct EnergyDistributionParameters
 	bool cutOutZValues = false;
 	float cutOutRange[2] = { 0, 0.35 };
 
-	std::string String();
+	std::string ToString();
+	void FromString(std::string string);
 };
+
+#include "EnergyDistribution.h"
 
 class EnergyDistributionManager : public Module
 {
@@ -45,6 +45,7 @@ private:
 	void ShowEnergyDistributionList();
 	void ShowEnergyDistributionPlot();
 
+	// functions for the analytical model
 	void GenerateAnalyticalDistribution();
 	double AnalyticalEnergyDistribution(double* x, double* params);
 	double AnalyticalEnergyDistribution(double Ecm, double Ed, double Ttr, double Tlong);

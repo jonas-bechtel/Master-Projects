@@ -9,6 +9,8 @@
 #include <TCanvas.h>
 #include <TH3D.h>
 
+#include "Parameter.h"
+
 class Module
 {
 public:
@@ -17,6 +19,8 @@ public:
 
 	static Module* Get(std::string name);
 	static std::unordered_map<std::string, Module*>& GetModuleMap();
+
+	Parameters GetParameter();
 
 	void ShowWindow();
 
@@ -32,6 +36,8 @@ private:
 protected:
 	static std::unordered_map<std::string, Module*> s_moduleMap;
 	
+	Parameters m_parameters;
+
 	std::string m_name;
 	TCanvas* m_mainCanvas;
 	TCanvas* m_secondCanvas;

@@ -1,13 +1,13 @@
-#include "EnergyDistributionManager.h"
-#include "PhysicalConstants.h"
-#include "FileHandler.h"
-
 #include <math.h>
 #include <filesystem>
 #include <vector>
 
 #include <TRootCanvas.h>
 #include <TLegend.h>
+
+#include "EnergyDistributionManager.h"
+#include "PhysicalConstants.h"
+#include "FileHandler.h"
 
 EnergyDistributionManager::EnergyDistributionManager()
 	: Module("Energy Distribution Manager")
@@ -728,7 +728,7 @@ void EnergyDistributionManager::PlotLongVelAddition()
 	long_VelAddition->Draw();
 }
 
-std::string EnergyDistributionParameters::String()
+std::string EnergyDistributionParameters::ToString()
 {
 	std::string string = std::string(Form("# energy distribution parameter:\n"));
 
@@ -740,4 +740,16 @@ std::string EnergyDistributionParameters::String()
 	string += std::string(Form("# drift tube voltage: %e V\n", driftTubeVoltage));
 
 	return string;
+}
+
+void EnergyDistributionParameters::FromString(std::string string)
+{
+	std::string line;
+
+	if (string.find("# drift tube voltage:") != std::string::npos) {
+		// Find value start after ':'
+		std::string value = string.substr(string.find(":") + 1);
+		value = value.substr(0, value.find(" "));  // Remove unit part
+		//param1 = std::stoi(value);  // Convert to int
+	}
 }

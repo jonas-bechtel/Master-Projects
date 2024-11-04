@@ -1,10 +1,13 @@
 #pragma once
 
-#include "EnergyDistributionManager.h"
-
 #include <TH1D.h>
 
-class EnergyDistribution : public TH1D
+#include "MCMC.h"
+#include "ElectronBeam.h"
+#include "IonBeam.h"
+#include "LabEnergies.h"
+
+class EnergyDistribution  : public TH1D
 {
 public:
 	EnergyDistribution();
@@ -31,6 +34,7 @@ public:
 	bool& IsPlottedNormalised();
 	
 	void SetupFromCurrentEnvironment();
+	void SetupFromHeader(std::string header);
 	void RemoveEdgeZeros();
 
 	std::string String();
