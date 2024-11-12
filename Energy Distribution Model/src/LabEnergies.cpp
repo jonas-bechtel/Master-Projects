@@ -4,11 +4,7 @@
 LabEnergies::LabEnergies()
 	: Distribution3D("Lab Energies")
 {
-	m_parameters.Add("center lab energy", 0, "eV");
-	m_parameters.Add("energy file", "");
-	m_parameters.Add("use xy slice", false);
-	m_parameters.Add("fill slice", 0.0);
-	m_parameters.Add("use uniform energy", false);
+	
 }
 
 double LabEnergies::Get(double x, double y, double z)
