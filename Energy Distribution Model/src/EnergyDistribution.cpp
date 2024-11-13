@@ -6,98 +6,8 @@
 std::unordered_map<double, EnergyDistribution*> EnergyDistribution::s_allDistributions;
 
 EnergyDistribution::EnergyDistribution()
-	: TH1D()
+	//: TH1D()
 {
-}
-
-std::vector<double>& EnergyDistribution::GetCollisionEnergies()
-{
-	return collisionEnergies;
-}
-
-std::vector<double>& EnergyDistribution::GetBinCenters()
-{
-	return binCenters;
-}
-
-std::vector<double>& EnergyDistribution::GetBinValues()
-{
-	return binValues;
-}
-
-std::vector<double>& EnergyDistribution::GetNormalisedBinValues()
-{
-	return binValuesNormalised;
-}
-
-MCMC_Parameters& EnergyDistribution::GetMCMC_Parameter()
-{
-	return mcmcParameter;
-}
-
-ElectronBeamParameters& EnergyDistribution::GetElectronBeamParameter()
-{
-	return eBeamParameter;
-}
-
-IonBeamParameters& EnergyDistribution::GetIonBeamParameter()
-{
-	return ionBeamParameter;
-}
-
-LabEnergiesParameters& EnergyDistribution::GetLabEnergyParameter()
-{
-	return labEnergiesParameter;
-}
-
-EnergyDistributionParameters& EnergyDistribution::GetEnergyDistributionParameter()
-{
-	return eDistParameter;
-}
-
-void EnergyDistribution::SetLabel(std::string label)
-{
-	m_label = label;
-}
-
-double& EnergyDistribution::GetRateCoefficient()
-{
-	return rateCoefficient;
-}
-
-std::vector<double>& EnergyDistribution::GetPsis()
-{
-	return psi;
-}
-
-std::string& EnergyDistribution::GetLabel()
-{
-	return m_label;
-}
-
-std::string& EnergyDistribution::GetTags()
-{
-	return tags;
-}
-
-std::filesystem::path& EnergyDistribution::GetFolder()
-{
-	return folder;
-}
-
-std::filesystem::path& EnergyDistribution::GetSubFolder()
-{
-	return subFolder;
-}
-
-bool& EnergyDistribution::IsPlotted()
-{
-	return plotted;
-}
-
-bool& EnergyDistribution::IsPlottedNormalised()
-{
-	return showNormalisedByWidth;
 }
 
 void EnergyDistribution::SetupFromCurrentEnvironment()
@@ -113,23 +23,23 @@ void EnergyDistribution::SetupFromCurrentEnvironment()
 	ionBeamParameter = ionBeam->GetParameter();
 	labEnergiesParameter = labEnergies->GetParameter();
 	eDistParameter = eDistManager->GetParameter();
-	//eDistParameter.detuningEnergy = pow(sqrt(labEnergiesParameter.Get<double>("center lab energy")) - sqrt(eBeamParameter.coolingEnergy), 2);
-	//
-	//if (!eBeamParameter.densityFile.empty() && !labEnergiesParameter.Get<std::filesystem::path>("energy file").empty())
-	//{
-	//	folder = eBeamParameter.densityFile.parent_path().parent_path();
-	//	subFolder = Form("E_cool %.3feV I_e %.2eA r_ion %.4fm", eBeamParameter.coolingEnergy,
-	//		eBeamParameter.electronCurrent, ionBeamParameter.radius);
-	//	index = std::stoi(eBeamParameter.densityFile.filename().string().substr(0, 4));
-	//}
-	//
+	eDistParameter.detuningEnergy = pow(sqrt(labEnergiesParameter.centerLabEnergy) - sqrt(eBeamParameter.coolingEnergy), 2);
+	
+	if (!eBeamParameter.densityFile.get().empty() && !labEnergiesParameter.energyFile.get().empty())
+	{
+		folder = eBeamParameter.densityFile.get().parent_path().parent_path();
+		subFolder = Form("E_cool %.3feV I_e %.2eA r_ion %.4fm", eBeamParameter.coolingEnergy,
+			eBeamParameter.electronCurrent, ionBeamParameter.radius);
+		index = std::stoi(eBeamParameter.densityFile.get().filename().string().substr(0, 4));
+	}
+	
 	//if (eBeamParameter.hasGaussianShape) tags += "e-gaus, ";
 	//if (eBeamParameter.hasNoBending) tags += "no bend, ";
 	//if (eBeamParameter.hasFixedLongitudinalTemperature) tags += "fixed kT||, ";
 	//if (labEnergiesParameter.Get<bool>("use uniform energy")) tags += "uniform energy, ";
 	//if (labEnergiesParameter.Get<bool>("use xy slice")) tags += Form("energy sliced %.3f, ", labEnergiesParameter.sliceToFill);
 	//if (eDistParameter.cutOutZValues) tags += Form("z samples %.3f - %.3f, ", eDistParameter.cutOutRange[0], eDistParameter.cutOutRange[1]);
-	m_label = Form("%d: U drift = %.2fV, E_d = %.4f", index, eDistParameter.driftTubeVoltage,
+	label = Form("%d: U drift = %.2fV, E_d = %.4f", index, eDistParameter.driftTubeVoltage,
 		eDistParameter.detuningEnergy);
 
 	//setup binning
@@ -199,7 +109,7 @@ void EnergyDistribution::SetupFromCurrentEnvironment()
 		for (int i = 0; binEdges[binEdges.size() - 1] < max; i++)
 		{
 			double nextBin = binEdges[i] * factor;
-			double difference = std::max(nextBin - binEdges[i], eDistParameter.minBinSize);
+			double difference = std::max(nextBin - binEdges[i], eDistParameter.minBinSize.get());
 			binEdges.push_back(binEdges[i] + difference);
 			//std::cout << binEdges[binEdges.size() - 1] << " " << nextBin << " " << difference << " \n";
 		}
@@ -212,7 +122,7 @@ void EnergyDistribution::SetupFromCurrentEnvironment()
 	SetBins(binEdges.size() - 1, binEdges.data());
 }
 
-void EnergyDistribution::SetupFromHeader(std::string header)
+void EnergyDistribution::SetupFromHeader(std::string& header)
 {
 
 }
@@ -255,11 +165,11 @@ void EnergyDistribution::RemoveEdgeZeros()
 std::string EnergyDistribution::String()
 {
 	std::string string = Form("# folder: %s\n", folder.filename().string()) +
-		eBeamParameter.String() +
-		labEnergiesParameter.String() +
-		eDistParameter.ToString() +
-		ionBeamParameter.String() +
-		mcmcParameter.String();
+		eBeamParameter.toString() +
+		labEnergiesParameter.toString() +
+		eDistParameter.toString() +
+		ionBeamParameter.toString() +
+		mcmcParameter.toString();
 
 	return string;
 }
@@ -268,7 +178,7 @@ std::string EnergyDistribution::Filename()
 {
 	std::ostringstream indexSS;
 	std::ostringstream eCoolSS;
-	eCoolSS << std::fixed << std::setprecision(3) << eBeamParameter.coolingEnergy;
+	eCoolSS << std::fixed << std::setprecision(3) << eBeamParameter.coolingEnergy.get();
 	indexSS << std::setw(4) << std::setfill('0') << index;
 
 	std::string string = indexSS.str() + std::string(Form(" E_d %.4feV.asc", eDistParameter.detuningEnergy));

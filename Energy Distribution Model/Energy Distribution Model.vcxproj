@@ -148,7 +148,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\Parameter.cpp" />
     <ClCompile Include="src\CrossSection.cpp" />
     <ClCompile Include="src\EnergyDistribution.cpp" />
     <ClCompile Include="src\LabEnergies.cpp" />

@@ -1,168 +1,253 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
-#include <filesystem>
-#include <variant> 
-
-using Value = std::variant<int, double, std::filesystem::path, bool>;
-
-struct ParameterValue
-{
-	std::string m_unit = "";
-	Value m_value;
-
-	ParameterValue() {};
-	ParameterValue(Value value, std::string unit);
-
-	operator int() const;
-	operator bool() const;
-	operator double() const;
-	operator std::filesystem::path() const;
-};
-
-class Parameters
-{
-public:
-	enum Params {};
-
-	Parameters(std::string description);
-	void Add(std::string name, Value value, std::string unit = "");
-	//Value& Get(std::string name);
-
-	ParameterValue& Get(int index);
-
-	void Set(std::string name, Value value);
-
-	std::string ToString();
-	void FromString(std::string string);
-
-private:
-	std::string m_description;
-	std::vector<ParameterValue> m_params;
-	//std::unordered_map<std::string, ParameterValue> m_map;
-};
-
-class LabEnergyParameter : public Parameters
-{
-public:
-	enum Params {CenterLabEnergy, EnergyFile, Count};
-
-	//LabEnergyParameter(std::string description);
-};
-
-
-//------------------------------------------------------
 #include <iostream>
-#include <vector>
-#include <variant>
+#include <sstream>
 #include <filesystem>
-#include <typeinfo>
 
 using Path = std::filesystem::path;
-//using Value = std::variant<int, double, bool, Path>;
+
+struct float2
+{
+	float x, y;
+
+	float2(float x_, float y_) : x(x_), y(y_) {}
+	float2(std::string& str)
+	{
+		std::stringstream ss(str);
+		std::string number;
+
+		std::getline(ss, number, ',');
+		x = std::stof(number);
+		std::getline(ss, number, ',');
+		y = std::stof(number);
+	}
+};
+
+struct float3
+{
+	float x, y, z;
+
+	float3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
+	float3(std::string& str)
+	{
+		std::stringstream ss(str);
+		std::string number;
+
+		std::getline(ss, number, ',');
+		x = std::stof(number);
+		std::getline(ss, number, ',');
+		y = std::stof(number);
+		std::getline(ss, number, ',');
+		z = std::stof(number);
+	}
+};
 
 template<typename T>
 struct ParameterValue
 {
-	union
-	{
-		int i;
-		double d;
-		bool b;
-	};
+	enum Type { INT, DOUBLE, FLOAT_2, FLOAT_3, BOOL, PATH };
 
-	//T value;
-	std::string string;
+	// needs to be the size of the largest possible stored element
+	using StorageType = std::aligned_storage_t<sizeof(Path), alignof(Path)>;
 
-	ParameterValue(T val, const std::string& str)
-		: value(val), string(str)
+	int type = INT;
+	StorageType value;
+	std::string name;
+	std::string format;
+
+	ParameterValue(T val, const std::string& name, const std::string& format)
+		: name(name), format(format)
 	{
+		new (&value) T(val);
+
+		const std::type_info& typeInfo = typeid(T);
+		if (typeInfo == typeid(int))
+		{
+			type = INT;
+		}
+		else if (typeInfo == typeid(double))
+		{
+			type = DOUBLE;
+		}
+		else if (typeInfo == typeid(float2))
+		{
+			type = FLOAT_2;
+		}
+		else if (typeInfo == typeid(float3))
+		{
+			type = FLOAT_3;
+		}
+		else if (typeInfo == typeid(bool))
+		{
+			type = BOOL;
+		}
+		else if (typeInfo == typeid(Path))
+		{
+			type = PATH;
+		}
 	}
 
-	T get()
+	T& get()
 	{
-		return value;
+		return *reinterpret_cast<T*>(&value);
+	}
+	T* data()
+	{
+		return (T*)&value;
+	}
+	void set(T val)
+	{
+		reinterpret_cast<T*>(&value)->~T();
+
+		// Construct the new value in the same storage
+		new (&value) T(val);
+	}
+
+	operator T() 
+	{
+		return *(T*)(&value);
+	}
+	operator T* () 
+	{
+		return (T*)&value;
+	}
+	operator float* ()
+	{
+		return (float*)&value;
+	}
+	ParameterValue& operator=(const T& val)
+	{
+		set(val);
+		return *this;
 	}
 };
 
-struct LabEnergyParameter
+struct Parameters
 {
-	ParameterValue<int> param1 = ParameterValue(5, "bla1");
-	ParameterValue<double> param2 = ParameterValue(1.23, "bla2");
-	ParameterValue<bool> param3 = ParameterValue(true, "bla3");
-
-	LabEnergyParameter()
+public:
+	std::string toString()
 	{
+		std::string result = "# " + m_name + ":\n";
+		char* pointer = (char*)this;
 
+		for (int offset = m_dataStart; offset < GetSize(); offset += sizeof(ParameterValue<int>))
+		{
+			int type = *(int*)(pointer + offset) + offsetof(ParameterValue<int>, type);
+			std::string name = *(std::string*)((pointer + offset) + offsetof(ParameterValue<int>, name));
+			std::string format = *(std::string*)((pointer + offset) + offsetof(ParameterValue<int>, format));
+
+			void* value = ((pointer + offset) + offsetof(ParameterValue<int>, value));
+
+			result += "# " + name + ": ";
+			switch (type)
+			{
+			case ParameterValue<int>::INT:
+				result += createLine(format, *(int*)value);
+				break;
+			case ParameterValue<int>::DOUBLE:
+				result += createLine(format, *(double*)value);
+				break;
+			case ParameterValue<int>::FLOAT_2:
+				result += createLine(format, (*(float2*)value).x, (*(float2*)value).y);
+				break;
+			case ParameterValue<int>::FLOAT_3:
+				result += createLine(format, (*(float3*)value).x, (*(float3*)value).y, (*(float3*)value).z);
+				break;
+			case ParameterValue<int>::BOOL:
+				result += createLine(format, *(bool*)value);
+				break;
+			case ParameterValue<int>::PATH:
+				result += createLine(format, (*(Path*)value).filename().string().c_str());
+				break;
+			}
+			result += "\n";
+		}
+
+		return result;
 	}
-};
+	void fromString(std::string header)
+	{
+		std::istringstream stream(header);
+		std::string line;
 
-struct Parameter
-{
-	//template<typename T>
-	//int& GetInt(int index)
-	//{
-	//	if (index < list.size())
-	//	{
-	//		if (std::holds_alternative<int>(list[index].value))
-	//		{
-	//			return std::get<int>(list[index].value);
-	//		}
-	//	}
-	//	std::cerr << "could not get index " << index << " as an integer" << std::endl;
-	//	int temp = 0;
-	//	return temp;
-	//}
-	//
-	//double& GetDouble(int index)
-	//{
-	//	if (std::holds_alternative<double>(list[index].value))
-	//	{
-	//		return std::get<double>(list[index].value);
-	//	}
-	//	std::cerr << "could not get index " << index << " as a double" << std::endl;
-	//	double temp = 0;
-	//	return temp;
-	//}
+		while (std::getline(stream, line))
+		{
+			line = line.substr(2);
+			std::string name, value;
+
+			// Create a stringstream for the line
+			std::stringstream lineStream(line);
+
+			// Read the name (everything before ':')
+			std::getline(lineStream, name, ':');
+
+			// Read the value (everything after ':')
+			std::getline(lineStream, value);
+
+			std::cout << "name: " << name << " value: " << value << std::endl;
+
+			void* object = getParameterValue(name);
+			int type = *(int*)(object)+offsetof(ParameterValue<int>, type);
+
+			switch (type)
+			{
+			case ParameterValue<int>::INT:
+				((ParameterValue<int>*)object)->set(std::stoi(value));
+				break;
+			case ParameterValue<double>::DOUBLE:
+				((ParameterValue<double>*)object)->set(std::stod(value));
+				break;
+			case ParameterValue<int>::FLOAT_2:
+				((ParameterValue<float2>*)object)->set(float2(value));
+				break;
+			case ParameterValue<int>::FLOAT_3:
+				((ParameterValue<float3>*)object)->set(float3(value));
+				break;
+			case ParameterValue<int>::BOOL:
+				((ParameterValue<bool>*)object)->set(std::stoi(value));
+				break;
+			case ParameterValue<int>::PATH:
+				((ParameterValue<Path>*)object)->set(Path(value));
+				break;
+			}
+		}
+	}
+
+private:
+	template <typename T, typename... Args>
+	std::string createLine(const std::string& format, const T& value1, const Args&... args)
+	{
+		char buffer[100];
+		sprintf_s(buffer, format.c_str(), value1, args...);
+		return std::string(buffer);
+	}
+
+	void* getParameterValue(const std::string& name)
+	{
+		char* pointer = (char*)this;
+
+		for (int offset = m_dataStart; offset < GetSize(); offset += sizeof(ParameterValue<int>))
+		{
+			int type = *(int*)(pointer + offset) + offsetof(ParameterValue<int>, type);
+			std::string ParamValueName = *(std::string*)((pointer + offset) + offsetof(ParameterValue<int>, name));
+			if (ParamValueName == name)
+			{
+				return pointer + offset;
+			}
+		}
+		return nullptr;
+	}
+	virtual int GetSize() = 0;
 
 protected:
-	//std::vector<ParameterValue> list;
-};
+	std::string m_name = "";
+	void setName(std::string&& name) { m_name = std::move(name); }
 
-enum LabEnergyParameterNames
-{
-	Param1, Param2, NumberLabEnergyParameter
-};
-
-enum ElectronBeamParameterNames
-{
-	Current, Radius, NumberElectronBeamParameter
+private:
+	// offset in memory where the data of derived classes start, comes from vtable (8 bytes atm) and members of Parameters
+	int m_dataStart = 8 + offsetof(Parameters, m_dataStart);
 };
 
 
-int main()
-{
-
-	LabEnergyParameter params;
-
-	//ParameterValue<int> intParam(5, "Integer Parameter");
-
-
-	std::cout << sizeof(ParameterValue<int>) << " " << sizeof(ParameterValue<Path>) << std::endl;
-
-	//params.param1.i = 3;
-
-
-	//int& param1 = params.GetInt(Param1);
-	//
-	std::cout << params.param1.get() << std::endl;
-	//
-	//param1 = 10;
-	//
-	//std::cout << params.GetDouble(Param1) << std::endl;
-	//std::cout << params.GetDouble(Param2) << std::endl;
-
-	return 1;
-}
 

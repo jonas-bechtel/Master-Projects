@@ -11,9 +11,9 @@ IonBeam::IonBeam()
 {
 }
 
-float IonBeam::GetRadius()
+double IonBeam::GetRadius()
 {
-	return parameter.radius;
+	return m_parameters.radius;
 }
 
 void IonBeam::SetupDistribution(std::filesystem::path file)
@@ -42,11 +42,11 @@ void IonBeam::SetupDistribution(std::filesystem::path file)
 				//double z = density->GetZaxis()->GetBinCenter(k);
 
 				// apply shift of ion beam
-				x -= parameter.shift[0];
-				y -= parameter.shift[1];
+				x -= m_parameters.shift.get().x;
+				y -= m_parameters.shift.get().y;
 
 				// Calculate the value using the Gaussian distribution centered at z = 0
-				double value = exp(-(x * x + y * y) / (2.0 * parameter.radius * parameter.radius));
+				double value = exp(-(x * x + y * y) / (2.0 * m_parameters.radius * m_parameters.radius));
 				m_distribution->SetBinContent(i, j, k, value);
 			}
 		}
@@ -55,12 +55,7 @@ void IonBeam::SetupDistribution(std::filesystem::path file)
 
 IonBeamParameters IonBeam::GetParameter()
 {
-	return parameter;
-}
-
-void IonBeam::SetParameter(IonBeamParameters params)
-{
-	parameter = params;
+	return m_parameters;
 }
 
 TH3D* IonBeam::MultiplyWithElectronDensities()
@@ -68,7 +63,11 @@ TH3D* IonBeam::MultiplyWithElectronDensities()
 	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
 	TH3D* electronDensities = eBeam->GetDistribution();
 
-	if (!electronDensities) return nullptr;
+	if (!electronDensities)
+	{
+		std::cout << "no electron densities" << std::endl;
+		return nullptr;
+	}
 
 	TH3D* result = (TH3D*)electronDensities->Clone("e-ion density");
 	result->SetTitle("electron-ion density");
@@ -97,27 +96,18 @@ void IonBeam::ShowUI()
 {
 	bool somethingChanged = false;
 	ImGui::SetNextItemWidth(200.0f);
-	somethingChanged = ImGui::InputFloat("ion beam radius / sigma in [m]", &parameter.radius, 0.001f, 0.001f, "%.4f");
+	somethingChanged = ImGui::InputDouble("ion beam radius / sigma in [m]", m_parameters.radius, 0.001f, 0.001f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
 	ImGui::SetNextItemWidth(200.0f);
-	somethingChanged |= ImGui::InputFloat2("shift in x and y [m]", parameter.shift, "%.4f");
+	somethingChanged |= ImGui::InputFloat2("shift in x and y [m]", m_parameters.shift, "%.4f");
 
 	if(somethingChanged)
 	{
 		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
-		ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
 		SetupDistribution();
 		mcmc->SetupDistribution();
-
+	
 		PlotDistribution();
 		mcmc->PlotTargetDistribution();
 	}
 }
 
-std::string IonBeamParameters::String()
-{
-	std::string string = std::string(Form("# ion beam parameter:\n")) +
-						 std::string(Form("# radius: %.4f m\n", radius)) +
-						 std::string(Form("# shift in x and y: %.4f, %4f m\n", shift[0], shift[1]));
-
-	return string;
-}

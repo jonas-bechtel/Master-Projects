@@ -8,7 +8,7 @@ std::unordered_map<std::string, Module*> Module::s_moduleMap;
 int Distribution3D::s_rebinningFactors[3] = { 10, 10, 10 };
 
 Module::Module(std::string name)
-	: m_name(name), m_parameters(Parameters(name + " parameters"))
+	: m_name(name)//, m_parameters(Parameters(name + " parameters"))
 {
 	s_moduleMap[name] = this;
 	
@@ -32,10 +32,10 @@ std::unordered_map<std::string, Module*>& Module::GetModuleMap()
 	return s_moduleMap;
 }
 
-Parameters Module::GetParameter()
-{
-	return m_parameters;
-}
+//Parameters Module::GetParameter()
+//{
+//	return m_parameters;
+//}
 
 void Module::ShowWindow()
 {

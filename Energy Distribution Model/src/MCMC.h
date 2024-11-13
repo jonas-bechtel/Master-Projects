@@ -17,15 +17,21 @@
 #include "Module.h"
 #include "Point3D.h"
 
-struct MCMC_Parameters
+struct MCMC_Parameters : public Parameters
 {
-	int numberSamples = (int)3e5;
-	int burnIn = 1000;
-	int lag = 30;
-	float proposalSigma[3] = { 0.005f, 0.005f, 0.2f };
-	int seed = (int)std::time(0);
+	MCMC_Parameters() { setName("mcmc sampling parameters"); }
 
-	std::string String();
+	ParameterValue<int> numberSamples = ParameterValue((int)3e5, "number of samples", "%d");
+	ParameterValue<int> burnIn = ParameterValue(1000, "burn in", "%d");
+	ParameterValue<int> lag = ParameterValue(30, "lag", "%d");
+	ParameterValue<float3> proposalSigma = ParameterValue(float3(0.005f, 0.005f, 0.2f), "proposal sigmas", "%.4f, %.4f, %.3f m");
+	ParameterValue<int> seed = ParameterValue((int)std::time(0), "seed", "%d");
+
+private:
+	int GetSize() override
+	{
+		return sizeof(*this);
+	}
 };
 
 class MCMC : public Distribution3D
@@ -56,6 +62,8 @@ private:
 	void PlotProjections();
 
 private:
+	MCMC_Parameters m_parameters;
+
 	// graphs
 	TH3D* targetDist = nullptr;
 	TH3D* targetDistSmall = nullptr;
@@ -69,8 +77,6 @@ private:
 	// axis ranges of the target distribution and the generated one
 	double axisRanges[6] = { 0, 0, 0, 0, 0, 0 };
 
-	MCMC_Parameters parameter;
-	
 	float acceptanceRate = 0.0;
 	bool changeSeed = true;
 	bool automaticProposalStd = true;
@@ -93,9 +99,9 @@ private:
 	//std::subtract_with_carry_engine< std::uint_fast64_t, 48, 5, 12> generator; // is slightly faster but maybe less quality
 	//std::linear_congruential_engine<std::uint_fast32_t, 48271, 0, 2147483647> generator; // is even faster
 	std::uniform_real_distribution<double> uniformDist = std::uniform_real_distribution<double>(0.0, 1.0);
-	std::normal_distribution<double> normalDistX = std::normal_distribution<double>(0.0, parameter.proposalSigma[0]);
-	std::normal_distribution<double> normalDistY = std::normal_distribution<double>(0.0, parameter.proposalSigma[1]);
-	std::normal_distribution<double> normalDistZ = std::normal_distribution<double>(0.0, parameter.proposalSigma[2]);
+	std::normal_distribution<double> normalDistX = std::normal_distribution<double>(0.0, m_parameters.proposalSigma.get().x);
+	std::normal_distribution<double> normalDistY = std::normal_distribution<double>(0.0, m_parameters.proposalSigma.get().y);
+	std::normal_distribution<double> normalDistZ = std::normal_distribution<double>(0.0, m_parameters.proposalSigma.get().z);
 
 	double totalTime = 0.0;
 	double interpolationTime = 0;

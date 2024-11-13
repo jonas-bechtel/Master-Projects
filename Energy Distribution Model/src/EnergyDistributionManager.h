@@ -9,32 +9,15 @@
 #include "ElectronBeam.h"
 #include "IonBeam.h"
 #include "LabEnergies.h"
-
-struct EnergyDistributionParameters
-{
-	double driftTubeVoltage = 0;
-	double detuningEnergy = 0;
-
-	bool limitBinSize = true;
-	double minBinSize = 1e-5;
-
-	// parameters for simpler test 
-	bool cutOutZValues = false;
-	float cutOutRange[2] = { 0, 0.35 };
-
-	std::string ToString();
-	void FromString(std::string string);
-};
-
 #include "EnergyDistribution.h"
 
 class EnergyDistributionManager : public Module
 {
 public:
 	EnergyDistributionManager();
-	EnergyDistributionParameters GetParameter();
 	float* GetEnergyRange();
 	int GetBinsPerDecade();
+	EnergyDistributionParameters GetParameter();
 	std::vector<EnergyDistribution*>& GetEnergyDistributions();
 	void GenerateEnergyDistribution();
 	void GenerateEnergyDistributionsFromFile(std::filesystem::path file);
@@ -62,7 +45,7 @@ private:
 
 private:
 	std::vector<EnergyDistribution*> energyDistributions;
-	EnergyDistribution* currentDistribution;
+	EnergyDistribution* currentDistribution = new EnergyDistribution();
 	EnergyDistributionParameters parameter;
 	
 	// graphs and plots

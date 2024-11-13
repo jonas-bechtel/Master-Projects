@@ -79,8 +79,8 @@ EnergyDistribution* FileHandler::LoadEnergyDistributionSamples(std::filesystem::
 
     EnergyDistribution* distribution = new EnergyDistribution();
     distribution->SetupFromHeader(header);
-    std::vector<double> collisionEnergies = distribution->GetCollisionEnergies();
-    collisionEnergies.reserve(distribution->GetMCMC_Parameter().numberSamples);
+    std::vector<double> collisionEnergies = distribution->collisionEnergies;
+    collisionEnergies.reserve(distribution->mcmcParameter.numberSamples);
 
     // Read the file line by line
     while (std::getline(file, line))
@@ -194,8 +194,8 @@ void FileHandler::SaveEnergyDistributionHistToFile(EnergyDistribution* energyDis
     // set the output filepath
     std::filesystem::path file = outputFolder.string() /        // general output folder
         std::filesystem::path("histogram files") /              // folder for files with histogram of distribution
-        energyDistribution->GetFolder().filename() /                  // folder of corresponfding desription file
-        energyDistribution->GetSubFolder().filename() /               // subfolder with specific parameters
+        energyDistribution->folder.filename() /                  // folder of corresponfding desription file
+        energyDistribution->subFolder.filename() /               // subfolder with specific parameters
         std::filesystem::path(energyDistribution->Filename());   // filename
 
     // extract the directory 
@@ -215,11 +215,11 @@ void FileHandler::SaveEnergyDistributionHistToFile(EnergyDistribution* energyDis
     outfile << energyDistribution->String();
 
     outfile << "# bin center [eV]\tbin value\tbin value normalised by bin width\n";
-    for (int i = 0; i < energyDistribution->GetBinCenters().size(); i++)
+    for (int i = 0; i < energyDistribution->binCenters.size(); i++)
     {
-        outfile << energyDistribution->GetBinCenters()[i] << "\t";
-        outfile << energyDistribution->GetBinValues()[i]<< "\t";
-        outfile << energyDistribution->GetNormalisedBinValues()[i] << "\n";
+        outfile << energyDistribution->binCenters[i] << "\t";
+        outfile << energyDistribution->binValues[i]<< "\t";
+        outfile << energyDistribution->binValuesNormalised[i] << "\n";
     }
     
     outfile.close();
@@ -230,8 +230,8 @@ void FileHandler::SaveEnergyDistributionSamplesToFile(EnergyDistribution* energy
     // set the output filepath
     std::filesystem::path file = outputFolder.string() /        // general output folder
         std::filesystem::path("sample files") /                 // special folder for files with all samples in it
-        energyDistribution->GetFolder().filename() /                  // folder of corresponfding desription file
-        energyDistribution->GetSubFolder().filename() /               // subfolder with specific parameters
+        energyDistribution->folder.filename() /                  // folder of corresponfding desription file
+        energyDistribution->subFolder.filename() /               // subfolder with specific parameters
         std::filesystem::path(energyDistribution->Filename());   // filename
 
     // extract the directory 
@@ -252,7 +252,7 @@ void FileHandler::SaveEnergyDistributionSamplesToFile(EnergyDistribution* energy
     outfile << energyDistribution->String();
 
     outfile << "# sampled collision energy values\n";
-    for (double energy : energyDistribution->GetCollisionEnergies())
+    for (double energy : energyDistribution->collisionEnergies)
     {
         outfile << energy << "\n";
     }

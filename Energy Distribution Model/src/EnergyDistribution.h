@@ -7,34 +7,33 @@
 #include "IonBeam.h"
 #include "LabEnergies.h"
 
-class EnergyDistribution  : public TH1D
+struct EnergyDistributionParameters : public Parameters
 {
-public:
+	EnergyDistributionParameters()
+	{
+		setName("energy distribution parameters");
+	}
+
+	ParameterValue<double> driftTubeVoltage = ParameterValue(5.0, "drift tube voltage", "%e V");
+	ParameterValue<double> detuningEnergy = ParameterValue(5.0, "detuning energy", "%.3f eV");
+	ParameterValue<bool> limitBinSize = ParameterValue(false, "limit bin size", "%d");
+	ParameterValue<double> minBinSize = ParameterValue(5.0, "min bin size", "%.1e eV");
+	ParameterValue<bool> cutOutZValues = ParameterValue(false, "cut out z values", "%d");
+	ParameterValue<float2> cutOutRange = ParameterValue(float2(0.0f, 0.4f), "cut out range", "%.2f, %.2f m");
+
+private:
+	int GetSize() override
+	{
+		return sizeof(*this);
+	}
+};
+
+struct EnergyDistribution : public TH1D
+{
 	EnergyDistribution();
-	std::vector<double>& GetCollisionEnergies();
-	std::vector<double>& GetBinCenters();
-	std::vector<double>& GetBinValues();
-	std::vector<double>& GetNormalisedBinValues();
-
-	MCMC_Parameters& GetMCMC_Parameter();
-	ElectronBeamParameters& GetElectronBeamParameter();
-	IonBeamParameters& GetIonBeamParameter();
-	LabEnergiesParameters& GetLabEnergyParameter();
-	EnergyDistributionParameters& GetEnergyDistributionParameter();
-
-	void SetLabel(std::string label);
-	double& GetRateCoefficient();
-	std::vector<double>& GetPsis();
-	std::string& GetLabel();
-	std::string& GetTags();
-	std::filesystem::path& GetFolder();
-	std::filesystem::path& GetSubFolder();
-
-	bool& IsPlotted();
-	bool& IsPlottedNormalised();
 	
 	void SetupFromCurrentEnvironment();
-	void SetupFromHeader(std::string header);
+	void SetupFromHeader(std::string& header);
 	void RemoveEdgeZeros();
 
 	std::string String();
@@ -43,9 +42,6 @@ public:
 	static EnergyDistribution* FindByEd(double detuningEnergy);
 	static std::unordered_map<double, EnergyDistribution*> s_allDistributions;
 
-private:
-
-private:
 	// actual distribution
 	std::vector<double> collisionEnergies;
 	std::vector<double> binCenters;
@@ -56,11 +52,11 @@ private:
 	MCMC_Parameters mcmcParameter;
 	ElectronBeamParameters eBeamParameter;
 	IonBeamParameters ionBeamParameter;
-	LabEnergiesParameters labEnergiesParameter;
+	LabEnergyParameters labEnergiesParameter;
 	EnergyDistributionParameters eDistParameter;
 
 	// additional labelling things
-	std::string m_label = "";
+	std::string label = "";
 	std::string tags = "";
 	std::filesystem::path folder = "Test";
 	std::filesystem::path subFolder = "";

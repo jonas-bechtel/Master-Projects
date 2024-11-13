@@ -63,7 +63,7 @@ void CrossSection::SetupFitCrossSectionHist()
 	if (currentOption == 0)
 	{
 		EnergyDistribution* representativeEnergyDist = energyDistributions[energyDistributions.size() - 1];
-		double kT_trans = representativeEnergyDist->GetElectronBeamParameter().transverse_kT;
+		double kT_trans = representativeEnergyDist->eBeamParameter.transverse_kT;
 		double kT_long = 0.00047; // representativeEnergyDist->eBeamParameter.longitudinal_kT; //eBeam->GetLongitudinal_kT(labEnergiesParameter.centerLabEnergy);
 
 		double factor = 1;
@@ -180,18 +180,18 @@ void CrossSection::CalculateRateCoefficients()
 
 		for (EnergyDistribution* eDist : energyDistributions)
 		{
-			if (eDist->GetCollisionEnergies().empty()) continue;
+			if (eDist->collisionEnergies.empty()) continue;
 
-			for (double collisionEnergy : eDist->GetCollisionEnergies())
+			for (double collisionEnergy : eDist->collisionEnergies)
 			{
 				double crossSectionValue = 1 / collisionEnergy;
 				double collosionVelocity = TMath::Sqrt(2 * collisionEnergy * TMath::Qe() / PhysicalConstants::electronMass);
-				eDist->GetRateCoefficient() += crossSectionValue * collosionVelocity;
+				eDist->rateCoefficient += crossSectionValue * collosionVelocity;
 			}
-			eDist->GetRateCoefficient() /= eDist->GetCollisionEnergies().size();
+			eDist->rateCoefficient /= eDist->collisionEnergies.size();
 
-			double E_d = pow(sqrt(eDist->GetLabEnergyParameter().centerLabEnergy) - sqrt(eDist->GetElectronBeamParameter().coolingEnergy), 2);
-			rateCoefficients->AddPoint(E_d, eDist->GetRateCoefficient());
+			double E_d = pow(sqrt(eDist->labEnergiesParameter.centerLabEnergy) - sqrt(eDist->eBeamParameter.coolingEnergy), 2);
+			rateCoefficients->AddPoint(E_d, eDist->rateCoefficient);
 		}
 	}
 }
@@ -203,18 +203,18 @@ void CrossSection::CalculatePsis()
 
 	for (EnergyDistribution* distribution : energyDistributions)
 	{
-		distribution->GetPsis().clear();
-		distribution->GetPsis().resize(crossSectionFit->GetNbinsX());
+		distribution->psi.clear();
+		distribution->psi.resize(crossSectionFit->GetNbinsX());
 
-		for (double energy : distribution->GetCollisionEnergies())
+		for (double energy : distribution->collisionEnergies)
 		{
 			int bin = crossSectionFit->FindBin(energy);
 			double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
-			distribution->GetPsis()[bin - 1] += velocity;
+			distribution->psi[bin - 1] += velocity;
 		}
-		for (int i = 0; i < distribution->GetPsis().size(); i++)
+		for (int i = 0; i < distribution->psi.size(); i++)
 		{
-			distribution->GetPsis()[i] /= distribution->GetCollisionEnergies().size();
+			distribution->psi[i] /= distribution->collisionEnergies.size();
 			//std::cout << "GetPsis()_" << i << ": " << distribution->GetPsis()[i] << " " << crossSectionFit->GetBinLowEdge(i+1)
 			//	 << " - " << crossSectionFit->GetBinLowEdge(i+2) << "\n";
 		}
@@ -267,7 +267,7 @@ double CrossSection::FitFunction(double* x, double* params)
 		//std::cout << i << " ";
 		//std::cout << distribution->GetPsis()[i] << " ";
 		//std::cout << params[i] << "\n";
-		sum += distribution->GetPsis()[i] * params[i];
+		sum += distribution->psi[i] * params[i];
 	}
 	//std::cout << "sum " << sum << "\n";
 	return sum;
@@ -290,7 +290,7 @@ void CrossSection::FillFitPlots(double* crossSectionParamater)
 	rateCoefficientsFit = new TGraph();
 	for (EnergyDistribution* eDist : energyDistributions)
 	{
-		double x[1] = { eDist->GetEnergyDistributionParameter().detuningEnergy};
+		double x[1] = { eDist->eDistParameter.detuningEnergy};
 		rateCoefficientsFit->AddPoint(x[0], FitFunction(x, crossSectionParamater));
 	}
 }

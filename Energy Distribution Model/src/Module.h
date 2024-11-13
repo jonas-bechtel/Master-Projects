@@ -20,7 +20,7 @@ public:
 	static Module* Get(std::string name);
 	static std::unordered_map<std::string, Module*>& GetModuleMap();
 
-	Parameters GetParameter();
+	//Parameters GetParameter();
 
 	void ShowWindow();
 
@@ -36,7 +36,7 @@ private:
 protected:
 	static std::unordered_map<std::string, Module*> s_moduleMap;
 	
-	Parameters m_parameters;
+	//Parameters m_parameters;
 
 	std::string m_name;
 	TCanvas* m_mainCanvas;

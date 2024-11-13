@@ -25,7 +25,7 @@ ElectronBeam::ElectronBeam()
 
 void ElectronBeam::SetupDistribution(std::filesystem::path densityfile)
 {
-	if (parameters.hasGaussianShape)
+	if (m_parameters.hasGaussianShape)
 	{
 		GenerateElectronBeamDensity();
 	}
@@ -37,12 +37,12 @@ void ElectronBeam::SetupDistribution(std::filesystem::path densityfile)
 
 ElectronBeamParameters ElectronBeam::GetParameter()
 {
-	return parameters;
+	return m_parameters;
 }
 
 TH3D* ElectronBeam::GetDistribution()
 {
-	if (parameters.hasGaussianShape)
+	if (m_parameters.hasGaussianShape)
 	{
 		return generatedBeamDensity;
 	}
@@ -51,17 +51,17 @@ TH3D* ElectronBeam::GetDistribution()
 
 void ElectronBeam::SetParameter(ElectronBeamParameters params)
 {
-	parameters = params;
+	m_parameters = params;
 }
 
 void ElectronBeam::SetCurrent(double current)
 {
-	parameters.electronCurrent = current;
+	m_parameters.electronCurrent.set(current);
 }
 
 void ElectronBeam::SetLong_kTFromCenterLabEnergy(double centerLabEnergy)
 {
-	parameters.longitudinal_kT = GetLongitudinal_kT(centerLabEnergy);
+	m_parameters.longitudinal_kT.set(GetLongitudinal_kT(centerLabEnergy));
 }
 
 void ElectronBeam::LoadDensityFile(std::filesystem::path file)
@@ -81,7 +81,7 @@ void ElectronBeam::LoadDensityFile(std::filesystem::path file)
 		m_distribution->GetYaxis()->SetTitle("y-axis");
 		m_distribution->GetZaxis()->SetTitle("z-axis");
 
-		parameters.densityFile = file;
+		m_parameters.densityFile.set(file);
 	}
 }
 
@@ -119,24 +119,24 @@ TVector3 ElectronBeam::GetNormal(double z)
 
 double ElectronBeam::GetLongitudinal_kT(double labEnergy)
 {
-	if (parameters.hasFixedLongitudinalTemperature) 
+	if (m_parameters.hasFixedLongitudinalTemperature)
 	{
-		return parameters.longitudinal_kT;
+		return m_parameters.longitudinal_kT;
 	}
 
 	// intermediate unit is [J] final unit is [eV]
-	double A = (1. + TMath::Power((parameters.expansionFactor - 1.) / parameters.expansionFactor, 2.)) 
-		* (TMath::Power(TMath::K() * parameters.cathodeTemperature, 2.)) / (2. * TMath::Qe() * labEnergy);
+	double A = (1. + TMath::Power((m_parameters.expansionFactor - 1.) / m_parameters.expansionFactor, 2.)) 
+		* (TMath::Power(TMath::K() * m_parameters.cathodeTemperature, 2.)) / (2. * TMath::Qe() * labEnergy);
 	double B = 2.544008e-27;
-	double C = parameters.LLR * TMath::Power(parameters.cathodeRadius, -2 / 3.) * TMath::Power(parameters.electronCurrent, 1 / 3.)
-		* TMath::Power(parameters.extractionEnergy * TMath::Qe(), -1 / 6.) * parameters.extractionEnergy / labEnergy;
-	double D = TMath::Power(parameters.sigmaLabEnergy * TMath::Qe(), 2.) / (2. * TMath::Qe() * labEnergy);
+	double C = m_parameters.LLR * TMath::Power(m_parameters.cathodeRadius, -2 / 3.) * TMath::Power(m_parameters.electronCurrent, 1 / 3.)
+		* TMath::Power(m_parameters.extractionEnergy * TMath::Qe(), -1 / 6.) * m_parameters.extractionEnergy / labEnergy;
+	double D = TMath::Power(m_parameters.sigmaLabEnergy * TMath::Qe(), 2.) / (2. * TMath::Qe() * labEnergy);
 	return (A + B * C + D) / TMath::Qe();
 }
 
 double ElectronBeam::GetTransverse_kT()
 {
-	return parameters.transverse_kT;
+	return m_parameters.transverse_kT;
 }
 
 void ElectronBeam::ShowUI()
@@ -171,15 +171,15 @@ void ElectronBeam::ShowUI()
 	ImGui::EndDisabled();
 
 	ImGui::Separator();
-	if (ImGui::Checkbox("use gaussian beam shape", &parameters.hasGaussianShape))
+	if (ImGui::Checkbox("use gaussian beam shape", m_parameters.hasGaussianShape))
 	{
-		parameters.densityFile.clear();
+		m_parameters.densityFile.get().clear();
 	}
-	ImGui::BeginDisabled(!parameters.hasGaussianShape);
+	ImGui::BeginDisabled(!m_parameters.hasGaussianShape);
 	ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("radius [m]", &parameters.radius);
+	ImGui::InputDouble("radius [m]", m_parameters.radius);
 	ImGui::SameLine();
-	ImGui::Checkbox("exclude bend", &parameters.hasNoBending);
+	ImGui::Checkbox("exclude bend", m_parameters.hasNoBending);
 	if (ImGui::Button("generate density"))
 	{
 		GenerateElectronBeamDensity();
@@ -198,20 +198,20 @@ void ElectronBeam::ShowUI()
 	ImGui::EndDisabled();
 
 	ImGui::Separator();
-	ImGui::Checkbox("use fixed longitudinal kT", &parameters.hasFixedLongitudinalTemperature); ImGui::SetNextItemWidth(100.0f);
-	ImGui::BeginDisabled(!parameters.hasFixedLongitudinalTemperature);
-	ImGui::InputDouble("longitudinal kT [eV]", &parameters.longitudinal_kT);
+	ImGui::Checkbox("use fixed longitudinal kT", m_parameters.hasFixedLongitudinalTemperature); ImGui::SetNextItemWidth(100.0f);
+	ImGui::BeginDisabled(!m_parameters.hasFixedLongitudinalTemperature);
+	ImGui::InputDouble("longitudinal kT [eV]", m_parameters.longitudinal_kT);
 	ImGui::EndDisabled();														ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("cooling energy [eV]", &parameters.coolingEnergy);		ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("transverse kT [eV]", &parameters.transverse_kT);		ImGui::SetNextItemWidth(100.0f);
-	ImGui::BeginDisabled(parameters.hasFixedLongitudinalTemperature);
-	ImGui::InputDouble("electron current: [A]", &parameters.electronCurrent, 0.0, 0.0, "%.2e");	ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("cathode radius [m]", &parameters.cathodeRadius);		ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("cathode Temperature [K]", &parameters.cathodeTemperature); ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("extraction energy [eV]", &parameters.extractionEnergy); ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("expansion factor", &parameters.expansionFactor);		ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("LLR", &parameters.LLR);									ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("sigma lab energy [eV]", &parameters.sigmaLabEnergy);
+	ImGui::InputDouble("cooling energy [eV]", m_parameters.coolingEnergy);		ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("transverse kT [eV]", m_parameters.transverse_kT);		ImGui::SetNextItemWidth(100.0f);
+	ImGui::BeginDisabled(m_parameters.hasFixedLongitudinalTemperature);
+	ImGui::InputDouble("electron current: [A]", m_parameters.electronCurrent, 0.0, 0.0, "%.2e");	ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("cathode radius [m]", m_parameters.cathodeRadius);		ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("cathode Temperature [K]", m_parameters.cathodeTemperature); ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("extraction energy [eV]", m_parameters.extractionEnergy); ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("expansion factor", m_parameters.expansionFactor);		ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("LLR", m_parameters.LLR);									ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("sigma lab energy [eV]", m_parameters.sigmaLabEnergy);
 	ImGui::EndDisabled();
 	ImGui::Separator();
 
@@ -378,12 +378,12 @@ void ElectronBeam::GenerateElectronBeamDensity()
 				double z = generatedBeamDensity->GetZaxis()->GetBinCenter(k);
 
 				double ymean = 0;
-				if (!parameters.hasNoBending)
+				if (!m_parameters.hasNoBending)
 				{
 					ymean = Trajectory(z);
 				}
 				// Calculate the value using the Gaussian distribution centered at z = 0
-				double value = exp(-(x * x + (y - ymean) * (y - ymean)) / (2.0 * parameters.radius * parameters.radius));
+				double value = exp(-(x * x + (y - ymean) * (y - ymean)) / (2.0 * m_parameters.radius * m_parameters.radius));
 				generatedBeamDensity->SetBinContent(i, j, k, value);
 			}
 		}
@@ -562,38 +562,4 @@ double ElectronBeam::Derivative(double z)
 double ElectronBeam::DistancePointToTrajectoryOfZ(double z, Point3D point)
 {
 	return TMath::Power(Trajectory(z) - point.y, 2) + TMath::Power(z - point.z, 2);
-}
-
-std::string ElectronBeamParameters::String()
-{
-	std::string string = std::string(Form("# electron beam parameter:\n"));
-	if (hasGaussianShape)
-	{
-		string += std::string(Form("# using gaussian beam shape %s\n", (hasNoBending ? "excluding the bend" : "including the bend")));
-		string += std::string(Form("# radius: %.4f m\n", radius));
-	}
-	else
-	{
-		string += std::string(Form("# density file: %s\n", densityFile.filename().string().c_str()));
-	}
-	if (hasFixedLongitudinalTemperature)
-	{
-		string += std::string(Form("# using fixed longitudial Temperature\n"));
-		string += std::string(Form("# longitudinal kT: %.2e eV\n", longitudinal_kT));
-	}
-	else
-	{
-		string += std::string(Form("# electron current: %.2e A\n", electronCurrent));
-		string += std::string(Form("# expansion factor: %.1f\n", expansionFactor));
-		string += std::string(Form("# cathode radius: %.3e m\n", cathodeRadius));
-		string += std::string(Form("# cathode tempperature: %.1f K\n", cathodeTemperature));
-		string += std::string(Form("# LLR: %.1f\n", LLR));
-		string += std::string(Form("# sigma lab energy: %.3f eV\n", sigmaLabEnergy));
-		string += std::string(Form("# extraction energy: %.3f eV\n", extractionEnergy));
-	}
-						  
-	string += std::string(Form("# cooling energy: %.3f eV\n", coolingEnergy));
-	string += std::string(Form("# transverse kT: %.2e eV\n", transverse_kT));
-	
-	return string;
 }

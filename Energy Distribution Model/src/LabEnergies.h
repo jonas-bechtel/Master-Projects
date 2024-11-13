@@ -4,17 +4,21 @@
 
 #include <filesystem>
 
-struct LabEnergiesParameters
+struct LabEnergyParameters : public Parameters
 {
-	double centerLabEnergy = 0;
-	std::filesystem::path energyFile;
+	LabEnergyParameters() { setName("lab energy parameters"); }
 
-	// parameters for simpler model
-	bool useUniformEnergies = false;
-	bool useOnlySliceXY = false;
-	float sliceToFill = 0.5;
+	ParameterValue<double> centerLabEnergy = ParameterValue(0.0, "lab energy in center", "%.3e eV");
+	ParameterValue<Path> energyFile = ParameterValue(Path(""), "energy file", "%s");
+	ParameterValue<bool> useUniformEnergies = ParameterValue(false, "use uniform energy", "%d");
+	ParameterValue<bool> useOnlySliceXY = ParameterValue(false, "use slice of energies", "%d");
+	ParameterValue<double> sliceToFill = ParameterValue(0.5, "z value of slice", "%.3f");
 
-	std::string String();
+private:
+	int GetSize() override
+	{
+		return sizeof(*this);
+	}
 };
 
 class LabEnergies : public Distribution3D
@@ -22,7 +26,7 @@ class LabEnergies : public Distribution3D
 public:
 	LabEnergies();
 	double Get(double x, double y, double z);
-	LabEnergiesParameters GetParameter();
+	LabEnergyParameters GetParameter();
 	void SetCenterLabEnergy(double energy);
 	void SetupDistribution(std::filesystem::path energyfile = "") override;
 
@@ -37,7 +41,7 @@ private:
 	void PlotLabEnergyProjections();
 
 private:
-	LabEnergiesParameters parameter;
+	LabEnergyParameters m_parameters;
 
 	TH1D* labEnergyProjectionX = nullptr;
 	TH1D* labEnergyProjectionY = nullptr;

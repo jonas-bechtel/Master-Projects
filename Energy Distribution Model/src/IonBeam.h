@@ -6,29 +6,36 @@
 #include "Module.h"
 #include "Point3D.h"
 
-struct IonBeamParameters
+struct IonBeamParameters : public Parameters
 {
-	// sigma of gaussian shape in [m]
-	float radius = 0.0010f;
-	float shift[2] = { 0, 0 };
+	IonBeamParameters()
+	{
+		setName("ion beam parameters");
+	}
 
-	std::string String();
+	ParameterValue<double> radius = ParameterValue(0.0010, "radius", "%.4f m");
+	ParameterValue<float2> shift = ParameterValue(float2(0.0f, 0.0f), "shift in x and y", "%.4f, %.4f m");
+
+private:
+	int GetSize() override
+	{
+		return sizeof(*this);
+	}
 };
 
 class IonBeam : public Distribution3D
 {
 public:
 	IonBeam();
-	float GetRadius();
+	double GetRadius();
 	void SetupDistribution(std::filesystem::path file = "") override;
 	IonBeamParameters GetParameter();
-	void SetParameter(IonBeamParameters params);
 	TH3D* MultiplyWithElectronDensities();
 
 private:
 	void ShowUI() override;
 
 private:
-	IonBeamParameters parameter;
+	IonBeamParameters m_parameters;
 };
 

@@ -10,30 +10,40 @@
 #include "Module.h"
 #include "Point3D.h"
 
-struct ElectronBeamParameters
+struct ElectronBeamParameters : public Parameters
 {
-	double transverse_kT = 2.0e-3;
-	double coolingEnergy = 0.15; 		// cooling energy [eV]
-	double cathodeRadius = 0.0012955;
-	double expansionFactor = 30;
+	ElectronBeamParameters()
+	{
+		setName("electron beam parameters");
+	}
 
-	double electronCurrent = 1.2e-08;	// electron current [A]
-	double cathodeTemperature = 300;	// cathode temperature [K]
-	//double Ecath = 60.528;				// beam energy outside drift tubes
-	double LLR = 1.9;					// llr scaling factor
-	double sigmaLabEnergy = 0.0;		// sigma of gausian spread of the acceleration voltage (Elab) [eV]
-	double extractionEnergy = 31.26;	// extraction voltage for LLR (<=0 -> use Elab)
+	ParameterValue<double> transverse_kT = ParameterValue(2.0e-3, "transverse kT", "%.2e eV");
+	ParameterValue<double> coolingEnergy = ParameterValue(0.15, "cooling energy", "%.3f eV");
+	ParameterValue<double> cathodeRadius = ParameterValue(0.0012955, "cathode radius", "%.3e m");
+	ParameterValue<double> expansionFactor = ParameterValue(30.0, "expansion factor", "%.1f");
 
-	std::filesystem::path densityFile;
+	ParameterValue<double> electronCurrent = ParameterValue(1.2e-08, "electron current", "%.2e A");
+	ParameterValue<double> cathodeTemperature = ParameterValue(300.0, "cathode tempperature", "%.1f K");
+	//ParameterValue<double> Ecath = ParameterValue(0.0, "cathode energy", "%.3e eV");
+	ParameterValue<double> LLR = ParameterValue(1.9, "LLR", "%.1f");
+	// sigma of gaussian spread of the acceleration voltage (Elab) [eV]
+	ParameterValue<double> sigmaLabEnergy = ParameterValue(0.0, "sigma lab energy", "%.3f eV");
+	ParameterValue<double> extractionEnergy = ParameterValue(31.26, "extraction energy", "%.3f eV");
+	
+	ParameterValue<Path> densityFile = ParameterValue(Path(""), "density file", "%s");
 
 	// parameters for analytical electron beam shape to test model
-	bool hasGaussianShape = false;
-	bool hasNoBending = false;
-	bool hasFixedLongitudinalTemperature = false;
-	double radius = 0.003;
-	double longitudinal_kT = 0.0;
+	ParameterValue<bool> hasGaussianShape = ParameterValue(false, "using gaussian beam shape", "%d");
+	ParameterValue<bool> hasNoBending = ParameterValue(false, "exclude bend", "%d");
+	ParameterValue<bool> hasFixedLongitudinalTemperature = ParameterValue(false, "using fixed longitudial Temperature", "%d");
+	ParameterValue<double> radius = ParameterValue(0.003, "radius", "%.4f m");
+	ParameterValue<double> longitudinal_kT = ParameterValue(0.0, "longitudinal kT", "%.2e eV");
 
-	std::string String();
+private:
+	int GetSize() override
+	{
+		return sizeof(*this);
+	}
 };
 
 class ElectronBeam : public Distribution3D
@@ -72,7 +82,7 @@ private:
 	void PlotProjections();
 
 private:
-	ElectronBeamParameters parameters;
+	ElectronBeamParameters m_parameters;
 
 	TH3D* generatedBeamDensity = nullptr;
 	TH3D* generatedBeamDensitySmall = nullptr;
