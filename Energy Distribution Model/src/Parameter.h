@@ -56,7 +56,7 @@ struct ParameterValue
 	std::string name;
 	std::string format;
 
-	ParameterValue(T val, const std::string& name, const std::string& format)
+	inline ParameterValue(T val, const std::string& name, const std::string& format)
 		: name(name), format(format)
 	{
 		new (&value) T(val);
@@ -88,9 +88,33 @@ struct ParameterValue
 		}
 	}
 
+	inline ParameterValue(const ParameterValue& other) = delete;
+	ParameterValue& operator=(const ParameterValue& other) 
+	{
+		if (this != &other) 
+		{
+			type = other.type;
+			name = other.name;
+			format = other.format;
+			set(other.get());
+
+			//std::cout << "ParameterValue Copy assignment operator called" << std::endl;
+		}
+		return *this;
+	}
+	ParameterValue& operator=(const T& val)
+	{
+		set(val);
+		return *this;
+	}
+
 	T& get()
 	{
 		return *reinterpret_cast<T*>(&value);
+	}
+	const T& get() const
+	{
+		return *reinterpret_cast<const T*>(&value);
 	}
 	T* data()
 	{
@@ -115,11 +139,6 @@ struct ParameterValue
 	operator float* ()
 	{
 		return (float*)&value;
-	}
-	ParameterValue& operator=(const T& val)
-	{
-		set(val);
-		return *this;
 	}
 };
 
@@ -248,6 +267,3 @@ private:
 	// offset in memory where the data of derived classes start, comes from vtable (8 bytes atm) and members of Parameters
 	int m_dataStart = 8 + offsetof(Parameters, m_dataStart);
 };
-
-
-

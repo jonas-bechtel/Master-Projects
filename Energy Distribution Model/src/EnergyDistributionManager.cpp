@@ -16,6 +16,8 @@ EnergyDistributionManager::EnergyDistributionManager()
 	m_mainCanvas->Clear();
 	m_mainCanvas->Divide(3,2);
 	m_mainCanvas->SetWindowSize(1500, 800);
+
+	energyDistributions.reserve(5);
 }
 
 float* EnergyDistributionManager::GetEnergyRange()
@@ -28,7 +30,7 @@ int EnergyDistributionManager::GetBinsPerDecade()
 	return binsPerDecade;
 }
 
-EnergyDistributionParameters EnergyDistributionManager::GetParameter()
+EnergyDistributionParameters& EnergyDistributionManager::GetParameter()
 {
 	return parameter;
 }
@@ -147,7 +149,7 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 	if (ImGui::BeginChild("##listbox", ImVec2(0, 0), flags))
 	{
 		ImGui::Text("loaded distributions");
-		if (ImGui::BeginListBox("", ImVec2(-1, 250)))
+		if (ImGui::BeginListBox("##", ImVec2(-1, 250)))
 		{
 			for (int i = 0; i < energyDistributions.size(); i++)
 			{
@@ -160,7 +162,6 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 					label += "\n";
 					label += eDist->tags;
 				}
-				label += Form("##%d", (int)eDist);
 
 				// Render each item as selectable
 				if (ImGui::Selectable(label.c_str(), eDist->plotted, ImGuiSelectableFlags_AllowItemOverlap))
@@ -181,8 +182,9 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 
 				ImGui::PopID();
 			}
+			ImGui::EndListBox();
 		}
-		ImGui::EndListBox();
+		
 
 		if (ImGui::Button("clear list"))
 		{
@@ -247,16 +249,15 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 				}
 			}
 		}
-
 		ImPlot::EndPlot();
 	}
 }
 
 void EnergyDistributionManager::GenerateEnergyDistribution()
 {
-	//currentDistribution = new EnergyDistribution();
+	currentDistribution = new EnergyDistribution();
 	currentDistribution->SetupFromCurrentEnvironment();
-	EnergyDistributionParameters parameter = currentDistribution->eDistParameter;
+	EnergyDistributionParameters& parameter = currentDistribution->eDistParameter;
 
 	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
@@ -387,9 +388,9 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 
 	// store and save current distribution that has been worked on
 	energyDistributions.push_back(currentDistribution);
-	EnergyDistribution::s_allDistributions[currentDistribution->eDistParameter.detuningEnergy] = currentDistribution;
+	EnergyDistribution::s_allDistributions[currentDistribution->eBeamParameter.detuningEnergy] = currentDistribution;
 	
-	std::cout << "Ed1: " << currentDistribution->eDistParameter.detuningEnergy << "\n";
+	std::cout << "Ed1: " << currentDistribution->eBeamParameter.detuningEnergy << "\n";
 
 	FileHandler::GetInstance().SaveEnergyDistributionHistToFile(currentDistribution);
 	if (saveSamplesToFile)
@@ -398,7 +399,7 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 	}
 
 	// create new distribution object that will be worked on now
-	currentDistribution = new EnergyDistribution();
+	//currentDistribution = new EnergyDistribution();
 }
 
 void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesystem::path file)
@@ -427,10 +428,11 @@ void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesys
 		if (!additionalParameter[0]) continue;
 
 		// set read electron current and center lab energy
-		currentDistribution->eDistParameter.driftTubeVoltage = additionalParameter[0];
-		eBeam->SetCurrent(additionalParameter[1]);
-		labEnergies->SetCenterLabEnergy(additionalParameter[2]);
-		eBeam->SetLong_kTFromCenterLabEnergy(additionalParameter[2]);
+		//currentDistribution->eDistParameter.driftTubeVoltage = additionalParameter[0];
+		labEnergies->GetParameter().driftTubeVoltage = additionalParameter[0];
+		eBeam->GetParameter().electronCurrent = additionalParameter[1];
+		labEnergies->GetParameter().centerLabEnergy = additionalParameter[2];
+		eBeam->GetParameter().longitudinal_kT = eBeam->GetLongitudinal_kT(additionalParameter[2]);
 		
 		// full procedure to generate one energy distribution 
 		// 1. setup necessary distributions

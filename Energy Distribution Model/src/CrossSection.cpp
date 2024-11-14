@@ -290,7 +290,7 @@ void CrossSection::FillFitPlots(double* crossSectionParamater)
 	rateCoefficientsFit = new TGraph();
 	for (EnergyDistribution* eDist : energyDistributions)
 	{
-		double x[1] = { eDist->eDistParameter.detuningEnergy};
+		double x[1] = { eDist->eBeamParameter.detuningEnergy};
 		rateCoefficientsFit->AddPoint(x[0], FitFunction(x, crossSectionParamater));
 	}
 }

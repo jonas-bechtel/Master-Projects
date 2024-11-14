@@ -9,6 +9,7 @@ struct LabEnergyParameters : public Parameters
 	LabEnergyParameters() { setName("lab energy parameters"); }
 
 	ParameterValue<double> centerLabEnergy = ParameterValue(0.0, "lab energy in center", "%.3e eV");
+	ParameterValue<double> driftTubeVoltage = ParameterValue(0.0, "drift tube voltage", "%e V");
 	ParameterValue<Path> energyFile = ParameterValue(Path(""), "energy file", "%s");
 	ParameterValue<bool> useUniformEnergies = ParameterValue(false, "use uniform energy", "%d");
 	ParameterValue<bool> useOnlySliceXY = ParameterValue(false, "use slice of energies", "%d");
@@ -26,7 +27,7 @@ class LabEnergies : public Distribution3D
 public:
 	LabEnergies();
 	double Get(double x, double y, double z);
-	LabEnergyParameters GetParameter();
+	LabEnergyParameters& GetParameter();
 	void SetCenterLabEnergy(double energy);
 	void SetupDistribution(std::filesystem::path energyfile = "") override;
 

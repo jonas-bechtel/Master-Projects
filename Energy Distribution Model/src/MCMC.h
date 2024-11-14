@@ -21,7 +21,7 @@ struct MCMC_Parameters : public Parameters
 {
 	MCMC_Parameters() { setName("mcmc sampling parameters"); }
 
-	ParameterValue<int> numberSamples = ParameterValue((int)3e5, "number of samples", "%d");
+	ParameterValue<int> numberSamples = ParameterValue((int)3e4, "number of samples", "%d");
 	ParameterValue<int> burnIn = ParameterValue(1000, "burn in", "%d");
 	ParameterValue<int> lag = ParameterValue(30, "lag", "%d");
 	ParameterValue<float3> proposalSigma = ParameterValue(float3(0.005f, 0.005f, 0.2f), "proposal sigmas", "%.4f, %.4f, %.3f m");
@@ -41,7 +41,7 @@ public:
 	void SetupDistribution(std::filesystem::path file = "") override;
 	//void SetTargetDistribution(TH3D* targetDist);
 	std::vector<Point3D>& GetSamples();
-	MCMC_Parameters GetParameter();
+	MCMC_Parameters& GetParameter();
 	void SetParameter(MCMC_Parameters params);
 	void GenerateSamples();
 

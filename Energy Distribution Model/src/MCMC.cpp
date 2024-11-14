@@ -51,7 +51,7 @@ std::vector<Point3D>& MCMC::GetSamples()
 	return chain;
 }
 
-MCMC_Parameters MCMC::GetParameter()
+MCMC_Parameters& MCMC::GetParameter()
 {
 	return m_parameters;
 }

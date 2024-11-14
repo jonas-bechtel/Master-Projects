@@ -53,7 +53,7 @@ void IonBeam::SetupDistribution(std::filesystem::path file)
 	}
 }
 
-IonBeamParameters IonBeam::GetParameter()
+IonBeamParameters& IonBeam::GetParameter()
 {
 	return m_parameters;
 }

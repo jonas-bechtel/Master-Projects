@@ -17,6 +17,8 @@ struct ElectronBeamParameters : public Parameters
 		setName("electron beam parameters");
 	}
 
+	ParameterValue<double> detuningEnergy = ParameterValue(10.0, "detuning energy", "%.3f eV");
+
 	ParameterValue<double> transverse_kT = ParameterValue(2.0e-3, "transverse kT", "%.2e eV");
 	ParameterValue<double> coolingEnergy = ParameterValue(0.15, "cooling energy", "%.3f eV");
 	ParameterValue<double> cathodeRadius = ParameterValue(0.0012955, "cathode radius", "%.3e m");
@@ -51,7 +53,7 @@ class ElectronBeam : public Distribution3D
 public:
 	ElectronBeam();
 	void SetupDistribution(std::filesystem::path densityfile = "") override;
-	ElectronBeamParameters GetParameter();
+	ElectronBeamParameters& GetParameter();
 	TH3D* GetDistribution() override;
 	void SetParameter(ElectronBeamParameters params);
 	void SetCurrent(double current);

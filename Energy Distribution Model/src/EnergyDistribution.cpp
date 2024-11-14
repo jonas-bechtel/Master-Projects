@@ -6,7 +6,7 @@
 std::unordered_map<double, EnergyDistribution*> EnergyDistribution::s_allDistributions;
 
 EnergyDistribution::EnergyDistribution()
-	//: TH1D()
+	: TH1D()
 {
 }
 
@@ -23,24 +23,24 @@ void EnergyDistribution::SetupFromCurrentEnvironment()
 	ionBeamParameter = ionBeam->GetParameter();
 	labEnergiesParameter = labEnergies->GetParameter();
 	eDistParameter = eDistManager->GetParameter();
-	eDistParameter.detuningEnergy = pow(sqrt(labEnergiesParameter.centerLabEnergy) - sqrt(eBeamParameter.coolingEnergy), 2);
+	eBeamParameter.detuningEnergy = pow(sqrt(labEnergiesParameter.centerLabEnergy) - sqrt(eBeamParameter.coolingEnergy), 2);
 	
 	if (!eBeamParameter.densityFile.get().empty() && !labEnergiesParameter.energyFile.get().empty())
 	{
 		folder = eBeamParameter.densityFile.get().parent_path().parent_path();
-		subFolder = Form("E_cool %.3feV I_e %.2eA r_ion %.4fm", eBeamParameter.coolingEnergy,
-			eBeamParameter.electronCurrent, ionBeamParameter.radius);
+		subFolder = Form("E_cool %.3feV I_e %.2eA r_ion %.4fm", eBeamParameter.coolingEnergy.get(),
+			eBeamParameter.electronCurrent.get(), ionBeamParameter.radius.get());
 		index = std::stoi(eBeamParameter.densityFile.get().filename().string().substr(0, 4));
 	}
 	
-	//if (eBeamParameter.hasGaussianShape) tags += "e-gaus, ";
-	//if (eBeamParameter.hasNoBending) tags += "no bend, ";
-	//if (eBeamParameter.hasFixedLongitudinalTemperature) tags += "fixed kT||, ";
-	//if (labEnergiesParameter.Get<bool>("use uniform energy")) tags += "uniform energy, ";
-	//if (labEnergiesParameter.Get<bool>("use xy slice")) tags += Form("energy sliced %.3f, ", labEnergiesParameter.sliceToFill);
-	//if (eDistParameter.cutOutZValues) tags += Form("z samples %.3f - %.3f, ", eDistParameter.cutOutRange[0], eDistParameter.cutOutRange[1]);
-	label = Form("%d: U drift = %.2fV, E_d = %.4f", index, eDistParameter.driftTubeVoltage,
-		eDistParameter.detuningEnergy);
+	if (eBeamParameter.hasGaussianShape) tags += "e-gaus, ";
+	if (eBeamParameter.hasNoBending) tags += "no bend, ";
+	if (eBeamParameter.hasFixedLongitudinalTemperature) tags += "fixed kT||, ";
+	if (labEnergiesParameter.useUniformEnergies) tags += "uniform energy, ";
+	if (labEnergiesParameter.useOnlySliceXY) tags += Form("energy sliced %.3f, ", labEnergiesParameter.sliceToFill.get());
+	if (eDistParameter.cutOutZValues) tags += Form("z samples %.3f - %.3f, ", eDistParameter.cutOutRange.get().x, eDistParameter.cutOutRange.get().y);
+	label = Form("%d: U drift = %.2fV, E_d = %.4f", index, labEnergiesParameter.driftTubeVoltage.get(),
+		eBeamParameter.detuningEnergy.get());
 
 	//setup binning
 	int numberBins;
@@ -164,7 +164,7 @@ void EnergyDistribution::RemoveEdgeZeros()
 
 std::string EnergyDistribution::String()
 {
-	std::string string = Form("# folder: %s\n", folder.filename().string()) +
+	std::string string = Form("# folder: %s\n", folder.filename().string().c_str()) +
 		eBeamParameter.toString() +
 		labEnergiesParameter.toString() +
 		eDistParameter.toString() +
@@ -181,7 +181,7 @@ std::string EnergyDistribution::Filename()
 	eCoolSS << std::fixed << std::setprecision(3) << eBeamParameter.coolingEnergy.get();
 	indexSS << std::setw(4) << std::setfill('0') << index;
 
-	std::string string = indexSS.str() + std::string(Form(" E_d %.4feV.asc", eDistParameter.detuningEnergy));
+	std::string string = indexSS.str() + std::string(Form(" E_d %.4feV.asc", eBeamParameter.detuningEnergy.get()));
 
 	return string;
 }

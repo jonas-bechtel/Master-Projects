@@ -20,7 +20,7 @@ double LabEnergies::Get(double x, double y, double z)
 	return m_distribution->Interpolate(x_modified, y_modified, z_modified);
 }
 
-LabEnergyParameters LabEnergies::GetParameter()
+LabEnergyParameters& LabEnergies::GetParameter()
 {
 	return m_parameters;
 }
@@ -78,7 +78,9 @@ void LabEnergies::ShowUI()
 	{
 		PlotLabEnergySlice();
 	}
-	
+	ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("drift tube voltage", m_parameters.driftTubeVoltage, 0.0, 0.0, "%.3f");
+
 	ImGui::BeginDisabled(m_parameters.useOnlySliceXY);
 	ImGui::Checkbox("uniform energies", m_parameters.useUniformEnergies);
 	ImGui::EndDisabled();

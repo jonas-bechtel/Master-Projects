@@ -17,7 +17,7 @@ public:
 	EnergyDistributionManager();
 	float* GetEnergyRange();
 	int GetBinsPerDecade();
-	EnergyDistributionParameters GetParameter();
+	EnergyDistributionParameters& GetParameter();
 	std::vector<EnergyDistribution*>& GetEnergyDistributions();
 	void GenerateEnergyDistribution();
 	void GenerateEnergyDistributionsFromFile(std::filesystem::path file);
@@ -45,7 +45,7 @@ private:
 
 private:
 	std::vector<EnergyDistribution*> energyDistributions;
-	EnergyDistribution* currentDistribution = new EnergyDistribution();
+	EnergyDistribution* currentDistribution;// = new EnergyDistribution();
 	EnergyDistributionParameters parameter;
 	
 	// graphs and plots

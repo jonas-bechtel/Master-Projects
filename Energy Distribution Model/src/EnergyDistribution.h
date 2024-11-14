@@ -14,8 +14,6 @@ struct EnergyDistributionParameters : public Parameters
 		setName("energy distribution parameters");
 	}
 
-	ParameterValue<double> driftTubeVoltage = ParameterValue(5.0, "drift tube voltage", "%e V");
-	ParameterValue<double> detuningEnergy = ParameterValue(5.0, "detuning energy", "%.3f eV");
 	ParameterValue<bool> limitBinSize = ParameterValue(false, "limit bin size", "%d");
 	ParameterValue<double> minBinSize = ParameterValue(5.0, "min bin size", "%.1e eV");
 	ParameterValue<bool> cutOutZValues = ParameterValue(false, "cut out z values", "%d");

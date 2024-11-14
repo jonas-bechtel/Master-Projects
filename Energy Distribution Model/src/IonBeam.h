@@ -29,7 +29,7 @@ public:
 	IonBeam();
 	double GetRadius();
 	void SetupDistribution(std::filesystem::path file = "") override;
-	IonBeamParameters GetParameter();
+	IonBeamParameters& GetParameter();
 	TH3D* MultiplyWithElectronDensities();
 
 private:
