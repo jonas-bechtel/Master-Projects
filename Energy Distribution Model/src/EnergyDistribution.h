@@ -40,7 +40,7 @@ struct EnergyDistribution : public TH1D
 	static EnergyDistribution* FindByEd(double detuningEnergy);
 	static std::unordered_map<double, EnergyDistribution*> s_allDistributions;
 
-	// actual distribution
+	// actual distribution data
 	std::vector<double> collisionEnergies;
 	std::vector<double> binCenters;
 	std::vector<double> binValues;

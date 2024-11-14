@@ -25,11 +25,6 @@ LabEnergyParameters& LabEnergies::GetParameter()
 	return m_parameters;
 }
 
-void LabEnergies::SetCenterLabEnergy(double energy)
-{
-	m_parameters.centerLabEnergy.set(energy);
-}
-
 void LabEnergies::SetupDistribution(std::filesystem::path energyfile)
 {
 

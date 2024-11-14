@@ -137,6 +137,7 @@ void ElectronBeam::ShowUI()
 		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 		ionBeam->SetupDistribution();
 		ionBeam->PlotDistribution();
+		ionBeam->PlotIonBeamProjections();
 
 		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 		mcmc->SetupDistribution();
@@ -175,6 +176,7 @@ void ElectronBeam::ShowUI()
 		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 		ionBeam->SetupDistribution();
 		ionBeam->PlotDistribution();
+		ionBeam->PlotIonBeamProjections();
 
 		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 		mcmc->SetupDistribution();
@@ -188,8 +190,6 @@ void ElectronBeam::ShowUI()
 	ImGui::InputDouble("longitudinal kT [eV]", m_parameters.longitudinal_kT);
 	ImGui::EndDisabled();														ImGui::SetNextItemWidth(100.0f);
 	ImGui::InputDouble("cooling energy [eV]", m_parameters.coolingEnergy);		ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("detuning energy [eV]", m_parameters.detuningEnergy, 0.0, 0.0, "%.6f");
-	ImGui::SetNextItemWidth(100.0f);
 	ImGui::InputDouble("transverse kT [eV]", m_parameters.transverse_kT);		ImGui::SetNextItemWidth(100.0f);
 	ImGui::BeginDisabled(m_parameters.hasFixedLongitudinalTemperature);
 	ImGui::InputDouble("electron current: [A]", m_parameters.electronCurrent, 0.0, 0.0, "%.2e");	ImGui::SetNextItemWidth(100.0f);

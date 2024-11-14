@@ -55,10 +55,7 @@ public:
 	void SetupDistribution(std::filesystem::path densityfile = "") override;
 	ElectronBeamParameters& GetParameter();
 	TH3D* GetDistribution() override;
-	void SetParameter(ElectronBeamParameters params);
-	void SetCurrent(double current);
-	void SetLong_kTFromCenterLabEnergy(double centerLabEnergy);
-
+	
 	void LoadDensityFile(std::filesystem::path file);
 	void GenerateElectronBeamDensity();
 

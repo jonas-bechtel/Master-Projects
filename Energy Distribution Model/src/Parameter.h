@@ -152,7 +152,7 @@ public:
 
 		for (int offset = m_dataStart; offset < GetSize(); offset += sizeof(ParameterValue<int>))
 		{
-			int type = *(int*)(pointer + offset) + offsetof(ParameterValue<int>, type);
+			int type = *(int*)((pointer + offset) + offsetof(ParameterValue<int>, type));
 			std::string name = *(std::string*)((pointer + offset) + offsetof(ParameterValue<int>, name));
 			std::string format = *(std::string*)((pointer + offset) + offsetof(ParameterValue<int>, format));
 
