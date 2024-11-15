@@ -1,9 +1,4 @@
-#include <math.h>
-#include <filesystem>
-#include <vector>
-
-#include <TRootCanvas.h>
-#include <TLegend.h>
+#include "pch.h"
 
 #include "EnergyDistributionManager.h"
 #include "PhysicalConstants.h"
@@ -65,7 +60,7 @@ void EnergyDistributionManager::ShowSettings()
 
 		if (ImGui::Button("select description file"))
 		{
-			currentDescriptionFile = FileHandler::GetInstance().OpenFileExplorer();
+			currentDescriptionFile = FileHandler::GetInstance().SelectFile();
 			maxIndex = FileHandler::GetInstance().GetMaxIndex(currentDescriptionFile);
 		}
 		ImGui::SameLine();
@@ -185,6 +180,18 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 			ImGui::EndListBox();
 		}
 		
+		if (ImGui::Button("load hists"))
+		{
+			std::vector<std::filesystem::path> filenames = FileHandler::GetInstance().SelectFiles("output\\histogram files\\");
+			if (!filenames.empty())
+			{
+				for (const auto& filename : filenames)
+				{
+					EnergyDistribution* energyDist = FileHandler::GetInstance().LoadEnergyDistributionHistogram(filename);
+					energyDistributions.push_back(energyDist);
+				}
+			}
+		}
 
 		if (ImGui::Button("clear list"))
 		{
@@ -508,6 +515,8 @@ void EnergyDistributionManager::ClearDistributionList()
 
 void EnergyDistributionManager::PlotLongkTDistribution()
 {
+	if (!long_ktDistribution) return;
+
 	m_secondCanvas->cd(1);
 
 	gPad->SetLogy();
@@ -732,6 +741,8 @@ double EnergyDistributionManager::AnalyticalEnergyDistribution(double Ecm, doubl
 
 void EnergyDistributionManager::PlotLongVelAddition()
 {
+	if (!long_VelAddition) return;
+
 	m_secondCanvas->cd(2);
 
 	long_VelAddition->Draw();

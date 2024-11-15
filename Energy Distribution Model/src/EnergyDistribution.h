@@ -1,7 +1,5 @@
 #pragma once
 
-#include <TH1D.h>
-
 #include "MCMC.h"
 #include "ElectronBeam.h"
 #include "IonBeam.h"
@@ -29,9 +27,11 @@ private:
 struct EnergyDistribution : public TH1D
 {
 	EnergyDistribution();
+	~EnergyDistribution();
 	
 	void SetupFromCurrentEnvironment();
-	void SetupFromHeader(std::string& header);
+	void SetupLabellingThings();
+	std::vector<double> SetupBinning();
 	void RemoveEdgeZeros();
 
 	std::string String();

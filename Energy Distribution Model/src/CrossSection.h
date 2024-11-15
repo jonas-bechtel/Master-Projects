@@ -1,7 +1,6 @@
 #pragma once
-#include "Module.h"
 
-#include <TGraph.h>
+#include "Module.h"
 
 class CrossSection : public Module
 {

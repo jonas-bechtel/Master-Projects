@@ -1,9 +1,5 @@
 #pragma once
-
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <filesystem>
+#include "pch.h"
 
 using Path = std::filesystem::path;
 
@@ -204,9 +200,11 @@ public:
 			// Read the value (everything after ':')
 			std::getline(lineStream, value);
 
-			std::cout << "name: " << name << " value: " << value << std::endl;
+			//std::cout << "name: " << name << " value: " << value << std::endl;
 
 			void* object = getParameterValue(name);
+			if (!object) continue;
+
 			int type = *(int*)(object)+offsetof(ParameterValue<int>, type);
 
 			switch (type)
@@ -227,7 +225,7 @@ public:
 				((ParameterValue<bool>*)object)->set(std::stoi(value));
 				break;
 			case ParameterValue<int>::PATH:
-				((ParameterValue<Path>*)object)->set(Path(value));
+				((ParameterValue<Path>*)object)->set(Path(value.substr(1)));
 				break;
 			}
 		}

@@ -1,4 +1,4 @@
-#include <sstream>
+#include "pch.h"
 
 #include "EnergyDistributionManager.h"
 #include "EnergyDistribution.h"
@@ -8,6 +8,19 @@ std::unordered_map<double, EnergyDistribution*> EnergyDistribution::s_allDistrib
 EnergyDistribution::EnergyDistribution()
 	: TH1D()
 {
+}
+
+EnergyDistribution::~EnergyDistribution()
+{
+	// needs to be removed from hash map
+	for (auto it = s_allDistributions.begin(); it != s_allDistributions.end(); it++)
+	{
+		if (it->second == this) 
+		{
+			s_allDistributions.erase(it); 
+			break;
+		}
+	}
 }
 
 void EnergyDistribution::SetupFromCurrentEnvironment()
@@ -25,14 +38,27 @@ void EnergyDistribution::SetupFromCurrentEnvironment()
 	eDistParameter = eDistManager->GetParameter();
 	eBeamParameter.detuningEnergy = pow(sqrt(labEnergiesParameter.centerLabEnergy) - sqrt(eBeamParameter.coolingEnergy), 2);
 	
+	SetupLabellingThings();
+	std::vector<double> binEdges = SetupBinning();
+
+	std::string histDescription = folder.filename().string() + " " + std::to_string(index);
+	SetName(("Energy Distribution " + histDescription).c_str());
+	SetTitle(("Energy Distribution " + histDescription).c_str());
+	SetBins(binEdges.size() - 1, binEdges.data());
+}
+
+void EnergyDistribution::SetupLabellingThings()
+{
 	if (!eBeamParameter.densityFile.get().empty() && !labEnergiesParameter.energyFile.get().empty())
 	{
 		folder = eBeamParameter.densityFile.get().parent_path().parent_path();
 		subFolder = Form("E_cool %.3feV I_e %.2eA r_ion %.4fm", eBeamParameter.coolingEnergy.get(),
 			eBeamParameter.electronCurrent.get(), ionBeamParameter.radius.get());
+
+		std::cout << eBeamParameter.densityFile.get().filename() << std::endl;
 		index = std::stoi(eBeamParameter.densityFile.get().filename().string().substr(0, 4));
 	}
-	
+
 	if (eBeamParameter.hasGaussianShape) tags += "e-gaus, ";
 	if (eBeamParameter.hasNoBending) tags += "no bend, ";
 	if (eBeamParameter.hasFixedLongitudinalTemperature) tags += "fixed kT||, ";
@@ -41,8 +67,12 @@ void EnergyDistribution::SetupFromCurrentEnvironment()
 	if (eDistParameter.cutOutZValues) tags += Form("z samples %.3f - %.3f, ", eDistParameter.cutOutRange.get().x, eDistParameter.cutOutRange.get().y);
 	label = Form("%d: U drift = %.2fV, E_d = %.4f", index, labEnergiesParameter.driftTubeVoltage.get(),
 		eBeamParameter.detuningEnergy.get());
+}
 
-	//setup binning
+std::vector<double> EnergyDistribution::SetupBinning()
+{
+	EnergyDistributionManager* eDistManager = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+
 	int numberBins;
 	std::vector<double> binEdges;
 
@@ -115,16 +145,7 @@ void EnergyDistribution::SetupFromCurrentEnvironment()
 		}
 		std::cout << "number bins " << binEdges.size() - 1 << "\n";
 	}
-
-	std::string histDescription = folder.filename().string() + " " + std::to_string(index);
-	SetName(("Energy Distribution " + histDescription).c_str());
-	SetTitle(("Energy Distribution " + histDescription).c_str());
-	SetBins(binEdges.size() - 1, binEdges.data());
-}
-
-void EnergyDistribution::SetupFromHeader(std::string& header)
-{
-
+	return binEdges;
 }
 
 void EnergyDistribution::RemoveEdgeZeros()

@@ -1,8 +1,7 @@
+#include "pch.h"
+
 #include "Module.h"
 
-
-#include <TRootCanvas.h>
-#include <iostream>
 
 std::unordered_map<std::string, Module*> Module::s_moduleMap;
 int Distribution3D::s_rebinningFactors[3] = { 10, 10, 10 };

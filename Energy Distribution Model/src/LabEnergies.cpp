@@ -1,3 +1,5 @@
+#include "pch.h"
+
 #include "LabEnergies.h"
 #include "FileHandler.h"
 
@@ -61,7 +63,7 @@ void LabEnergies::ShowUI()
 {
 	if (ImGui::Button("Load lab energies"))
 	{
-		std::filesystem::path file = FileHandler::GetInstance().OpenFileExplorer();
+		std::filesystem::path file = FileHandler::GetInstance().SelectFile();
 		LoadLabEnergyFile(file);
 		PlotLabEnergyProjections();
 		PlotDistribution();

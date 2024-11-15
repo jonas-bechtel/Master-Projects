@@ -1,19 +1,5 @@
 #pragma once
 
-#include "imgui.h"
-
-#include <TCanvas.h> 
-#include <TH1F.h> 
-#include <TH3D.h>
-#include <TGraph.h>
-
-#include <string>
-#include <iostream>
-#include <vector>
-#include <future>
-#include <random>
-#include <math.h>
-
 #include "Module.h"
 #include "Point3D.h"
 

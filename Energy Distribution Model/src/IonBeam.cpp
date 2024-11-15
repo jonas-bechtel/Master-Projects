@@ -1,8 +1,6 @@
+#include "pch.h"
+
 #include "IonBeam.h"
-
-#include "imgui.h"
-
-#include <TRootCanvas.h>
 #include "ElectronBeam.h"
 #include "MCMC.h"
 

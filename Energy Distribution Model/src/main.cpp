@@ -1,6 +1,7 @@
+#include "pch.h"
+
 #include "Application.h"
 
-#include <vector>
 
 int main(int argc, char** argv) {
     Application app;

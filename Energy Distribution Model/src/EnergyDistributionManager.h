@@ -1,10 +1,5 @@
 #pragma once
 
-#include <iostream>
-#include <vector>
-#include <random>
-#include <filesystem>
-
 #include "MCMC.h"
 #include "ElectronBeam.h"
 #include "IonBeam.h"

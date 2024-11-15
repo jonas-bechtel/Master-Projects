@@ -4,10 +4,6 @@
 #include "EnergyDistributionManager.h"
 #include "CrossSection.h"
 
-#include <TApplication.h>  // For initializing the ROOT application
-#include <TSystem.h>
-
-
 class Application
 {
 public:

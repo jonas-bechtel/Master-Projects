@@ -1,13 +1,4 @@
 #pragma once
-#include "imgui.h"
-#include "implot.h"
-
-#include <string>
-#include <unordered_map>
-#include <filesystem>
-
-#include <TCanvas.h>
-#include <TH3D.h>
 
 #include "Parameter.h"
 

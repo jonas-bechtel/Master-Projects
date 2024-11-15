@@ -1,8 +1,9 @@
+#include "pch.h"
+
 #include "CrossSection.h"
 #include "EnergyDistributionManager.h"
 #include "PhysicalConstants.h"
 
-#include <TF1.h>
 
 CrossSection::CrossSection()
 	: Module("Cross Section")

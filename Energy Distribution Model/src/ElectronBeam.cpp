@@ -1,21 +1,8 @@
+#include "pch.h"
+
 #include "ElectronBeam.h"
 #include "PhysicalConstants.h"
 #include "FileHandler.h"
-
-#include "imgui.h"
-
-#include <math.h>
-
-#include <TView.h>
-#include <TAxis3D.h>
-#include <TArrow.h>
-#include <TMath.h>
-#include "Math/Minimizer.h"
-#include "Math/Factory.h"
-#include "Math/Functor.h"
-#include <TGraph.h>
-#include <TVector3.h>
-#include <TRootCanvas.h>
 
 ElectronBeam::ElectronBeam()
 	: Distribution3D("Electron Beam")
@@ -128,7 +115,7 @@ void ElectronBeam::ShowUI()
 {
 	if (ImGui::Button("Load e-density file"))
 	{
-		std::filesystem::path file = FileHandler::GetInstance().OpenFileExplorer();
+		std::filesystem::path file = FileHandler::GetInstance().SelectFile();
 		LoadDensityFile(file);
 		PlotDistribution();
 		PlotProjections();

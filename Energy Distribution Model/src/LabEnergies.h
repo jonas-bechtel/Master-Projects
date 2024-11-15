@@ -1,8 +1,7 @@
 #pragma once
+
 #include "Module.h"
 #include "Parameter.h"
-
-#include <filesystem>
 
 struct LabEnergyParameters : public Parameters
 {

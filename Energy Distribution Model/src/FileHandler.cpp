@@ -1,14 +1,11 @@
+#include "pch.h"
+
 #include "FileHandler.h"
 
 #include "tinyfiledialogs.h"
 
-#include <iostream>
-#include <array>
-#include <fstream>
-#include <string>
-#include <sstream>
 
-TH3D* FileHandler::LoadMatrixFile(std::filesystem::path filename)
+TH3D* FileHandler::LoadMatrixFile(const std::filesystem::path& filename)
 {
     std::ifstream file(filename);
 
@@ -52,7 +49,7 @@ TH3D* FileHandler::LoadMatrixFile(std::filesystem::path filename)
     return dataMatrix;
 }
 
-EnergyDistribution* FileHandler::LoadEnergyDistributionSamples(std::filesystem::path filename)
+EnergyDistribution* FileHandler::LoadEnergyDistributionSamples(const std::filesystem::path& filename)
 {
     std::ifstream file(filename);
 
@@ -62,36 +59,47 @@ EnergyDistribution* FileHandler::LoadEnergyDistributionSamples(std::filesystem::
         std::cerr << "Error: Could not open the file " << filename << std::endl;
         return nullptr;
     }
-    
+
+    std::string header = GetHeaderFromFile(file);
+    EnergyDistribution* energyDist = CreateEnergyDistFromHeader(header);
+
     std::string line;
-    std::string header = "";
-
     while (std::getline(file, line))
     {
-        // Exit header when reaching non-header or data lines
-        if (line.empty() || line[0] != '#')
-        {
-            break;
-        }
+        //std::vector<std::string> tokens = SplitLine(line, xDelimiter);
+
+        energyDist->collisionEnergies.push_back(std::stod(line));
         
-        header += line;
     }
 
-    EnergyDistribution* distribution = new EnergyDistribution();
-    distribution->SetupFromHeader(header);
-    std::vector<double> collisionEnergies = distribution->collisionEnergies;
-    collisionEnergies.reserve(distribution->mcmcParameter.numberSamples);
+    return energyDist;
+}
 
-    // Read the file line by line
+EnergyDistribution* FileHandler::LoadEnergyDistributionHistogram(const std::filesystem::path& filename)
+{
+    std::ifstream file(filename);
+
+    // Check if the file was successfully opened
+    if (!file.is_open())
+    {
+        std::cerr << "Error: Could not open the file " << filename << std::endl;
+        return nullptr;
+    }
+
+    std::string header = GetHeaderFromFile(file);
+    EnergyDistribution* energyDist = CreateEnergyDistFromHeader(header);
+
+    std::string line;
     while (std::getline(file, line))
     {
-        // skip the header
-        if (line.find("#") != std::string::npos) continue;
+        std::vector<std::string> tokens = SplitLine(line, xDelimiter);
 
-        collisionEnergies.push_back(std::stod(line));
+        energyDist->binCenters.push_back(std::stod(tokens[0]));
+        energyDist->binValues.push_back(std::stod(tokens[1]));
+        energyDist->binValuesNormalised.push_back(std::stod(tokens[2]));
     }
 
-    return distribution;
+    return energyDist;
 }
 
 int FileHandler::GetMaxIndex(std::filesystem::path energiesFile)
@@ -118,7 +126,7 @@ int FileHandler::GetMaxIndex(std::filesystem::path energiesFile)
     return maxIndex;
 }
 
-std::array<float, 3> FileHandler::GetParamtersFromDescriptionFileAtIndex(std::filesystem::path descriptionFile, int index)
+std::array<float, 3> FileHandler::GetParamtersFromDescriptionFileAtIndex(const std::filesystem::path& descriptionFile, int index)
 {
     std::array<float, 3> parameter = { 0, 0, 0 };
 
@@ -152,7 +160,7 @@ std::array<float, 3> FileHandler::GetParamtersFromDescriptionFileAtIndex(std::fi
     return parameter;
 }
 
-std::filesystem::path FileHandler::OpenFileExplorer(std::filesystem::path startPath)
+std::filesystem::path FileHandler::SelectFile(const std::filesystem::path& startPath)
 {
     const char* filterPatterns[] = { "*.asc" };
     const char* filePath = tinyfd_openFileDialog(
@@ -170,7 +178,28 @@ std::filesystem::path FileHandler::OpenFileExplorer(std::filesystem::path startP
     return std::filesystem::path(filePath);
 }
 
-std::filesystem::path FileHandler::FindFileWithIndex(std::filesystem::path folder, int index)
+std::vector<std::filesystem::path> FileHandler::SelectFiles(const std::filesystem::path& startPath)
+{
+    const char* filterPatterns[] = { "*.asc" };
+    const char* filePaths = tinyfd_openFileDialog(
+        "Choose a file",               // Dialog title
+        startPath.string().c_str(),    // Default path or file
+        1,                             // Number of filters
+        filterPatterns,                // Filter patterns (NULL for any file type)
+        NULL,                          // Filter description (optional)
+        1                              // Allow multiple selection (0 = false)
+    );
+    if (!filePaths)
+    {
+        return std::vector<std::filesystem::path>();
+    }
+    std::string paths1 = std::string(filePaths);
+    std::vector<std::string> paths = SplitLine(paths1, "|");
+    std::vector<std::filesystem::path> splitPaths(paths.begin(), paths.end());
+    return splitPaths;
+}
+
+std::filesystem::path FileHandler::FindFileWithIndex(const std::filesystem::path& folder, int index)
 {
     // look through dir to find matching index
     for (const auto& file : std::filesystem::directory_iterator(folder))
@@ -260,10 +289,25 @@ void FileHandler::SaveEnergyDistributionSamplesToFile(EnergyDistribution* energy
     outfile.close();
 }
 
-std::vector<std::string> FileHandler::SplitLine(std::string& string, std::string delimiter) const
+std::string FileHandler::GetHeaderFromFile(std::ifstream& file) const
+{
+    std::string line;
+    std::string header = "";
+
+    while (std::getline(file, line))
+    {
+        header += line + "\n";
+
+        if (!(file.peek() == '#'))
+            break;
+    }
+    
+    return header;
+}
+
+std::vector<std::string> FileHandler::SplitLine(std::string& string, const std::string& delimiter) const
 {
     std::vector<std::string> tokens;
-    tokens.reserve(matrixSize[0]);
 
     size_t pos = 0;
     std::string token;
@@ -283,23 +327,21 @@ TH3D* FileHandler::CreateTH3DfromHeader(std::ifstream& file) const
 {
     std::string line;
     std::vector<double> xNodes, yNodes, zNodes;
-    int lineCount = 0;
+
     
-    while (lineCount < headerSize) 
+    while (file.peek() == '#')
     {
         std::getline(file, line);
-        lineCount++;
-
+    
         // comment lines starting with '#'
         if (line[0] == '#') 
         {
             // Check for specific comments to guide parsing
-            if (line.find("#dim sizes x y z") != std::string::npos) 
+            if (line.find("#dim sizes x y z") != std::string::npos)
             {
                 // The next line will contain the dimension sizes
                 file >> matrixSize[0] >> matrixSize[1] >> matrixSize[2];
                 std::getline(file, line);  // To consume the end of the line
-                lineCount++;
 
                 xNodes.reserve(matrixSize[0]);
                 yNodes.reserve(matrixSize[1]);
@@ -310,35 +352,32 @@ TH3D* FileHandler::CreateTH3DfromHeader(std::ifstream& file) const
             {
                 // Read x node positions
                 std::getline(file, line);
-                lineCount++;
                 std::stringstream ss(line);
 
                 double value;
-                while (ss >> value) 
+                while (ss >> value)
                 {
                     xNodes.push_back(value);
                 }
             }
-            else if (line.find("#y node positions") != std::string::npos) 
+            else if (line.find("#y node positions") != std::string::npos)
             {
                 // Read y node positions
                 std::getline(file, line);
-                lineCount++;
                 std::stringstream ss(line);
                 double value;
-                while (ss >> value) 
+                while (ss >> value)
                 {
                     yNodes.push_back(value);
                 }
             }
-            else if (line.find("#z node positions") != std::string::npos) 
+            else if (line.find("#z node positions") != std::string::npos)
             {
                 // Read z node positions
                 std::getline(file, line);
-                lineCount++;
                 std::stringstream ss(line);
                 double value;
-                while (ss >> value) 
+                while (ss >> value)
                 {
                     zNodes.push_back(value);
                 }
@@ -386,4 +425,19 @@ std::vector<double> FileHandler::CalculateBinEdges(const std::vector<double>& bi
     binEdges.push_back(lastEdge);
 
     return binEdges;
+}
+
+EnergyDistribution* FileHandler::CreateEnergyDistFromHeader(std::string& header)
+{
+    EnergyDistribution* energyDist = new EnergyDistribution();
+
+    energyDist->eBeamParameter.fromString(header);
+    energyDist->ionBeamParameter.fromString(header);
+    energyDist->labEnergiesParameter.fromString(header);
+    energyDist->mcmcParameter.fromString(header);
+    energyDist->eDistParameter.fromString(header);
+
+    energyDist->SetupLabellingThings();
+
+    return energyDist;
 }

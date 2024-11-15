@@ -1,11 +1,4 @@
 #pragma once
-#include <filesystem>
-
-#include <TCanvas.h>
-#include <TF1.h>
-#include <TVector3.h>
-#include <TH3D.h>
-#include <TProfile2D.h>
 
 #include "Module.h"
 #include "Point3D.h"
