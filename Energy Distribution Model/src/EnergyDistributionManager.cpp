@@ -535,11 +535,10 @@ void EnergyDistributionManager::PLotZweightByEnergy()
 
 void EnergyDistributionManager::ClearDistributionList()
 {
-	for (EnergyDistribution* eDist : energyDistributions) 
+	for (int i = 0; i < energyDistributions.size(); i++)
 	{
-		delete eDist;
+		RemoveDistributionFromList(i);
 	}
-	energyDistributions.clear();
 }
 
 void EnergyDistributionManager::PlotLongkTDistribution()
