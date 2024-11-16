@@ -66,10 +66,7 @@ EnergyDistribution* FileHandler::LoadEnergyDistributionSamples(const std::filesy
     std::string line;
     while (std::getline(file, line))
     {
-        //std::vector<std::string> tokens = SplitLine(line, xDelimiter);
-
         energyDist->collisionEnergies.push_back(std::stod(line));
-        
     }
 
     return energyDist;

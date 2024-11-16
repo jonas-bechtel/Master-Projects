@@ -174,6 +174,11 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 
 				ImGui::SameLine();
 				ImGui::Checkbox("normalised", &eDist->showNormalisedByWidth);
+				ImGui::SameLine();
+				if (ImGui::Button("x"))
+				{
+					RemoveDistributionFromList(i);
+				}
 
 				ImGui::PopID();
 			}
@@ -188,7 +193,20 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 				for (const auto& filename : filenames)
 				{
 					EnergyDistribution* energyDist = FileHandler::GetInstance().LoadEnergyDistributionHistogram(filename);
-					energyDistributions.push_back(energyDist);
+					AddDistributionToList(energyDist);
+				}
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("load samples"))
+		{
+			std::vector<std::filesystem::path> filenames = FileHandler::GetInstance().SelectFiles("output\\sample files\\");
+			if (!filenames.empty())
+			{
+				for (const auto& filename : filenames)
+				{
+					EnergyDistribution* energyDist = FileHandler::GetInstance().LoadEnergyDistributionSamples(filename);
+					AddDistributionToList(energyDist);
 				}
 			}
 		}
@@ -258,6 +276,18 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 		}
 		ImPlot::EndPlot();
 	}
+}
+
+void EnergyDistributionManager::AddDistributionToList(EnergyDistribution* distribution)
+{
+	energyDistributions.push_back(distribution);
+	EnergyDistribution::s_allDistributions[distribution->eBeamParameter.detuningEnergy] = distribution;
+}
+
+void EnergyDistributionManager::RemoveDistributionFromList(int index)
+{
+	delete energyDistributions[index];
+	energyDistributions.erase(energyDistributions.begin() + index);
 }
 
 void EnergyDistributionManager::GenerateEnergyDistribution()
@@ -394,8 +424,7 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 	currentDistribution->RemoveEdgeZeros();
 
 	// store and save current distribution that has been worked on
-	energyDistributions.push_back(currentDistribution);
-	EnergyDistribution::s_allDistributions[currentDistribution->eBeamParameter.detuningEnergy] = currentDistribution;
+	AddDistributionToList(currentDistribution);
 	
 	std::cout << "Ed1: " << currentDistribution->eBeamParameter.detuningEnergy << "\n";
 
@@ -544,7 +573,7 @@ void EnergyDistributionManager::GenerateAnalyticalDistribution()
 		analyticalDist->binValues.push_back(AnalyticalEnergyDistribution(energy, detuningEnergy,
 			transversTemperature, longitudinalTemperature));
 	}
-	energyDistributions.push_back(analyticalDist);
+	AddDistributionToList(analyticalDist);
 }
 
 double EnergyDistributionManager::ComplexErrorFunction(double* x, double* par)

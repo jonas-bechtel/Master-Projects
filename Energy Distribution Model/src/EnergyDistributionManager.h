@@ -23,6 +23,9 @@ private:
 	void ShowEnergyDistributionList();
 	void ShowEnergyDistributionPlot();
 
+	void AddDistributionToList(EnergyDistribution* distribution);
+	void RemoveDistributionFromList(int index);
+
 	// functions for the analytical model
 	void GenerateAnalyticalDistribution();
 	double AnalyticalEnergyDistribution(double* x, double* params);
