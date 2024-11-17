@@ -28,11 +28,11 @@ struct ElectronBeamParameters : public Parameters
 	ParameterValue<Path> densityFile = ParameterValue(Path(""), "density file", "%s");
 
 	// parameters for analytical electron beam shape to test model
-	ParameterValue<bool> hasGaussianShape = ParameterValue(false, "using gaussian beam shape", "%d");
-	ParameterValue<bool> hasNoBending = ParameterValue(false, "exclude bend", "%d");
-	ParameterValue<bool> hasFixedLongitudinalTemperature = ParameterValue(false, "using fixed longitudial Temperature", "%d");
-	ParameterValue<double> radius = ParameterValue(0.003, "radius", "%.4f m");
-	ParameterValue<double> longitudinal_kT = ParameterValue(0.0, "longitudinal kT", "%.2e eV");
+	ParameterValue<bool> hasGaussianShape = ParameterValue(false, "using gaussian beam shape", "%d", true);
+	ParameterValue<bool> hasNoBending = ParameterValue(false, "exclude bend", "%d", true);
+	ParameterValue<bool> hasFixedLongitudinalTemperature = ParameterValue(false, "using fixed longitudial Temperature", "%d", true);
+	ParameterValue<double> radius = ParameterValue(0.003, "radius", "%.4f m", true);
+	ParameterValue<double> longitudinal_kT = ParameterValue(0.0, "longitudinal kT", "%.2e eV", true);
 
 private:
 	int GetSize() override

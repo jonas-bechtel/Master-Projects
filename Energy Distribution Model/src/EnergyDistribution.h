@@ -12,10 +12,10 @@ struct EnergyDistributionParameters : public Parameters
 		setName("energy distribution parameters");
 	}
 
-	ParameterValue<bool> limitBinSize = ParameterValue(false, "limit bin size", "%d");
-	ParameterValue<double> minBinSize = ParameterValue(5.0, "min bin size", "%.1e eV");
-	ParameterValue<bool> cutOutZValues = ParameterValue(false, "cut out z values", "%d");
-	ParameterValue<float2> cutOutRange = ParameterValue(float2(0.0f, 0.4f), "cut out range", "%.2f, %.2f m");
+	ParameterValue<bool> limitBinSize = ParameterValue(false, "limit bin size", "%d", true);
+	ParameterValue<double> minBinSize = ParameterValue(5.0, "min bin size", "%.1e eV", true);
+	ParameterValue<bool> cutOutZValues = ParameterValue(false, "cut out z values", "%d", true);
+	ParameterValue<float2> cutOutRange = ParameterValue(float2(0.0f, 0.4f), "cut out range", "%.2f, %.2f m", true);
 
 private:
 	int GetSize() override

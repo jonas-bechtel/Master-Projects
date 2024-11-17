@@ -16,8 +16,8 @@ struct IonBeamParameters : public Parameters
 	ParameterValue<float2> shape1 = ParameterValue(float2(9.5e-3f, 5.7e-3f), "shape 1 (x,y)", "%.4f, %.4f m");
 	ParameterValue<float2> shape2 = ParameterValue(float2(1.39e-3f, 2.15e-3f), "shape 2 (x,y)", "%.4f, %.4f m");
 
-	ParameterValue<bool> useSingleGaussian = ParameterValue(false, "using single gaussian", "%d");
-	ParameterValue<double> radius = ParameterValue(0.0010, "radius", "%.4f m");
+	ParameterValue<bool> useSingleGaussian = ParameterValue(false, "using single gaussian", "%d", true);
+	ParameterValue<double> radius = ParameterValue(0.0010, "radius", "%.4f m", true);
 
 private:
 	int GetSize() override

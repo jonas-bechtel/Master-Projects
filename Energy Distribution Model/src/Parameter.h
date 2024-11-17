@@ -47,13 +47,14 @@ struct ParameterValue
 	// needs to be the size of the largest possible stored element
 	using StorageType = std::aligned_storage_t<sizeof(Path), alignof(Path)>;
 
-	int type = INT;
+	char type = INT;
+	bool optional;
 	StorageType value;
 	std::string name;
 	std::string format;
 
-	inline ParameterValue(T val, const std::string& name, const std::string& format)
-		: name(name), format(format)
+	inline ParameterValue(T val, const std::string& name, const std::string& format, bool optional = false)
+		: name(name), format(format), optional(optional)
 	{
 		new (&value) T(val);
 
@@ -141,14 +142,18 @@ struct ParameterValue
 struct Parameters
 {
 public:
-	std::string toString()
+	std::string toString(bool excludeOptionals = true)
 	{
 		std::string result = "# " + m_name + ":\n";
 		char* pointer = (char*)this;
 
 		for (int offset = m_dataStart; offset < GetSize(); offset += sizeof(ParameterValue<int>))
 		{
-			int type = *(int*)((pointer + offset) + offsetof(ParameterValue<int>, type));
+			bool isOptional = *(bool*)((pointer + offset) + offsetof(ParameterValue<int>, optional));
+			std::cout << excludeOptionals << std::endl;
+			if (excludeOptionals && isOptional) continue;
+
+			char type = *(char*)((pointer + offset) + offsetof(ParameterValue<int>, type));
 			std::string name = *(std::string*)((pointer + offset) + offsetof(ParameterValue<int>, name));
 			std::string format = *(std::string*)((pointer + offset) + offsetof(ParameterValue<int>, format));
 
@@ -205,7 +210,7 @@ public:
 			void* object = getParameterValue(name);
 			if (!object) continue;
 
-			int type = *(int*)(object)+offsetof(ParameterValue<int>, type);
+			char type = *(char*)(object)+offsetof(ParameterValue<int>, type);
 
 			switch (type)
 			{

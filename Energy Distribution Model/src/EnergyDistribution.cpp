@@ -185,12 +185,14 @@ void EnergyDistribution::RemoveEdgeZeros()
 
 std::string EnergyDistribution::String()
 {
+	bool excludeOptionals = !(folder.filename().string() == "Test");
+	std::cout << excludeOptionals << std::endl;
 	std::string string = Form("# folder: %s\n", folder.filename().string().c_str()) +
-		eBeamParameter.toString() +
-		labEnergiesParameter.toString() +
-		eDistParameter.toString() +
-		ionBeamParameter.toString() +
-		mcmcParameter.toString();
+		eBeamParameter.toString(excludeOptionals) +
+		labEnergiesParameter.toString(excludeOptionals) +
+		eDistParameter.toString(excludeOptionals) +
+		ionBeamParameter.toString(excludeOptionals) +
+		mcmcParameter.toString(excludeOptionals);
 
 	return string;
 }

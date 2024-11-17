@@ -11,9 +11,9 @@ struct LabEnergyParameters : public Parameters
 	ParameterValue<double> driftTubeVoltage = ParameterValue(0.0, "drift tube voltage", "%e V");
 	ParameterValue<Path> energyFile = ParameterValue(Path(""), "energy file", "%s");
 
-	ParameterValue<bool> useUniformEnergies = ParameterValue(false, "use uniform energy", "%d");
-	ParameterValue<bool> useOnlySliceXY = ParameterValue(false, "use slice of energies", "%d");
-	ParameterValue<double> sliceToFill = ParameterValue(0.5, "z value of slice", "%.3f");
+	ParameterValue<bool> useUniformEnergies = ParameterValue(false, "use uniform energy", "%d", true);
+	ParameterValue<bool> useOnlySliceXY = ParameterValue(false, "use slice of energies", "%d", true);
+	ParameterValue<double> sliceToFill = ParameterValue(0.5, "z value of slice", "%.3f", true);
 
 private:
 	int GetSize() override
