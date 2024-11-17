@@ -239,7 +239,7 @@ void Application::ShowWindows()
         module->ShowWindow();
     }
 
-    //ImGui::ShowDemoWindow();
+    ImGui::ShowDemoWindow();
     //ImPlot::ShowDemoWindow();
 
     // Handle ROOT events

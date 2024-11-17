@@ -150,7 +150,6 @@ public:
 		for (int offset = m_dataStart; offset < GetSize(); offset += sizeof(ParameterValue<int>))
 		{
 			bool isOptional = *(bool*)((pointer + offset) + offsetof(ParameterValue<int>, optional));
-			std::cout << excludeOptionals << std::endl;
 			if (excludeOptionals && isOptional) continue;
 
 			char type = *(char*)((pointer + offset) + offsetof(ParameterValue<int>, type));

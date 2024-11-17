@@ -55,7 +55,6 @@ void EnergyDistribution::SetupLabellingThings()
 		subFolder = Form("E_cool %.3feV I_e %.2eA r_ion %.4fm", eBeamParameter.coolingEnergy.get(),
 			eBeamParameter.electronCurrent.get(), ionBeamParameter.radius.get());
 
-		std::cout << eBeamParameter.densityFile.get().filename() << std::endl;
 		index = std::stoi(eBeamParameter.densityFile.get().filename().string().substr(0, 4));
 	}
 
@@ -186,7 +185,6 @@ void EnergyDistribution::RemoveEdgeZeros()
 std::string EnergyDistribution::String()
 {
 	bool excludeOptionals = !(folder.filename().string() == "Test");
-	std::cout << excludeOptionals << std::endl;
 	std::string string = Form("# folder: %s\n", folder.filename().string().c_str()) +
 		eBeamParameter.toString(excludeOptionals) +
 		labEnergiesParameter.toString(excludeOptionals) +
@@ -204,7 +202,7 @@ std::string EnergyDistribution::Filename()
 	eCoolSS << std::fixed << std::setprecision(3) << eBeamParameter.coolingEnergy.get();
 	indexSS << std::setw(4) << std::setfill('0') << index;
 
-	std::string string = indexSS.str() + std::string(Form(" E_d %.4feV.asc", eBeamParameter.detuningEnergy.get()));
+	std::string string = indexSS.str() + std::string(Form(" E_d %.4feV", eBeamParameter.detuningEnergy.get()));
 
 	return string;
 }

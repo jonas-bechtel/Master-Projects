@@ -172,21 +172,23 @@ void ElectronBeam::ShowUI()
 	ImGui::EndDisabled();
 
 	ImGui::Separator();
-	ImGui::Checkbox("use fixed longitudinal kT", m_parameters.hasFixedLongitudinalTemperature); ImGui::SetNextItemWidth(100.0f);
+	ImGui::Checkbox("use fixed longitudinal kT", m_parameters.hasFixedLongitudinalTemperature); 
+	ImGui::PushItemWidth(100.0f);
 	ImGui::BeginDisabled(!m_parameters.hasFixedLongitudinalTemperature);
 	ImGui::InputDouble("longitudinal kT [eV]", m_parameters.longitudinal_kT);
-	ImGui::EndDisabled();														ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("cooling energy [eV]", m_parameters.coolingEnergy);		ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("transverse kT [eV]", m_parameters.transverse_kT);		ImGui::SetNextItemWidth(100.0f);
+	ImGui::EndDisabled();														
+	ImGui::InputDouble("cooling energy [eV]", m_parameters.coolingEnergy);		
+	ImGui::InputDouble("transverse kT [eV]", m_parameters.transverse_kT);		
 	ImGui::BeginDisabled(m_parameters.hasFixedLongitudinalTemperature);
-	ImGui::InputDouble("electron current: [A]", m_parameters.electronCurrent, 0.0, 0.0, "%.2e");	ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("cathode radius [m]", m_parameters.cathodeRadius);		ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("cathode Temperature [K]", m_parameters.cathodeTemperature); ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("extraction energy [eV]", m_parameters.extractionEnergy); ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("expansion factor", m_parameters.expansionFactor);		ImGui::SetNextItemWidth(100.0f);
-	ImGui::InputDouble("LLR", m_parameters.LLR);									ImGui::SetNextItemWidth(100.0f);
+	ImGui::InputDouble("electron current: [A]", m_parameters.electronCurrent, 0.0, 0.0, "%.2e");	
+	ImGui::InputDouble("cathode radius [m]", m_parameters.cathodeRadius);		
+	ImGui::InputDouble("cathode Temperature [K]", m_parameters.cathodeTemperature); 
+	ImGui::InputDouble("extraction energy [eV]", m_parameters.extractionEnergy); 
+	ImGui::InputDouble("expansion factor", m_parameters.expansionFactor);		
+	ImGui::InputDouble("LLR", m_parameters.LLR);								
 	ImGui::InputDouble("sigma lab energy [eV]", m_parameters.sigmaLabEnergy);
 	ImGui::EndDisabled();
+	ImGui::PopItemWidth();
 	ImGui::Separator();
 
 	if (ImGui::SliderFloat("z", &sliderZ, -0.7f, 0.7f))

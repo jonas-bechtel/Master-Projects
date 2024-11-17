@@ -62,6 +62,7 @@ private:
 	bool doAll = false;
 
 	// save all sampled values in a file to load it again
+	bool saveAsHist = true;
 	bool saveSamplesToFile = false;
 
 	// parameters for energy distribution generation

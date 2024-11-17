@@ -49,45 +49,46 @@ TH3D* FileHandler::LoadMatrixFile(const std::filesystem::path& filename)
     return dataMatrix;
 }
 
-EnergyDistribution* FileHandler::LoadEnergyDistributionSamples(const std::filesystem::path& filename)
+//EnergyDistribution* FileHandler::LoadEnergyDistributionSamples(const std::filesystem::path& filename)
+//{
+//    std::ifstream file(filename);
+//
+//    // Check if the file was successfully opened
+//    if (!file.is_open())
+//    {
+//        std::cerr << "Error: Could not open the file " << filename << std::endl;
+//        return nullptr;
+//    }
+//
+//    std::string header = GetHeaderFromFile(file);
+//    EnergyDistribution* energyDist = CreateEnergyDistFromHeader(header);
+//
+//    std::string line;
+//    while (std::getline(file, line))
+//    {
+//        energyDist->collisionEnergies.push_back(std::stod(line));
+//    }
+//
+//    return energyDist;
+//}
+
+EnergyDistribution* FileHandler::LoadEnergyDistribution(std::filesystem::path& filename)
 {
-    std::ifstream file(filename);
+    // load the .asc file with the histogram data
+    std::ifstream histFile(filename);
 
     // Check if the file was successfully opened
-    if (!file.is_open())
+    if (!histFile.is_open())
     {
         std::cerr << "Error: Could not open the file " << filename << std::endl;
         return nullptr;
     }
 
-    std::string header = GetHeaderFromFile(file);
+    std::string header = GetHeaderFromFile(histFile);
     EnergyDistribution* energyDist = CreateEnergyDistFromHeader(header);
 
     std::string line;
-    while (std::getline(file, line))
-    {
-        energyDist->collisionEnergies.push_back(std::stod(line));
-    }
-
-    return energyDist;
-}
-
-EnergyDistribution* FileHandler::LoadEnergyDistributionHistogram(const std::filesystem::path& filename)
-{
-    std::ifstream file(filename);
-
-    // Check if the file was successfully opened
-    if (!file.is_open())
-    {
-        std::cerr << "Error: Could not open the file " << filename << std::endl;
-        return nullptr;
-    }
-
-    std::string header = GetHeaderFromFile(file);
-    EnergyDistribution* energyDist = CreateEnergyDistFromHeader(header);
-
-    std::string line;
-    while (std::getline(file, line))
+    while (std::getline(histFile, line))
     {
         std::vector<std::string> tokens = SplitLine(line, xDelimiter);
 
@@ -95,7 +96,32 @@ EnergyDistribution* FileHandler::LoadEnergyDistributionHistogram(const std::file
         energyDist->binValues.push_back(std::stod(tokens[1]));
         energyDist->binValuesNormalised.push_back(std::stod(tokens[2]));
     }
+    std::cout << "loaded file: " << filename.filename();
 
+    // see if .samples file exist with collision energy data
+    std::filesystem::path samplesFilename = filename.replace_extension(".samples");
+    if (std::filesystem::exists(samplesFilename))
+    {
+        std::ifstream samplesFile(samplesFilename);
+
+        // Check if the file was successfully opened
+        if (!samplesFile.is_open())
+        {
+            std::cerr << "Error: Could not open the file " << filename << std::endl;
+            return energyDist;
+        }
+
+        header = GetHeaderFromFile(samplesFile);
+        energyDist->collisionEnergies.reserve(energyDist->mcmcParameter.numberSamples);
+
+        while (std::getline(samplesFile, line))
+        {
+            energyDist->collisionEnergies.push_back(std::stod(line));
+        }
+        std::cout << "\tsamples file found";
+    }
+    std::cout << std::endl;
+    
     return energyDist;
 }
 
@@ -219,10 +245,10 @@ void FileHandler::SaveEnergyDistributionHistToFile(EnergyDistribution* energyDis
 {
     // set the output filepath
     std::filesystem::path file = outputFolder.string() /        // general output folder
-        std::filesystem::path("histogram files") /              // folder for files with histogram of distribution
+       // std::filesystem::path("histogram files") /              // folder for files with histogram of distribution
         energyDistribution->folder.filename() /                  // folder of corresponfding desription file
         energyDistribution->subFolder.filename() /               // subfolder with specific parameters
-        std::filesystem::path(energyDistribution->Filename());   // filename
+        std::filesystem::path(energyDistribution->Filename() + ".asc");  // filename    
 
     // extract the directory 
     std::filesystem::path dir = std::filesystem::path(file).parent_path();
@@ -254,11 +280,12 @@ void FileHandler::SaveEnergyDistributionHistToFile(EnergyDistribution* energyDis
 void FileHandler::SaveEnergyDistributionSamplesToFile(EnergyDistribution* energyDistribution)
 {
     // set the output filepath
-    std::filesystem::path file = outputFolder.string() /        // general output folder
-        std::filesystem::path("sample files") /                 // special folder for files with all samples in it
-        energyDistribution->folder.filename() /                  // folder of corresponfding desription file
-        energyDistribution->subFolder.filename() /               // subfolder with specific parameters
-        std::filesystem::path(energyDistribution->Filename());   // filename
+    std::filesystem::path file = outputFolder.string() /                    // general output folder
+        //std::filesystem::path("sample files") /                           // special folder for files with all samples in it
+        energyDistribution->folder.filename() /                             // folder of corresponfding desription file
+        energyDistribution->subFolder.filename() /                          // subfolder with specific parameters
+        std::filesystem::path(energyDistribution->Filename() + ".samples"); // filename
+         
 
     // extract the directory 
     std::filesystem::path dir = std::filesystem::path(file).parent_path();

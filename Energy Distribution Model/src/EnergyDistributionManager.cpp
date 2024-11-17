@@ -77,8 +77,15 @@ void EnergyDistributionManager::ShowSettings()
 			PlotLongVelAddition();
 		}
 		ImGui::EndDisabled();
+		if (ImGui::Checkbox("save as hist", &saveAsHist))
+		{
+			if (!saveAsHist) saveSamplesToFile = false;
+		}
 		ImGui::SameLine();
-		ImGui::Checkbox("save energy samples", &saveSamplesToFile);
+		if (ImGui::Checkbox("save samples", &saveSamplesToFile))
+		{
+			if (saveSamplesToFile) saveAsHist = true;
+		}
 
 		ImGui::SetNextItemWidth(200.0f);
 		ImGui::Checkbox("limit lower bin size", parameter.limitBinSize);
@@ -175,7 +182,7 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 				ImGui::SameLine();
 				ImGui::Checkbox("normalised", &eDist->showNormalisedByWidth);
 				ImGui::SameLine();
-				if (ImGui::Button("x"))
+				if (ImGui::SmallButton("x"))
 				{
 					RemoveDistributionFromList(i);
 				}
@@ -187,29 +194,29 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 		
 		if (ImGui::Button("load hists"))
 		{
-			std::vector<std::filesystem::path> filenames = FileHandler::GetInstance().SelectFiles("output\\histogram files\\");
+			std::vector<std::filesystem::path> filenames = FileHandler::GetInstance().SelectFiles("output\\");
 			if (!filenames.empty())
 			{
-				for (const auto& filename : filenames)
+				for (auto& filename : filenames)
 				{
-					EnergyDistribution* energyDist = FileHandler::GetInstance().LoadEnergyDistributionHistogram(filename);
+					EnergyDistribution* energyDist = FileHandler::GetInstance().LoadEnergyDistribution(filename);
 					AddDistributionToList(energyDist);
 				}
 			}
 		}
-		ImGui::SameLine();
-		if (ImGui::Button("load samples"))
-		{
-			std::vector<std::filesystem::path> filenames = FileHandler::GetInstance().SelectFiles("output\\sample files\\");
-			if (!filenames.empty())
-			{
-				for (const auto& filename : filenames)
-				{
-					EnergyDistribution* energyDist = FileHandler::GetInstance().LoadEnergyDistributionSamples(filename);
-					AddDistributionToList(energyDist);
-				}
-			}
-		}
+		//ImGui::SameLine();
+		//if (ImGui::Button("load samples"))
+		//{
+		//	std::vector<std::filesystem::path> filenames = FileHandler::GetInstance().SelectFiles("output\\");
+		//	if (!filenames.empty())
+		//	{
+		//		for (const auto& filename : filenames)
+		//		{
+		//			EnergyDistribution* energyDist = FileHandler::GetInstance().LoadEnergyDistributionSamples(filename);
+		//			AddDistributionToList(energyDist);
+		//		}
+		//	}
+		//}
 
 		if (ImGui::Button("clear list"))
 		{
@@ -428,7 +435,11 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 	
 	std::cout << "Ed1: " << currentDistribution->eBeamParameter.detuningEnergy << "\n";
 
-	FileHandler::GetInstance().SaveEnergyDistributionHistToFile(currentDistribution);
+	if (saveAsHist)
+	{
+		FileHandler::GetInstance().SaveEnergyDistributionHistToFile(currentDistribution);
+	}
+	
 	if (saveSamplesToFile)
 	{
 		FileHandler::GetInstance().SaveEnergyDistributionSamplesToFile(currentDistribution);
@@ -535,7 +546,7 @@ void EnergyDistributionManager::PLotZweightByEnergy()
 
 void EnergyDistributionManager::ClearDistributionList()
 {
-	for (int i = 0; i < energyDistributions.size(); i++)
+	for (int i = energyDistributions.size() - 1; i >= 0; i--)
 	{
 		RemoveDistributionFromList(i);
 	}
