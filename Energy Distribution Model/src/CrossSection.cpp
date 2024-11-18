@@ -8,26 +8,7 @@
 CrossSection::CrossSection()
 	: Module("Cross Section")
 {
-	GenerateCrossSection();
-}
-
-void CrossSection::GenerateCrossSection()
-{
-	if (crossSection) delete crossSection;
-
-	crossSection = new TH1D("generated cross section", "generated cross section", nBins, 1e-5, 100);
-	binCenters.clear();
-	binValues.clear();
-	binCenters.reserve(nBins);
-	binValues.reserve(nBins);
-	for (int i = 1; i <= nBins; i++)
-	{
-		double energyValue = crossSection->GetBinCenter(i);
-		binCenters.push_back(energyValue);
-		double crossSectionValue = 1 / energyValue;
-		binValues.push_back(crossSectionValue);
-		crossSection->SetBinContent(i, crossSectionValue);
-	}
+	SetupTrueCrossSection();
 }
 
 void CrossSection::test()
@@ -59,9 +40,10 @@ void CrossSection::SetupFitCrossSectionHist()
 
 	std::vector<double> binEdges;
 	double maxEnergy = 100; //just a gues, not fixed
+	double minEnergy = energyDistributions.back()->eBeamParameter.detuningEnergy / 10;
 	
 	// binning like in the paper 
-	if (currentOption == 0)
+	if (currentOption == PaperBinning)
 	{
 		EnergyDistribution* representativeEnergyDist = energyDistributions[energyDistributions.size() - 1];
 		double kT_trans = representativeEnergyDist->eBeamParameter.transverse_kT;
@@ -89,7 +71,7 @@ void CrossSection::SetupFitCrossSectionHist()
 		}
 	}
 	// constant binning
-	if (currentOption == 1)
+	if (currentOption == ConstantBinning)
 	{
 		binEdges.reserve(numberBins + 1);
 		binEdges.push_back(0);
@@ -100,11 +82,11 @@ void CrossSection::SetupFitCrossSectionHist()
 		}
 	}
 	// bin width increses by a constant factor
-	if (currentOption == 2)
+	if (currentOption == FactorBinning)
 	{
 		if (limitBinSize)
 		{
-			double min = 1e-6; // std::max(energyRange[0], 1e-9f);
+			double min = minEnergy; // std::max(energyRange[0], 1e-9f);
 			double factor = TMath::Power((maxEnergy / min), (1.0 / numberBins));
 
 			binEdges.reserve(numberBins + 1);
@@ -118,7 +100,7 @@ void CrossSection::SetupFitCrossSectionHist()
 		}
 		else
 		{
-			float min = 1e-6f;
+			float min = minEnergy;
 			double factor = TMath::Power((maxEnergy / min), (1.0 / numberBins));
 
 			binEdges.reserve(numberBins + 1);
@@ -130,7 +112,28 @@ void CrossSection::SetupFitCrossSectionHist()
 		}
 		
 	}
-	
+	if (currentOption == PaperFactorMix)
+	{
+		EnergyDistribution* representativeEnergyDist = energyDistributions[energyDistributions.size() - 1];
+		double kT_trans = representativeEnergyDist->eBeamParameter.transverse_kT;
+		//double kT_long = 0.00047; // representativeEnergyDist->eBeamParameter.longitudinal_kT; //eBeam->GetLongitudinal_kT(labEnergiesParameter.centerLabEnergy);
+
+		binEdges.push_back(0);
+		binEdges.push_back(kT_trans / 20);
+
+		for (int i = 1; binEdges[i] < kT_trans; i++)
+		{
+			binEdges.push_back(2 * binEdges[i]);
+			//std::cout << binEdges[i + 1] << "\n";
+		}
+		
+		double factor = TMath::Power((maxEnergy / binEdges.back()), (1.0 / numberBins));
+
+		for (int i = 0; i < numberBins; i++)
+		{
+			binEdges.push_back(binEdges.back() * factor);
+		}
+	}
 	//for (double edge : binEdges)
 	//{
 	//	std::cout << edge << "\n";
@@ -191,7 +194,7 @@ void CrossSection::CalculateRateCoefficients()
 			}
 			eDist->rateCoefficient /= eDist->collisionEnergies.size();
 
-			double E_d = pow(sqrt(eDist->labEnergiesParameter.centerLabEnergy) - sqrt(eDist->eBeamParameter.coolingEnergy), 2);
+			double E_d = eDist->eBeamParameter.detuningEnergy; //pow(sqrt(eDist->labEnergiesParameter.centerLabEnergy) - sqrt(eDist->eBeamParameter.coolingEnergy), 2);
 			rateCoefficients->AddPoint(E_d, eDist->rateCoefficient);
 		}
 	}
@@ -205,46 +208,94 @@ void CrossSection::CalculatePsis()
 	for (EnergyDistribution* distribution : energyDistributions)
 	{
 		distribution->psi.clear();
-		distribution->psi.resize(crossSectionFit->GetNbinsX());
+		int nBins = crossSectionFit->GetNbinsX();
+		std::cout << nBins << std::endl;
+		//distribution->psi.reserve(nBins);
+		distribution->psi.resize(nBins);
 
+		std::cout << "distribution: " << distribution->index << std::endl;
 		for (double energy : distribution->collisionEnergies)
 		{
 			int bin = crossSectionFit->FindBin(energy);
+			if (bin == 0)
+			{
+				std::cout << "crossection hist too small, got underflow when putting in " << energy << std::endl;
+				continue;
+			}
+			//if (bin < 10) std::cout << "bin " << bin << ": " << energy << std::endl;
 			double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
+			if (bin - 1 >= distribution->psi.size())
+			{
+				std::cout << "want to access " << bin - 1 << " but size is " << distribution->psi.size() << std::endl;
+				std::cout << energy << std::endl;
+			}
 			distribution->psi[bin - 1] += velocity;
 		}
 		for (int i = 0; i < distribution->psi.size(); i++)
 		{
 			distribution->psi[i] /= distribution->collisionEnergies.size();
-			//std::cout << "GetPsis()_" << i << ": " << distribution->GetPsis()[i] << " " << crossSectionFit->GetBinLowEdge(i+1)
-			//	 << " - " << crossSectionFit->GetBinLowEdge(i+2) << "\n";
+			std::cout << "Psi_" << i << ": " << distribution->psi[i] << "\t" << crossSectionFit->GetBinLowEdge(i+1)
+				 << " - " << crossSectionFit->GetBinLowEdge(i+2) << "\n";
 		}
+	}
+}
+
+void CrossSection::SetupInitialGuess()
+{
+	//for (int i = 1; i <= crossSectionFit->GetNbinsX(); i++)
+	//{
+	//	initialGuess.push_back(2 / crossSectionFit->GetBinCenter(i));
+	//}
+	initialGuess.clear();
+
+	for (int i = 1; i <= crossSectionFit->GetNbinsX(); i++)
+	{
+		double energy = crossSectionFit->GetBinCenter(i);
+		double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
+		double alpha = rateCoefficients->Eval(energy);
+		initialGuess.push_back(alpha / velocity);
 	}
 }
 
 void CrossSection::FitCrossSectionHistogram()
 {
-	// create Fit cross section
-	SetupFitCrossSectionHist();
+	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	if (model->GetEnergyDistributions().empty())
+	{
+		std::cout << "no energy distributions\n";
+		return;
+	}
 
-	CalculatePsis();
+	if (initialGuess.empty())
+	{
+		// create Fit cross section
+		SetupFitCrossSectionHist();
+		CalculatePsis();
+		SetupInitialGuess();
+	}
+	else
+	{
+		initialGuess.clear();
+		initialGuess = binValuesFit;
+		for (double& value : initialGuess) 
+		{
+			value = std::max(value, 0.0);
+		}
+	}
+	TF1* fitFunction = new TF1("fit function", this, &CrossSection::FitFunction, 0, 99, crossSectionFit->GetNbinsX());
+
+	fitFunction->SetParameters(initialGuess.data());
+	for (int i = fixParamStart; i < fixParamStop; i++)
+	{
+		std::cout << i << " " << initialGuess[i] << std::endl;
+		fitFunction->FixParameter(i, initialGuess[i]);
+	}
 
 	binValuesFit.clear();
 	binCentersFit.clear();
 	binValuesFit.reserve(crossSectionFit->GetNbinsX());
 	binCentersFit.reserve(crossSectionFit->GetNbinsX());
-
-	TF1* fitFunction = new TF1("fit function", this, &CrossSection::FitFunction, 0, 99, crossSectionFit->GetNbinsX());
-	//std::cout << fitFunction->GetNpar() << "\n";
-
-	// just a random guess of all 1s
-	std::vector<double> initialGuess; // = std::vector<double>(crossSectionFit->GetNbinsX(), 0.1);
-	for (int i = 1; i <= crossSectionFit->GetNbinsX(); i++)
-	{
-		initialGuess.push_back(2 / crossSectionFit->GetBinCenter(i));
-	}
-	fitFunction->SetParameters(initialGuess.data());
-
+	
 	rateCoefficients->Fit(fitFunction, "R");
 
 	double* parameter = fitFunction->GetParameters();
@@ -340,7 +391,9 @@ void CrossSection::ShowUI()
 
 		ImPlot::SetupLegend(ImPlotLocation_NorthEast);
 
-		ImPlot::PlotLine("cross section", binCenters.data(), binValues.data(), binCenters.size());
+		ImPlot::PlotLine("cross section", binCentersTrue.data(), binValuesTrue.data(), binCentersTrue.size());
+		ImPlot::PlotLine("initial guess", binCentersFit.data(), initialGuess.data(), initialGuess.size());
+		ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 3.0);
 		ImPlot::PlotLine("cross section Fit", binCentersFit.data(), binValuesFit.data(), binCentersFit.size());
 
 		ImPlot::EndPlot();
@@ -360,7 +413,7 @@ void CrossSection::ShowUI()
 		ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
 		ImPlot::PlotLine("rate coefficient", rateCoefficients->GetX(), rateCoefficients->GetY(), rateCoefficients->GetN());
 		ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
-		ImPlot::PlotLine("rate coefficient2", rateCoefficientsFit->GetX(), rateCoefficientsFit->GetY(), rateCoefficientsFit->GetN());
+		ImPlot::PlotLine("rate coefficient fit", rateCoefficientsFit->GetX(), rateCoefficientsFit->GetY(), rateCoefficientsFit->GetN());
 		
 		ImPlot::EndPlot();
 	}
@@ -374,13 +427,13 @@ void CrossSection::ShowUI()
 	ImGui::SetNextItemWidth(150.0f);
 	ImGui::Combo("binning options", &currentOption, binningOptions, IM_ARRAYSIZE(binningOptions));
 	
-	if (currentOption == 1 || currentOption == 2)
+	if (currentOption == ConstantBinning || currentOption == FactorBinning || currentOption == PaperFactorMix)
 	{
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(100.0f);
 		ImGui::InputInt("number bins", &numberBins);
 	}
-	if (currentOption == 2)
+	if (currentOption == FactorBinning)
 	{
 		ImGui::SameLine();
 		ImGui::Checkbox("limit bin size", &limitBinSize);
@@ -395,8 +448,31 @@ void CrossSection::ShowUI()
 		FitCrossSectionHistogram();
 	}
 	ImGui::SameLine();
+	if (ImGui::Button("clear fit data"))
+	{
+		initialGuess.clear();
+		binCentersFit.clear();
+		binValuesFit.clear();
+		crossSectionFit->Clear();
+	}
+	ImGui::SameLine();
 	if (ImGui::Button("test"))
 	{
 		test();
+	}
+	ImGui::SameLine();
+	if (ImGui::InputInt2("fix parameter", &fixParamStart))
+	{
+		fixParamStop = std::min(fixParamStop, (int)initialGuess.size());
+	}
+}
+
+void CrossSection::SetupTrueCrossSection()
+{
+	for (int i = 0; i <= 10; i++)
+	{
+		double energy = 1e-5 + i * 10;
+		binCentersTrue.push_back(energy);
+		binValuesTrue.push_back(1 / energy);
 	}
 }

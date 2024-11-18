@@ -4,18 +4,21 @@
 
 class CrossSection : public Module
 {
+	enum Binning {PaperBinning, ConstantBinning, FactorBinning, PaperFactorMix};
+
 public:
 	CrossSection();
 
 private:
 	void ShowUI() override;
-	void GenerateCrossSection();
+	void SetupTrueCrossSection();
 
 	void test();
 
 	void SetupFitCrossSectionHist();
 	void CalculateRateCoefficients();
 	void CalculatePsis();
+	void SetupInitialGuess();
 	void FitCrossSectionHistogram();
 	double FitFunction(double* x, double* params);
 
@@ -24,11 +27,10 @@ private:
 	void PlotRateCoefficients();
 
 private:
-	TH1D* crossSection = nullptr;
-	std::vector<double> binCenters;
-	std::vector<double> binValues;
-	int nBins = 10;
+	std::vector<double> binCentersTrue;
+	std::vector<double> binValuesTrue;
 
+	std::vector<double> initialGuess;
 	TH1D* crossSectionFit = nullptr;
 	std::vector<double> binCentersFit;
 	std::vector<double> binValuesFit;
@@ -36,13 +38,15 @@ private:
 	TGraph* rateCoefficients = new TGraph();
 	TGraph* rateCoefficientsFit = new TGraph();
 
-	const char* binningOptions[3] = {"paper binning" , "const binning", "factor binning"};
+	const char* binningOptions[4] = {"paper binning" , "const binning", "factor binning", "paper/factor mix"};
 	//bool optionUsed[3] = { true, false ,false };
-	int currentOption = 0;
+	int currentOption = FactorBinning;
 
-	int numberBins = 100;
+	int numberBins = 30;
 	bool limitBinSize = false;
 	double minBinSize = 1e-5;
+	int fixParamStart = 0;
+	int fixParamStop = 0;
 
 	// plot parameters
 	bool logX = true;
