@@ -16,7 +16,7 @@ public:
 
 	TH3D* LoadMatrixFile(const std::filesystem::path& filename);
 	//EnergyDistribution* LoadEnergyDistributionSamples(const std::filesystem::path& filename);
-	EnergyDistribution* LoadEnergyDistribution(std::filesystem::path& filename);
+	EnergyDistribution* LoadEnergyDistribution(std::filesystem::path& filename, bool loadSamples);
 
 	int GetMaxIndex(std::filesystem::path energiesFile);
 	std::array<float, 3> GetParamtersFromDescriptionFileAtIndex(const std::filesystem::path& descriptionFile, int index);

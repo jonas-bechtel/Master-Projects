@@ -72,7 +72,7 @@ TH3D* FileHandler::LoadMatrixFile(const std::filesystem::path& filename)
 //    return energyDist;
 //}
 
-EnergyDistribution* FileHandler::LoadEnergyDistribution(std::filesystem::path& filename)
+EnergyDistribution* FileHandler::LoadEnergyDistribution(std::filesystem::path& filename, bool loadSamples)
 {
     // load the .asc file with the histogram data
     std::ifstream histFile(filename);
@@ -99,26 +99,29 @@ EnergyDistribution* FileHandler::LoadEnergyDistribution(std::filesystem::path& f
     std::cout << "loaded file: " << filename.filename();
 
     // see if .samples file exist with collision energy data
-    std::filesystem::path samplesFilename = filename.replace_extension(".samples");
-    if (std::filesystem::exists(samplesFilename))
+    if (loadSamples)
     {
-        std::ifstream samplesFile(samplesFilename);
-
-        // Check if the file was successfully opened
-        if (!samplesFile.is_open())
+        std::filesystem::path samplesFilename = filename.replace_extension(".samples");
+        if (std::filesystem::exists(samplesFilename))
         {
-            std::cerr << "Error: Could not open the file " << filename << std::endl;
-            return energyDist;
-        }
+            std::ifstream samplesFile(samplesFilename);
 
-        header = GetHeaderFromFile(samplesFile);
-        energyDist->collisionEnergies.reserve(energyDist->mcmcParameter.numberSamples);
+            // Check if the file was successfully opened
+            if (!samplesFile.is_open())
+            {
+                std::cerr << "Error: Could not open the file " << filename << std::endl;
+                return energyDist;
+            }
 
-        while (std::getline(samplesFile, line))
-        {
-            energyDist->collisionEnergies.push_back(std::stod(line));
+            header = GetHeaderFromFile(samplesFile);
+            energyDist->collisionEnergies.reserve(energyDist->mcmcParameter.numberSamples);
+
+            while (std::getline(samplesFile, line))
+            {
+                energyDist->collisionEnergies.push_back(std::stod(line));
+            }
+            std::cout << "\tsamples file found";
         }
-        std::cout << "\tsamples file found";
     }
     std::cout << std::endl;
     

@@ -296,10 +296,12 @@ void CrossSection::FitCrossSectionHistogram()
 	binValuesFit.reserve(crossSectionFit->GetNbinsX());
 	binCentersFit.reserve(crossSectionFit->GetNbinsX());
 	
-	rateCoefficients->Fit(fitFunction, "R");
+	rateCoefficients->Fit(fitFunction, "RN");
 
 	double* parameter = fitFunction->GetParameters();
 	FillFitPlots(parameter);
+
+	fitFunction->Delete();
 }
 
 double CrossSection::FitFunction(double* x, double* params)

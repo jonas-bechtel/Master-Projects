@@ -27,7 +27,9 @@ private:
 	void RemoveDistributionFromList(int index);
 
 	// functions for the analytical model
+	void FitAnalyticalToGeneratedDistribution(EnergyDistribution* distribution);
 	void GenerateAnalyticalDistribution();
+	double AnalyticalEnergyDistributionFit(double* x, double* params);
 	double AnalyticalEnergyDistribution(double* x, double* params);
 	double AnalyticalEnergyDistribution(double Ecm, double Ed, double Ttr, double Tlong);
 	double ComplexErrorFunction(double* x, double* par);
@@ -62,20 +64,19 @@ private:
 	bool doAll = false;
 
 	// save all sampled values in a file to load it again
-	bool saveAsHist = true;
+	bool saveAsHist = false;
 	bool saveSamplesToFile = false;
+	bool loadSamples = true;
 
 	// parameters for energy distribution generation
 	float energyRange[2] = { 1e-8, 100 };
 	int binsPerDecade = 2000;
 
 	// parameters for analytical energy distribution generation
+	AnalyticalDistributionParameters analyticalParameter;
 	float analyticalEnergyRange[2] = { 1e-1, 10 };
 	int analyticalNumberBins = 1000;
-	double detuningEnergy = 1;
-	double longitudinalTemperature = 0.0005;
-	double transversTemperature = 0.002;	
-
+	
 	// plot parameters
 	bool logX = true;
 	bool logY = true;

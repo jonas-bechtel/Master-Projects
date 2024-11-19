@@ -24,6 +24,24 @@ private:
 	}
 };
 
+struct AnalyticalDistributionParameters : public Parameters
+{
+	AnalyticalDistributionParameters()
+	{
+		setName("analytical/fit distribution parameters");
+	}
+
+	ParameterValue<double> detuningEnergy = ParameterValue(1.0, "detuning energy", "%.3f eV");
+	ParameterValue<double> longitudinalTemperature = ParameterValue(0.0005, "longitudinal kT", "%.2e eV");
+	ParameterValue<double> transverseTemperature = ParameterValue(0.002, "transverse kT", "%.2e eV");
+
+private:
+	int GetSize() override
+	{
+		return sizeof(*this);
+	}
+};
+
 struct EnergyDistribution : public TH1D
 {
 	EnergyDistribution();
@@ -40,11 +58,14 @@ struct EnergyDistribution : public TH1D
 	static EnergyDistribution* FindByEd(double detuningEnergy);
 	static std::unordered_map<double, EnergyDistribution*> s_allDistributions;
 
+public:
 	// actual distribution data
 	std::vector<double> collisionEnergies;
 	std::vector<double> binCenters;
 	std::vector<double> binValues;
 	std::vector<double> binValuesNormalised;
+	std::array<double, 200> fitX;
+	std::array<double, 200> fitY;
 
 	// all the things used to create it
 	MCMC_Parameters mcmcParameter;
@@ -52,6 +73,7 @@ struct EnergyDistribution : public TH1D
 	IonBeamParameters ionBeamParameter;
 	LabEnergyParameters labEnergiesParameter;
 	EnergyDistributionParameters eDistParameter;
+	AnalyticalDistributionParameters analyticalParameter;
 
 	// additional labelling things
 	std::string label = "";
@@ -59,6 +81,7 @@ struct EnergyDistribution : public TH1D
 	std::filesystem::path folder = "Test";
 	std::filesystem::path subFolder = "";
 	int index = 0;
+	bool isAnalytical = false;
 
 	// fitting things done by the Cross Section class
 	double rateCoefficient = 0;
@@ -66,6 +89,6 @@ struct EnergyDistribution : public TH1D
 
 	// plot parameters
 	bool plotted = false;
-	bool showNormalisedByWidth = false;
+	bool showNormalisedByWidth = true;
 };
 
