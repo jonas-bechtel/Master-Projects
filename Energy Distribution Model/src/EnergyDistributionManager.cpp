@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include "EnergyDistributionManager.h"
-#include "PhysicalConstants.h"
+#include "Constants.h"
 #include "FileHandler.h"
 
 EnergyDistributionManager::EnergyDistributionManager()
@@ -23,6 +23,11 @@ float* EnergyDistributionManager::GetEnergyRange()
 int EnergyDistributionManager::GetBinsPerDecade()
 {
 	return binsPerDecade;
+}
+
+double EnergyDistributionManager::GetStepSize()
+{
+	return stepSize;
 }
 
 EnergyDistributionParameters& EnergyDistributionManager::GetParameter()
@@ -111,6 +116,11 @@ void EnergyDistributionManager::ShowSettings()
 		ImGui::EndDisabled();
 
 		ImGui::Separator();
+		ImGui::Checkbox("constant bin size", parameter.constantBinSize);
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputDouble("step size", &stepSize);
+
 		ImGui::SetNextItemWidth(200.0f);
 		ImGui::Checkbox("limit lower bin size", parameter.limitBinSize);
 		ImGui::SameLine();
@@ -264,6 +274,8 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 	ImGui::Checkbox("log X", &logX);
 	ImGui::SameLine();
 	ImGui::Checkbox("log Y", &logY);
+	ImGui::SameLine();
+	ImGui::Checkbox("show markers", &showMarkers);
 
 	if (ImPlot::BeginPlot("collision Energy distribution"))
 	{
@@ -278,6 +290,7 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 			if (eDist->plotted)
 			{
 				ImGui::PushID(i);
+				if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
 
 				if (eDist->showNormalisedByWidth || eDist->isAnalytical)
 				{
@@ -425,14 +438,13 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 		currentDistribution->binValues.push_back(currentDistribution->GetBinContent(i));
 	}
 
-	// normalise the distribution to the width and then to one
+	// normalise the distribution to the width and to one
+	double numberEntries = currentDistribution->GetEntries();
 	for (int i = 1; i <= currentDistribution->GetNbinsX(); i++)
 	{
 		currentDistribution->SetBinContent(i,
-			currentDistribution->GetBinContent(i) / currentDistribution->GetBinWidth(i));
+			currentDistribution->GetBinContent(i) / (currentDistribution->GetBinWidth(i) * numberEntries));
 	}
-	if (currentDistribution->Integral("width"))
-		currentDistribution->Scale(1.0 / currentDistribution->Integral("width"));
 
 	// write normalised values to the vector
 	for (int i = 1; i <= currentDistribution->GetNbinsX(); i++)
@@ -593,12 +605,18 @@ void EnergyDistributionManager::FitAnalyticalToGeneratedDistribution(EnergyDistr
 	TF1* fitFunction = new TF1("fit function", this, &EnergyDistributionManager::AnalyticalEnergyDistributionFit, energyMin, energyMax, nParameter);
 	fitFunction->SetParameters(initialGuess); 
 
-	TFitResultPtr result = distribution->Fit(fitFunction, "RN");
+	TFitResultPtr result = distribution->Fit(fitFunction, "QRN0");
+	double maxValue = fitFunction->GetMaximum();
+	double energyOfMax = fitFunction->GetMaximumX();
+	double xLeft = fitFunction->GetX(maxValue / 2, 0, energyOfMax);
+	double xRight = fitFunction->GetX(maxValue / 2, energyOfMax, 1000);
 
 	double* fitParameter = fitFunction->GetParameters();
 	distribution->analyticalParameter.detuningEnergy = fitParameter[1];
 	distribution->analyticalParameter.transverseTemperature = fitParameter[2];
 	distribution->analyticalParameter.longitudinalTemperature = fitParameter[3];
+	distribution->analyticalParameter.FWHM = xRight - xLeft;
+	distribution->analyticalParameter.effectiveLength = fitParameter[0] * CSR::overlapLength;
 
 	// Fill distribution Fit data with these parameters
 	double energyStep = (energyMax - energyMin) / distribution->fitX.size();

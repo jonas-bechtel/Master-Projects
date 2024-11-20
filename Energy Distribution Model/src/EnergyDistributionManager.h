@@ -12,6 +12,7 @@ public:
 	EnergyDistributionManager();
 	float* GetEnergyRange();
 	int GetBinsPerDecade();
+	double GetStepSize();
 	EnergyDistributionParameters& GetParameter();
 	std::vector<EnergyDistribution*>& GetEnergyDistributions();
 	void GenerateEnergyDistribution();
@@ -69,8 +70,9 @@ private:
 	bool loadSamples = true;
 
 	// parameters for energy distribution generation
-	float energyRange[2] = { 1e-8, 100 };
-	int binsPerDecade = 2000;
+	float energyRange[2] = { 1e-5, 100 };
+	int binsPerDecade = 200;
+	double stepSize = 0.5;
 
 	// parameters for analytical energy distribution generation
 	AnalyticalDistributionParameters analyticalParameter;
@@ -80,6 +82,7 @@ private:
 	// plot parameters
 	bool logX = true;
 	bool logY = true;
+	bool showMarkers = false;
 
 	// random number generation things
 	std::mersenne_twister_engine<std::uint_fast64_t,

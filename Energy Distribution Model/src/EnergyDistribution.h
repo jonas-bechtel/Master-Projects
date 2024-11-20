@@ -12,6 +12,7 @@ struct EnergyDistributionParameters : public Parameters
 		setName("energy distribution parameters");
 	}
 
+	ParameterValue<bool> constantBinSize = ParameterValue(true, "constant bin size", "%d", true);
 	ParameterValue<bool> limitBinSize = ParameterValue(false, "limit bin size", "%d", true);
 	ParameterValue<double> minBinSize = ParameterValue(5.0, "min bin size", "%.1e eV", true);
 	ParameterValue<bool> cutOutZValues = ParameterValue(false, "cut out z values", "%d", true);
@@ -34,6 +35,8 @@ struct AnalyticalDistributionParameters : public Parameters
 	ParameterValue<double> detuningEnergy = ParameterValue(1.0, "detuning energy", "%.3f eV");
 	ParameterValue<double> longitudinalTemperature = ParameterValue(0.0005, "longitudinal kT", "%.2e eV");
 	ParameterValue<double> transverseTemperature = ParameterValue(0.002, "transverse kT", "%.2e eV");
+	ParameterValue<double> FWHM = ParameterValue(0.0, "FWHM", "%.3f eV");
+	ParameterValue<double> effectiveLength = ParameterValue(0.0, "effective length", "%.3f m");
 
 private:
 	int GetSize() override

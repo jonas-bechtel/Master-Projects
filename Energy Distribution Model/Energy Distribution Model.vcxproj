@@ -253,7 +253,7 @@
     <ClInclude Include="src\FileHandler.h" />
     <ClInclude Include="src\MCMC.h" />
     <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\PhysicalConstants.h" />
+    <ClInclude Include="src\Constants.h" />
     <ClInclude Include="src\Point3D.h" />
     <ClInclude Include="vendor\imgui_plot\imconfig.h" />
     <ClInclude Include="vendor\imgui_plot\imgui.h" />

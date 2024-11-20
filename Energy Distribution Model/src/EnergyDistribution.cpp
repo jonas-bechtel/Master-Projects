@@ -2,6 +2,7 @@
 
 #include "EnergyDistributionManager.h"
 #include "EnergyDistribution.h"
+#include "Constants.h"
 
 std::unordered_map<double, EnergyDistribution*> EnergyDistribution::s_allDistributions;
 
@@ -75,37 +76,64 @@ std::vector<double> EnergyDistribution::SetupBinning()
 	int numberBins;
 	std::vector<double> binEdges;
 
-	//if (parameter.energyDefinedBinning)
-	//{
-	//	double kT_trans = eBeamParameter.transverse_kT;
-	//	double kT_long = eBeam->GetLongitudinal_kT(labEnergiesParameter.centerLabEnergy);
-	//	double maxEnergy = 100; //just a gues, not fixed
-	//	double factor = 1;
-	//
-	//	binEdges.push_back(0);
-	//	binEdges.push_back(factor * kT_trans / 20);
-	//
-	//	for (int i = 1; binEdges[i] < kT_trans; i++)
-	//	{
-	//		binEdges.push_back(factor * 2 * binEdges[i]);
-	//		//std::cout << binEdges[i + 1] << "\n";
-	//	}
-	//	while (binEdges[binEdges.size() - 1] < maxEnergy)
-	//	{
-	//		double previousEdge = binEdges[binEdges.size() - 1];
-	//		double delta_E = sqrt(pow((kT_trans * log(2)), 2) + 16 * log(2) * kT_long * previousEdge);
-	//		binEdges.push_back(previousEdge + factor * delta_E);
-	//
-	//		//std::cout << previousEdge << " " << delta_E << "\n";
-	//		//std::cout << binEdges[binEdges.size()] << "\n";
-	//		//std::cout << (binEdges[binEdges.size()] < maxEnergy) << "\n";
-	//	}
-	//
-	//	numberBins = binEdges.size() - 1;
-	//	std::cout << numberBins << "\n";
-	//}
-	//else
-	if (!eDistParameter.limitBinSize)
+	double firstPeak = eBeamParameter.detuningEnergy;
+	double secondPeak = pow(sqrt(CSR::energyOutsideDriftTube) - sqrt(eBeamParameter.coolingEnergy), 2);
+	// estimate half of the width
+	double estimatedPeakWidth1 = 2 * sqrt(pow((eBeamParameter.transverse_kT * log(2)), 2) + 16 * log(2) * eBeamParameter.longitudinal_kT * firstPeak);
+	double estimatedPeakWidth2 = 1; //5 * sqrt(pow((eBeamParameter.transverse_kT * log(2)), 2) + 16 * log(2) * eBeamParameter.longitudinal_kT * secondPeak);
+
+	if (eDistParameter.constantBinSize)
+	{
+		float min = std::max(eDistManager->GetEnergyRange()[0], 1e-9f);
+		float max = eDistManager->GetEnergyRange()[1];
+		double step = eDistManager->GetStepSize(); //(max - min) / numberBins;
+		int additionalBinsPerPeak = 20;
+		numberBins = (max - min) / step + 2 * additionalBinsPerPeak;
+		std::cout << "guess of bin number: " << numberBins << std::endl;
+		std::cout << "estimate peak positions: " << firstPeak << ", " << secondPeak << std::endl;
+		std::cout << "estimate peak widths: " << estimatedPeakWidth1 << ", " << estimatedPeakWidth2 << std::endl;
+		binEdges.reserve(numberBins);
+		binEdges.push_back(min);
+
+		//for (int i = 0; i < numberBins; i++)
+		while(binEdges.back() < max)
+		{
+			double lastEdge = binEdges.back();
+
+			// check if the next bin edge would be inside a peak or steps over a peak
+			if (std::abs(lastEdge + step - firstPeak) < estimatedPeakWidth1 ||
+				(lastEdge - firstPeak) / (lastEdge + step - firstPeak) < 0)
+			{
+				std::cout << "do first peak" << std::endl;
+				//std::cout << "last edge: " << lastEdge << " ratio: " << (lastEdge - firstPeak) << " : " << (lastEdge + step - firstPeak) << std::endl;
+
+				// and then add more bins around 2 * peakWidth
+				int additionalPeaks = additionalBinsPerPeak * (2 * estimatedPeakWidth1 + step) / (2 * estimatedPeakWidth1);
+				for (int i = 0; i < additionalPeaks; i++)
+				{
+					binEdges.push_back(binEdges.back() + (2 * estimatedPeakWidth1 + step) / additionalPeaks);
+					std::cout << "adding edge: " << binEdges.back() << std::endl;
+				}
+			}
+			// same for the second peak
+			else if (std::abs(lastEdge + step - secondPeak) < estimatedPeakWidth2 ||
+				(lastEdge - secondPeak) / (lastEdge + step - secondPeak) < 0)
+			{
+				std::cout << "do second peak" << std::endl;
+				int additionalPeaks = additionalBinsPerPeak * (2 * estimatedPeakWidth2 + step) / (2 * estimatedPeakWidth2);
+				for (int i = 0; i < additionalPeaks; i++)
+				{
+					binEdges.push_back(binEdges.back() + (2 * estimatedPeakWidth2 + step) / additionalPeaks);
+				}
+			}
+			else
+			{
+				binEdges.push_back(lastEdge + step);
+			}
+		}
+		std::cout << "number bins " << binEdges.size() - 1 << "\n";
+	}
+	else if (!eDistParameter.limitBinSize)
 	{
 		float min = std::max(eDistManager->GetEnergyRange()[0], 1e-9f);
 		float max = eDistManager->GetEnergyRange()[1];
