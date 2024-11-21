@@ -5,6 +5,8 @@
 #include "IonBeam.h"
 #include "LabEnergies.h"
 
+struct BinningSettings;
+
 struct EnergyDistributionParameters : public Parameters
 {
 	EnergyDistributionParameters()
@@ -12,9 +14,6 @@ struct EnergyDistributionParameters : public Parameters
 		setName("energy distribution parameters");
 	}
 
-	ParameterValue<bool> constantBinSize = ParameterValue(true, "constant bin size", "%d", true);
-	ParameterValue<bool> limitBinSize = ParameterValue(false, "limit bin size", "%d", true);
-	ParameterValue<double> minBinSize = ParameterValue(5.0, "min bin size", "%.1e eV", true);
 	ParameterValue<bool> cutOutZValues = ParameterValue(false, "cut out z values", "%d", true);
 	ParameterValue<float2> cutOutRange = ParameterValue(float2(0.0f, 0.4f), "cut out range", "%.2f, %.2f m", true);
 
@@ -50,9 +49,8 @@ struct EnergyDistribution : public TH1D
 	EnergyDistribution();
 	~EnergyDistribution();
 	
-	void SetupFromCurrentEnvironment();
 	void SetupLabellingThings();
-	std::vector<double> SetupBinning();
+	void SetupBinning(const BinningSettings& binSettings);
 	void RemoveEdgeZeros();
 
 	std::string String();

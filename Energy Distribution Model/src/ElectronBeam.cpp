@@ -12,7 +12,7 @@ ElectronBeam::ElectronBeam()
 
 void ElectronBeam::SetupDistribution(std::filesystem::path densityfile)
 {
-	if (m_parameters.hasGaussianShape)
+	if (m_parameters.hasGaussianShape || m_parameters.hasCylindricalShape)
 	{
 		GenerateElectronBeamDensity();
 	}
@@ -29,7 +29,7 @@ ElectronBeamParameters& ElectronBeam::GetParameter()
 
 TH3D* ElectronBeam::GetDistribution()
 {
-	if (m_parameters.hasGaussianShape)
+	if (m_parameters.hasGaussianShape || m_parameters.hasCylindricalShape)
 	{
 		return generatedBeamDensity;
 	}
@@ -131,7 +131,6 @@ void ElectronBeam::ShowUI()
 		mcmc->PlotTargetDistribution();
 	}
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(100.0f);
 	if (ImGui::InputFloat("slice z value", &SliceZ, 0.05f))
 	{
 		PlotDensitySlice();
@@ -139,17 +138,22 @@ void ElectronBeam::ShowUI()
 	ImGui::Checkbox("multiply bins", &increaseHist);
 	ImGui::SameLine();
 	ImGui::BeginDisabled(!increaseHist);
-	ImGui::SetNextItemWidth(100.0f);
 	ImGui::InputInt("factor", &factor, 2);
 	ImGui::EndDisabled();
 
 	ImGui::Separator();
-	if (ImGui::Checkbox("use gaussian beam shape", m_parameters.hasGaussianShape))
+	if (ImGui::Checkbox("gaussian beam shape", m_parameters.hasGaussianShape))
 	{
 		m_parameters.densityFile.get().clear();
+		m_parameters.hasCylindricalShape = false;
 	}
-	ImGui::BeginDisabled(!m_parameters.hasGaussianShape);
-	ImGui::SetNextItemWidth(100.0f);
+	ImGui::SameLine();
+	if (ImGui::Checkbox("cylindrical beam shape", m_parameters.hasCylindricalShape))
+	{
+		m_parameters.densityFile.get().clear();
+		m_parameters.hasGaussianShape = false;
+	}
+	ImGui::BeginDisabled(!(m_parameters.hasGaussianShape || m_parameters.hasCylindricalShape));
 	ImGui::InputDouble("radius [m]", m_parameters.radius);
 	ImGui::SameLine();
 	ImGui::Checkbox("exclude bend", m_parameters.hasNoBending);
@@ -173,7 +177,6 @@ void ElectronBeam::ShowUI()
 
 	ImGui::Separator();
 	ImGui::Checkbox("use fixed longitudinal kT", m_parameters.hasFixedLongitudinalTemperature); 
-	ImGui::PushItemWidth(100.0f);
 	ImGui::BeginDisabled(!m_parameters.hasFixedLongitudinalTemperature);
 	ImGui::InputDouble("longitudinal kT [eV]", m_parameters.longitudinal_kT);
 	ImGui::EndDisabled();														
@@ -188,13 +191,14 @@ void ElectronBeam::ShowUI()
 	ImGui::InputDouble("LLR", m_parameters.LLR);								
 	ImGui::InputDouble("sigma lab energy [eV]", m_parameters.sigmaLabEnergy);
 	ImGui::EndDisabled();
-	ImGui::PopItemWidth();
 	ImGui::Separator();
 
+	ImGui::SetNextItemWidth(250.0f);
 	if (ImGui::SliderFloat("z", &sliderZ, -0.7f, 0.7f))
 	{
 		PlotTrajectory();
 	}
+	ImGui::SetNextItemWidth(250.0f);
 	if (ImGui::SliderFloat("y", &sliderY, 0, 0.05f, "%.4f"))
 	{
 		PlotTrajectory();
@@ -326,9 +330,9 @@ void ElectronBeam::CreateLargeDistribution()
 
 void ElectronBeam::GenerateElectronBeamDensity()
 {
-	int nXBins = 50;
-	int nYBins = 50;
-	int nZBins = 50;
+	int nXBins = 100;
+	int nYBins = 100;
+	int nZBins = 100;
 
 	double xmin = -0.04;
 	double xmax = 0.04;
@@ -354,12 +358,24 @@ void ElectronBeam::GenerateElectronBeamDensity()
 				double z = generatedBeamDensity->GetZaxis()->GetBinCenter(k);
 
 				double ymean = 0;
+				double value = 0;
 				if (!m_parameters.hasNoBending)
 				{
 					ymean = Trajectory(z);
 				}
-				// Calculate the value using the Gaussian distribution centered at z = 0
-				double value = exp(-(x * x + (y - ymean) * (y - ymean)) / (2.0 * m_parameters.radius * m_parameters.radius));
+				if (m_parameters.hasGaussianShape)
+				{
+					// Calculate the value using the Gaussian distribution centered at z = 0
+					value = exp(-(x * x + (y - ymean) * (y - ymean)) / (2.0 * m_parameters.radius * m_parameters.radius));
+				}
+				else if (m_parameters.hasCylindricalShape)
+				{
+					if (x * x + (y - ymean) * (y - ymean) <= m_parameters.radius * m_parameters.radius)
+					{
+						// if inside the cylinder, set the value to an arbitrary constant value
+						value = 1;
+					}
+				}
 				generatedBeamDensity->SetBinContent(i, j, k, value);
 			}
 		}

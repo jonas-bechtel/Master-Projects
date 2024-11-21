@@ -100,17 +100,18 @@ void IonBeam::ShowUI()
 	bool somethingChanged = false;
 	ImGui::Checkbox("use single gaussian", m_parameters.useSingleGaussian);
 	ImGui::BeginDisabled(!m_parameters.useSingleGaussian);
-	ImGui::SetNextItemWidth(100.0f);
 	somethingChanged |= ImGui::InputDouble("ion beam radius / sigma in [m]", m_parameters.radius, 0.001f, 0.001f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
 	ImGui::EndDisabled();
 
 	ImGui::Separator();
 	ImGui::SetNextItemWidth(200.0f);
-	somethingChanged |= ImGui::InputFloat2("shift in x and y [m]", m_parameters.shift, "%.4f");													ImGui::SetNextItemWidth(100.0f);
+	somethingChanged |= ImGui::InputFloat2("shift in x and y [m]", m_parameters.shift, "%.4f");
 	ImGui::BeginDisabled(m_parameters.useSingleGaussian);
-	somethingChanged |= ImGui::InputDouble("amplitude 1", m_parameters.amplitude1, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);			ImGui::SetNextItemWidth(100.0f);
-	somethingChanged |= ImGui::InputDouble("amplitude 2", m_parameters.amplitude2, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);	ImGui::SetNextItemWidth(200.0f);
-	somethingChanged |= ImGui::InputFloat2("sigmas 1 x and y [m]", m_parameters.shape1, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);			ImGui::SetNextItemWidth(200.0f);
+	somethingChanged |= ImGui::InputDouble("amplitude 1", m_parameters.amplitude1, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+	somethingChanged |= ImGui::InputDouble("amplitude 2", m_parameters.amplitude2, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);	
+	ImGui::SetNextItemWidth(200.0f);
+	somethingChanged |= ImGui::InputFloat2("sigmas 1 x and y [m]", m_parameters.shape1, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);			
+	ImGui::SetNextItemWidth(200.0f);
 	somethingChanged |= ImGui::InputFloat2("sigmas 2 x and y [m]", m_parameters.shape2, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
 	ImGui::EndDisabled();
 

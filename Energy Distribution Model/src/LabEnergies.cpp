@@ -70,12 +70,10 @@ void LabEnergies::ShowUI()
 		PlotLabEnergySlice();
 	}
 	ImGui::SameLine();
-	ImGui::SetNextItemWidth(100.0f);
 	if (ImGui::InputFloat("slice z value", &SliceZ, 0.05f))
 	{
 		PlotLabEnergySlice();
 	}
-	ImGui::SetNextItemWidth(100.0f);
 	ImGui::InputDouble("drift tube voltage", m_parameters.driftTubeVoltage, 0.0, 0.0, "%.3f");
 
 	ImGui::BeginDisabled(m_parameters.useOnlySliceXY);
@@ -87,7 +85,6 @@ void LabEnergies::ShowUI()
 	ImGui::EndDisabled();
 	ImGui::SameLine();
 	ImGui::BeginDisabled(!m_parameters.useOnlySliceXY);
-	ImGui::SetNextItemWidth(100.0f);
 	ImGui::InputDouble("z slice", m_parameters.sliceToFill, 0.05f);
 	ImGui::EndDisabled();
 }

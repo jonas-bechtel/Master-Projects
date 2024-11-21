@@ -233,11 +233,13 @@ void Application::ShowWindows()
 {
     ImGui::DockSpaceOverViewport();
 
+    
     auto modules = Module::GetModuleMap();
     for (auto& [name, module] : modules)
     {
         module->ShowWindow();
     }
+   
 
     //ImGui::ShowDemoWindow();
     //ImPlot::ShowDemoWindow();

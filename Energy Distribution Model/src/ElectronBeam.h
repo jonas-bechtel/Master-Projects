@@ -29,6 +29,7 @@ struct ElectronBeamParameters : public Parameters
 
 	// parameters for analytical electron beam shape to test model
 	ParameterValue<bool> hasGaussianShape = ParameterValue(false, "using gaussian beam shape", "%d", true);
+	ParameterValue<bool> hasCylindricalShape = ParameterValue(false, "using cylindrical beam shape", "%d", true);
 	ParameterValue<bool> hasNoBending = ParameterValue(false, "exclude bend", "%d", true);
 	ParameterValue<bool> hasFixedLongitudinalTemperature = ParameterValue(false, "using fixed longitudial Temperature", "%d", true);
 	ParameterValue<double> radius = ParameterValue(0.003, "radius", "%.4f m", true);

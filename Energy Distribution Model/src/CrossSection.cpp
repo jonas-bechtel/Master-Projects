@@ -471,9 +471,13 @@ void CrossSection::ShowUI()
 
 void CrossSection::SetupTrueCrossSection()
 {
-	for (int i = 0; i <= 10; i++)
+	double min = 1e-4;
+	double max = 100;
+	int numberPoints = 100;
+	double step = (max - min) / numberPoints;
+	for (int i = 0; i <= 1000; i++)
 	{
-		double energy = 1e-5 + i * 10;
+		double energy = min + i * step;
 		binCentersTrue.push_back(energy);
 		binValuesTrue.push_back(1 / energy);
 	}

@@ -6,13 +6,24 @@
 #include "LabEnergies.h"
 #include "EnergyDistribution.h"
 
+struct BinningSettings
+{
+	float energyRange[2] = { 1e-5, 100 };
+
+	bool constantBinSize = true;
+	double normalStepSize = 0.5;
+	double peakStepSize = 0.03;
+
+	bool factorBinning = false;
+	int binsPerDecade = 200;
+
+	bool increasePeakResolution = true;
+};
+
 class EnergyDistributionManager : public Module
 {
 public:
 	EnergyDistributionManager();
-	float* GetEnergyRange();
-	int GetBinsPerDecade();
-	double GetStepSize();
 	EnergyDistributionParameters& GetParameter();
 	std::vector<EnergyDistribution*>& GetEnergyDistributions();
 	void GenerateEnergyDistribution();
@@ -24,6 +35,7 @@ private:
 	void ShowEnergyDistributionList();
 	void ShowEnergyDistributionPlot();
 
+	void SetupEnergyDistribution(EnergyDistribution* distribution);
 	void AddDistributionToList(EnergyDistribution* distribution);
 	void RemoveDistributionFromList(int index);
 
@@ -69,11 +81,9 @@ private:
 	bool saveSamplesToFile = false;
 	bool loadSamples = true;
 
-	// parameters for energy distribution generation
-	float energyRange[2] = { 1e-5, 100 };
-	int binsPerDecade = 200;
-	double stepSize = 0.5;
-
+	// binning related parameters
+	BinningSettings binSettings;
+	
 	// parameters for analytical energy distribution generation
 	AnalyticalDistributionParameters analyticalParameter;
 	float analyticalEnergyRange[2] = { 1e-1, 10 };

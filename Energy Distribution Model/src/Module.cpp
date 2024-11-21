@@ -40,7 +40,9 @@ void Module::ShowWindow()
 {
 	if (ImGui::Begin((m_name + " Window").c_str()))
 	{
+		ImGui::PushItemWidth(100.0f);
 		ShowUI();
+		ImGui::PopItemWidth();
 		ImGui::Separator();
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.2f, 0.5f, 1.0f));     
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.3f, 0.6f, 1.0f)); 

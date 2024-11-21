@@ -15,21 +15,6 @@ EnergyDistributionManager::EnergyDistributionManager()
 	energyDistributions.reserve(5);
 }
 
-float* EnergyDistributionManager::GetEnergyRange()
-{
-	return energyRange;
-}
-
-int EnergyDistributionManager::GetBinsPerDecade()
-{
-	return binsPerDecade;
-}
-
-double EnergyDistributionManager::GetStepSize()
-{
-	return stepSize;
-}
-
 EnergyDistributionParameters& EnergyDistributionManager::GetParameter()
 {
 	return parameter;
@@ -107,26 +92,6 @@ void EnergyDistributionManager::ShowSettings()
 		ImGui::Text("(max Index: %d)", maxIndex);
 		ImGui::EndDisabled();
 
-		ImGui::BeginDisabled(parameter.limitBinSize);
-		ImGui::SetNextItemWidth(150.0f);
-		ImGui::InputFloat2("energy range", energyRange, "%.1e");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(100.0f);
-		ImGui::InputInt("bins per decade", &binsPerDecade);
-		ImGui::EndDisabled();
-
-		ImGui::Separator();
-		ImGui::Checkbox("constant bin size", parameter.constantBinSize);
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(100.0f);
-		ImGui::InputDouble("step size", &stepSize);
-
-		ImGui::SetNextItemWidth(200.0f);
-		ImGui::Checkbox("limit lower bin size", parameter.limitBinSize);
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(100.0f);
-		ImGui::InputDouble("min bin size", parameter.minBinSize, 0, 0, "%.1e");
-
 		ImGui::SetNextItemWidth(200.0f);
 		ImGui::BeginDisabled(!parameter.cutOutZValues);
 		ImGui::InputFloat2("", parameter.cutOutRange);
@@ -134,7 +99,34 @@ void EnergyDistributionManager::ShowSettings()
 		ImGui::SameLine();
 		ImGui::Checkbox("cut out z range", parameter.cutOutZValues);
 
-		ImGui::Separator();
+		ImGui::SeparatorText("Binning options");
+		ImGui::SetNextItemWidth(150.0f);
+		ImGui::InputFloat2("energy range", binSettings.energyRange, "%.1e");
+		if (ImGui::Checkbox("constant bin size", &binSettings.constantBinSize))
+		{
+			binSettings.factorBinning = !binSettings.constantBinSize;
+		}
+		ImGui::BeginDisabled(!binSettings.constantBinSize);
+		ImGui::SameLine();
+		ImGui::Checkbox("more bins at peaks", &binSettings.increasePeakResolution);
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputDouble("step size", &binSettings.normalStepSize);
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputDouble("peak step size", &binSettings.peakStepSize);
+		ImGui::EndDisabled();
+
+		if(ImGui::Checkbox("factor binning", &binSettings.factorBinning))
+		{
+			binSettings.constantBinSize = !binSettings.factorBinning;
+		}
+		ImGui::SameLine();
+		ImGui::BeginDisabled(!binSettings.factorBinning);
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputInt("bins per decade", &binSettings.binsPerDecade);
+		ImGui::EndDisabled();
+
+		ImGui::SeparatorText("analytical distribution");
 		ImGui::PushID("analytical energy distribution");
 		if (ImGui::Button("generate analytical distribution"))
 		{
@@ -321,6 +313,26 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 	}
 }
 
+void EnergyDistributionManager::SetupEnergyDistribution(EnergyDistribution* distribution)
+{
+	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
+	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
+	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
+	LabEnergies* labEnergies = (LabEnergies*)Module::Get("Lab Energies");
+	EnergyDistributionManager* eDistManager = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+
+	distribution->mcmcParameter = mcmc->GetParameter();
+	distribution->eBeamParameter = eBeam->GetParameter();
+	distribution->ionBeamParameter = ionBeam->GetParameter();
+	distribution->labEnergiesParameter = labEnergies->GetParameter();
+	distribution->eDistParameter = eDistManager->GetParameter();
+	distribution->eBeamParameter.detuningEnergy = pow(sqrt(distribution->labEnergiesParameter.centerLabEnergy) 
+		- sqrt(distribution->eBeamParameter.coolingEnergy), 2);
+
+	distribution->SetupLabellingThings();
+	distribution->SetupBinning(binSettings);
+}
+
 void EnergyDistributionManager::AddDistributionToList(EnergyDistribution* distribution)
 {
 	energyDistributions.push_back(distribution);
@@ -336,8 +348,7 @@ void EnergyDistributionManager::RemoveDistributionFromList(int index)
 void EnergyDistributionManager::GenerateEnergyDistribution()
 {
 	currentDistribution = new EnergyDistribution();
-	currentDistribution->SetupFromCurrentEnvironment();
-	EnergyDistributionParameters& parameter = currentDistribution->eDistParameter;
+	SetupEnergyDistribution(currentDistribution);
 
 	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
