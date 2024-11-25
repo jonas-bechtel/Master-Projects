@@ -463,6 +463,7 @@ EnergyDistribution* FileHandler::CreateEnergyDistFromHeader(std::string& header)
     energyDist->labEnergiesParameter.fromString(header);
     energyDist->mcmcParameter.fromString(header);
     energyDist->eDistParameter.fromString(header);
+    energyDist->analyticalParameter.fromString(header);
 
     energyDist->SetupLabellingThings();
 

@@ -18,6 +18,6 @@ namespace CSR
 	// taken from Daniel Paul PHD thesis Appendix C equation C.29 [m]
 	const double overlapLength = 1.13614;
 
-	// is a guess from looking at the lab energy files, used for estimating the second peak [eV]
-	const double energyOutsideDriftTube = 44.0;
+	// used for estimating the second peak [eV]
+	const double energyOutsideDriftTube = 44.2;
 }

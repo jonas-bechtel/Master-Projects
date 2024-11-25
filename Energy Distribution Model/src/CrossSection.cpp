@@ -1,5 +1,7 @@
 #include "pch.h"
 
+#include <TDecompSVD.h>
+
 #include "CrossSection.h"
 #include "EnergyDistributionManager.h"
 #include "Constants.h"
@@ -279,7 +281,7 @@ void CrossSection::FitCrossSectionHistogram()
 		initialGuess = binValuesFit;
 		for (double& value : initialGuess) 
 		{
-			value = std::max(value, 0.0);
+			value = std::abs(value);
 		}
 	}
 	TF1* fitFunction = new TF1("fit function", this, &CrossSection::FitFunction, 0, 99, crossSectionFit->GetNbinsX());
@@ -302,6 +304,71 @@ void CrossSection::FitCrossSectionHistogram()
 	FillFitPlots(parameter);
 
 	fitFunction->Delete();
+}
+
+void CrossSection::FitWithSVD()
+{
+	// solve Ax = b with SVD
+
+	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	std::vector<EnergyDistribution*>& energyDistributions = model->GetEnergyDistributions();
+
+	if (model->GetEnergyDistributions().empty())
+	{
+		std::cout << "no energy distributions\n";
+		return;
+	}
+
+	SetupFitCrossSectionHist();
+	CalculatePsis();
+
+	binValuesFit.clear();
+	binCentersFit.clear();
+	binValuesFit.reserve(crossSectionFit->GetNbinsX());
+	binCentersFit.reserve(crossSectionFit->GetNbinsX());
+
+	int n = energyDistributions.size();
+	int p = crossSectionFit->GetNbinsX();
+
+	// matrix A is all the p Psis for all the n distributions, n >= p is required so the rest is filled with 0
+	TMatrixD PsiMatrix(std::max(n, p), p);
+	// vector b with all the rate coeffictions
+	TVectorD alphaVector(std::max(n, p));
+
+	// fill matrix and vector
+	for (int i = 0; i < std::max(n, p); i++)
+	{
+		
+		// all fitted data points
+		for (int j = 0; j < p; j++)
+		{
+			if (i >= n)
+			{
+				PsiMatrix[i][j] = 0;
+			}
+			else
+			{
+				PsiMatrix[i][j] = energyDistributions[i]->psi[j];
+			}			
+		}
+		if (i >= n)
+		{
+			alphaVector[i] = 0;
+		}
+		else
+		{
+			alphaVector[i] = energyDistributions[i]->rateCoefficient;
+		}
+	}
+
+	alphaVector.Print();
+
+	TDecompSVD decomp(PsiMatrix);
+	// solve for x, result is put into input vector
+	decomp.Solve(alphaVector);
+
+	alphaVector.Print();
+	FillFitPlots(alphaVector.GetMatrixArray());
 }
 
 double CrossSection::FitFunction(double* x, double* params)
@@ -386,7 +453,7 @@ void CrossSection::ShowUI()
 
 	if (ImPlot::BeginPlot("cross section"))
 	{
-		ImPlot::SetupAxis(ImAxis_X1, "energy [eV]");
+		ImPlot::SetupAxis(ImAxis_X1, "collision energy [eV]");
 		ImPlot::SetupAxis(ImAxis_Y1, "sigma(E)");
 		if (logX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
 		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
@@ -405,7 +472,7 @@ void CrossSection::ShowUI()
 	ImGui::Checkbox("log Y", &logY);
 	if (ImPlot::BeginPlot("rate coefficient"))
 	{
-		ImPlot::SetupAxis(ImAxis_X1, "energy [eV]");
+		ImPlot::SetupAxis(ImAxis_X1, "detuning energy [eV]");
 		ImPlot::SetupAxis(ImAxis_Y1, "rate coefficient");
 		if (logX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
 		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
@@ -466,6 +533,10 @@ void CrossSection::ShowUI()
 	if (ImGui::InputInt2("fix parameter", &fixParamStart))
 	{
 		fixParamStop = std::min(fixParamStop, (int)initialGuess.size());
+	}
+	if (ImGui::Button("Fit with SVD"))
+	{
+		FitWithSVD();
 	}
 }
 

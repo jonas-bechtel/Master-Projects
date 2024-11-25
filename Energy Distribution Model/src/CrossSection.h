@@ -20,6 +20,7 @@ private:
 	void CalculatePsis();
 	void SetupInitialGuess();
 	void FitCrossSectionHistogram();
+	void FitWithSVD();
 	double FitFunction(double* x, double* params);
 
 	void FillFitPlots(double* crossSectionParamater);
