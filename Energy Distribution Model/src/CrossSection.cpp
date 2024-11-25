@@ -338,8 +338,6 @@ void CrossSection::FitWithSVD()
 	// fill matrix and vector
 	for (int i = 0; i < std::max(n, p); i++)
 	{
-		
-		// all fitted data points
 		for (int j = 0; j < p; j++)
 		{
 			if (i >= n)

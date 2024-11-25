@@ -59,6 +59,9 @@ void ElectronBeam::LoadDensityFile(std::filesystem::path file)
 
 TVector3 ElectronBeam::GetDirection(double z)
 {
+	if(m_parameters.hasNoBending)
+		return TVector3(0, 0, 1);
+
 	double derivative = Derivative(z);
 	TVector3 direction(0, derivative, 1);
 	return direction.Unit();
