@@ -226,7 +226,7 @@ void Application::Run()
 
 Application::Application()
 {
-    
+    gStyle->SetOptStat(0);
 }
    
 void Application::ShowWindows()

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Eigen/Dense"
+
 #include <iostream>
 #include <string>
 #include <filesystem>
@@ -33,6 +35,7 @@
 #include <TVector3.h>
 #include <TApplication.h>
 #include <TSystem.h>
+#include <TStyle.h>
 
 #include "imgui.h"
 #include "implot.h"

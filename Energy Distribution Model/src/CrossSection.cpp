@@ -112,7 +112,6 @@ void CrossSection::SetupFitCrossSectionHist()
 				binEdges.push_back(binEdges[i] * factor);
 			}
 		}
-		
 	}
 	if (currentOption == PaperFactorMix)
 	{
@@ -135,6 +134,11 @@ void CrossSection::SetupFitCrossSectionHist()
 		{
 			binEdges.push_back(binEdges.back() * factor);
 		}
+	}
+	
+	if (currentOption == FWHM)
+	{
+
 	}
 	//for (double edge : binEdges)
 	//{
@@ -188,7 +192,7 @@ void CrossSection::CalculateRateCoefficients()
 		{
 			if (eDist->collisionEnergies.empty()) continue;
 
-			for (double collisionEnergy : eDist->collisionEnergies)
+			for (const double collisionEnergy : eDist->collisionEnergies)
 			{
 				double crossSectionValue = 1 / collisionEnergy;
 				double collosionVelocity = TMath::Sqrt(2 * collisionEnergy * TMath::Qe() / PhysicalConstants::electronMass);
@@ -228,8 +232,8 @@ void CrossSection::CalculatePsis()
 			double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
 			if (bin - 1 >= distribution->psi.size())
 			{
-				std::cout << "want to access " << bin - 1 << " but size is " << distribution->psi.size() << std::endl;
-				std::cout << energy << std::endl;
+				//std::cout << "want to access " << bin - 1 << " but size is " << distribution->psi.size() << std::endl;
+				//std::cout << energy << std::endl;
 			}
 			distribution->psi[bin - 1] += velocity;
 		}
@@ -327,46 +331,235 @@ void CrossSection::FitWithSVD()
 	binValuesFit.reserve(crossSectionFit->GetNbinsX());
 	binCentersFit.reserve(crossSectionFit->GetNbinsX());
 
-	int n = energyDistributions.size();
-	int p = crossSectionFit->GetNbinsX();
-
-	// matrix A is all the p Psis for all the n distributions, n >= p is required so the rest is filled with 0
-	TMatrixD PsiMatrix(std::max(n, p), p);
-	// vector b with all the rate coeffictions
-	TVectorD alphaVector(std::max(n, p));
-
-	// fill matrix and vector
-	for (int i = 0; i < std::max(n, p); i++)
+	std::vector<int> parameterIndeces;
+	for (int i = 0; i < crossSectionFit->GetNbinsX(); i++)
 	{
-		for (int j = 0; j < p; j++)
+		parameterIndeces.push_back(i);
+	}
+	int nZeros = 10;
+
+	TMatrixD PsiMatrix;
+	TVectorD alphaVector;
+	int p = parameterIndeces.size(); // crossSectionFit->GetNbinsX();
+	std::vector<double> parameterResult;
+	parameterResult.resize(p);
+
+	while (nZeros > 0)
+	{
+		int n = energyDistributions.size();
+		int p2 = parameterIndeces.size();
+		
+		std::cout << "n: " << n << " p2: " << p2 << std::endl;
+		PsiMatrix.Clear();
+		alphaVector.Clear();
+
+		// matrix A is all the p Psis for all the n distributions, n >= p is required so the rest is filled with 0
+		PsiMatrix.ResizeTo(std::max(n, p2), p2);
+		// vector b with all the rate coeffictions
+		alphaVector.ResizeTo(std::max(n, p2));
+
+		// fill matrix and vector
+		for (int i = 0; i < std::max(n, p2); i++)
 		{
+			for (int j = 0; j < p2; j++)
+			{
+				// fill matrix and vector with 0 if p > n
+				if (i >= n)
+				{
+					PsiMatrix[i][j] = 0;
+				}
+				else
+				{
+					PsiMatrix[i][j] = energyDistributions[i]->psi[parameterIndeces[j]];
+				}
+			}
 			if (i >= n)
 			{
-				PsiMatrix[i][j] = 0;
+				alphaVector[i] = 0;
 			}
 			else
 			{
-				PsiMatrix[i][j] = energyDistributions[i]->psi[j];
-			}			
+				alphaVector[i] = energyDistributions[i]->rateCoefficient;
+			}
 		}
-		if (i >= n)
+
+		alphaVector.Print();
+
+		TDecompSVD decomp(PsiMatrix);
+		// solve for x, result is put into input vector
+		decomp.Solve(alphaVector);
+
+		alphaVector.Print();
+
+		// remove all negative parameters
+		nZeros = 0;
+		for (int i = p2 - 1; i >= 0; i--)
 		{
-			alphaVector[i] = 0;
+			if (alphaVector[parameterIndeces[i]] < 0)
+			{
+				parameterResult[parameterIndeces[i]] = 0;
+				parameterIndeces.erase(parameterIndeces.begin() + i);
+				nZeros++;
+			}
+			else
+			{
+				parameterResult[parameterIndeces[i]] = alphaVector[parameterIndeces[i]];
+			}
 		}
-		else
+		std::cout << "zeros: " << nZeros << std::endl;
+	}
+	
+	FillFitPlots(parameterResult.data());
+}
+
+void CrossSection::FitWithEigenSVD()
+{
+	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	std::vector<EnergyDistribution*>& energyDistributions = model->GetEnergyDistributions();
+
+	if (model->GetEnergyDistributions().empty())
+	{
+		std::cout << "no energy distributions\n";
+		return;
+	}
+
+	SetupFitCrossSectionHist();
+	CalculatePsis();
+
+	binValuesFit.clear();
+	binCentersFit.clear();
+	binValuesFit.reserve(crossSectionFit->GetNbinsX());
+	binCentersFit.reserve(crossSectionFit->GetNbinsX());
+
+	int n = energyDistributions.size();
+	int p = crossSectionFit->GetNbinsX();
+
+	Eigen::MatrixXd PsiMatrix(n, p);
+	Eigen::VectorXd alphaVector(n);
+
+	for (int i = 0; i < n; i++)
+	{
+		for (int j = 0; j < p; j++)
 		{
-			alphaVector[i] = energyDistributions[i]->rateCoefficient;
+			// fill matrix and vector with 0 if p > n
+			PsiMatrix(i, j) = energyDistributions[i]->psi[j];
+		}
+		alphaVector[i] = energyDistributions[i]->rateCoefficient;
+	}
+
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd(PsiMatrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
+
+	// Solve using the pseudoinverse (x = A^+ * b), where A^+ is the Moore-Penrose pseudoinverse
+	Eigen::VectorXd result = svd.solve(alphaVector);
+
+	std::cout << result << std::endl;
+
+	FillFitPlots(result.data());
+}
+
+// Project onto the non-negative orthant (set negative values to 0)
+Eigen::VectorXd projectOntoNonNegative(const Eigen::VectorXd& x) {
+	Eigen::VectorXd proj = x;
+	proj = proj.cwiseMax(0);  // Set all negative values to 0
+	return proj;
+}
+
+void CrossSection::FitWithEigenGD()
+{
+	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	std::vector<EnergyDistribution*>& energyDistributions = model->GetEnergyDistributions();
+
+	if (model->GetEnergyDistributions().empty())
+	{
+		std::cout << "no energy distributions\n";
+		return;
+	}
+
+	SetupFitCrossSectionHist();
+	CalculatePsis();
+	SetupInitialGuess();
+
+	binValuesFit.clear();
+	binCentersFit.clear();
+	binValuesFit.reserve(crossSectionFit->GetNbinsX());
+	binCentersFit.reserve(crossSectionFit->GetNbinsX());
+
+	int n = energyDistributions.size();
+	int p = crossSectionFit->GetNbinsX();
+
+	Eigen::MatrixXd PsiMatrix(n, p);
+	Eigen::VectorXd alphaVector(n);
+
+	for (int i = 0; i < n; i++)
+	{
+		for (int j = 0; j < p; j++)
+		{
+			// fill matrix and vector with 0 if p > n
+			PsiMatrix(i, j) = energyDistributions[i]->psi[j];
+		}
+		alphaVector[i] = energyDistributions[i]->rateCoefficient;
+	}
+
+	// Initial guess for x
+	Eigen::Map<Eigen::VectorXd> x(initialGuess.data(), initialGuess.size());
+	//Eigen::VectorXd x = Eigen::VectorXd::Zero(p);
+	std::cout << x << std::endl;
+	std::cout << alphaVector << std::endl;
+
+	// Gradient descent parameters
+	double factor = 0;
+	Eigen::MatrixXd D = Eigen::MatrixXd::Zero(p - 2, p);
+	for (int i = 0; i < p - 2; i++)
+	{
+		//factor = 10 * pow(i, 3);
+		factor = 10000 * pow(crossSectionFit->GetBinCenter(i + 1), 1.5);
+		D(i, i) = 1 * factor;       // x_i
+		D(i, i + 1) = -2 * factor;  // -2 * x_{i+1}
+		D(i, i + 2) = 1 * factor;   // x_{i+2}
+	}
+
+	// Precompute D^T D
+	Eigen::MatrixXd DtD = D.transpose() * D;
+	//Eigen::VectorXd lambdaVector(p);
+	//for (int i = 0; i < p; i++)
+	//{
+	//	lambdaVector[i] = lambda * crossSectionFit->GetBinCenter(i);
+	//}
+	
+	double tolerance = 1e-6;
+	
+
+	// Iterate using gradient descent
+	for (int iter = 0; iter < iterations; ++iter) {
+		// Compute the residual: r = A*x - b
+		Eigen::VectorXd r = PsiMatrix * x - alphaVector;
+		//std::cout << "residual: " << r << std::endl;
+		// Compute the gradient: grad = A^T * r
+		//std::cout << "test: " <<  lambdaVector * (DtD * x) << std::endl;
+		//std::cout << "end: " << std::endl;
+		//Eigen::VectorXd bla = lambdaVector.array() * (DtD * x).array();
+		Eigen::VectorXd grad = PsiMatrix.transpose() * r + lambda * (DtD * x);
+		//grad += 2 * lambda * x;
+		//std::cout << "gradient: " << grad << std::endl;
+		//std::cout << "gradient modified: " << grad.cwiseMin(1 / learningRate).cwiseMax(-1 / learningRate) << std::endl;
+		// Update x using gradient descent step
+		x = x - learningRate * grad.cwiseMin(0.001 / learningRate).cwiseMax(-0.001 / learningRate);
+		//std::cout << "new x: " << x << std::endl;
+		// Project onto the non-negative orthant (i.e., enforce x >= 0)
+		
+		x = x.cwiseAbs();//projectOntoNonNegative(x);
+
+		// Check for convergence (if the gradient is small enough, stop)
+		if (grad.norm() < tolerance) 
+		{
+			std::cout << "Converged in " << iter << " iterations." << std::endl;
+			break;
 		}
 	}
 
-	alphaVector.Print();
-
-	TDecompSVD decomp(PsiMatrix);
-	// solve for x, result is put into input vector
-	decomp.Solve(alphaVector);
-
-	alphaVector.Print();
-	FillFitPlots(alphaVector.GetMatrixArray());
+	// Output the solution
+	std::cout << "Solution x (with non-negativity constraints): " << std::endl << x << std::endl;
+	FillFitPlots(x.data());
 }
 
 double CrossSection::FitFunction(double* x, double* params)
@@ -536,6 +729,22 @@ void CrossSection::ShowUI()
 	{
 		FitWithSVD();
 	}
+	ImGui::SameLine();
+	if (ImGui::Button("Fit with Eigen SVD"))
+	{
+		FitWithEigenSVD();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Fit with GD"))
+	{
+		FitWithEigenGD();
+	}
+	ImGui::SameLine();
+	ImGui::InputDouble("lr", &learningRate, 0, 0, "%e");
+	ImGui::SameLine();
+	ImGui::InputDouble("lambda", &lambda);
+	ImGui::SameLine();
+	ImGui::InputInt("iter", &iterations);
 }
 
 void CrossSection::SetupTrueCrossSection()
@@ -544,7 +753,7 @@ void CrossSection::SetupTrueCrossSection()
 	double max = 100;
 	int numberPoints = 100;
 	double step = (max - min) / numberPoints;
-	for (int i = 0; i <= 1000; i++)
+	for (int i = 0; i <= numberPoints; i++)
 	{
 		double energy = min + i * step;
 		binCentersTrue.push_back(energy);

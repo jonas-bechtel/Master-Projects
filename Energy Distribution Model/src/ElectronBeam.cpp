@@ -414,7 +414,9 @@ void ElectronBeam::PlotDensitySlice()
 		}
 	}
 
-	m_mainCanvas->cd(1);
+	densitySliceXY->SetContour(100);
+
+	m_mainCanvas->cd(1)->SetRightMargin(0.15);
 	densitySliceXY->Draw("COLZ");
 }
 

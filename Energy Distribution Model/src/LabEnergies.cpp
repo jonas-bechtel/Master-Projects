@@ -68,6 +68,7 @@ void LabEnergies::ShowUI()
 		PlotLabEnergyProjections();
 		PlotDistribution();
 		PlotLabEnergySlice();
+		PlotOutInsideEnergyOnZ();
 	}
 	ImGui::SameLine();
 	if (ImGui::InputFloat("slice z value", &SliceZ, 0.05f))
@@ -87,6 +88,33 @@ void LabEnergies::ShowUI()
 	ImGui::BeginDisabled(!m_parameters.useOnlySliceXY);
 	ImGui::InputDouble("z slice", m_parameters.sliceToFill, 0.05f);
 	ImGui::EndDisabled();
+
+	ImGui::Separator();
+	if (ImGui::Button("clear plot"))
+	{
+		zValues.clear();
+		energyValuesInside.clear();
+		energyValuesOutside.clear();
+	}
+	if (ImPlot::BeginPlot("lab energy on trajectory and outside tube"))
+	{
+		for (int i = 0; i < energyValuesInside.size(); i++)
+		{
+			ImGui::PushID(i);
+			ImVec4 color = ImPlot::GetColormapColor(i % ImPlot::GetColormapSize());
+			ImPlot::PushStyleColor(ImPlotCol_Line, color);
+			
+			//ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 2);
+			ImPlot::PlotLine("inside", zValues.data(), energyValuesInside[i].data(), energyValuesInside[i].size());
+			ImPlot::PlotLine("outside", zValues.data(), energyValuesOutside[i].data(), energyValuesOutside[i].size(), ImPlotLineFlags_Segments);
+			
+			ImPlot::PopStyleColor();
+			ImGui::PopID();
+		}
+		
+		ImPlot::EndPlot();
+	}
+
 }
 
 void LabEnergies::GenerateUniformLabEnergy()
@@ -157,8 +185,9 @@ void LabEnergies::PlotLabEnergySlice()
 			labEnergySliceXY->SetBinContent(x_bin, y_bin, content);
 		}
 	}
+	labEnergySliceXY->SetContour(100); 
 
-	m_mainCanvas->cd(1);
+	m_mainCanvas->cd(1)->SetRightMargin(0.15);
 	labEnergySliceXY->Draw("COLZ");
 }
 
@@ -181,5 +210,55 @@ void LabEnergies::PlotLabEnergyProjections()
 	m_secondCanvas->cd(3);
 	labEnergyProjectionZ = m_distribution->ProjectionZ();
 	labEnergyProjectionZ->Draw();
+}
+
+void LabEnergies::PlotOutInsideEnergyOnZ()
+{
+	if (!m_distribution) return;
+	if (labEnergyInside) delete labEnergyInside;
+	if (labEnergyOutside) delete labEnergyOutside;
+
+	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
+
+	labEnergyInside = new TGraph(m_distribution->GetNbinsZ());
+	labEnergyOutside = new TGraph(m_distribution->GetNbinsZ());
+
+	std::vector<double> insideEnergies;
+	std::vector<double> outsideEnergies;
+
+	int binInCenterX = m_distribution->GetNbinsX() / 2;
+	//int binInCenterY = m_distribution->GetNbinsY() / 2;
+	for (int i = 1; i <= m_distribution->GetNbinsZ(); i++)
+	{
+		double zValue = m_distribution->GetZaxis()->GetBinCenter(i);
+		int binInCenterY = m_distribution->GetYaxis()->FindBin(eBeam->Trajectory(zValue));
+		//std::cout << binInCenterY << std::endl;
+		double energyValueIn = m_distribution->GetBinContent(binInCenterX, binInCenterY, i);
+		double energyValueOut = m_distribution->GetBinContent(1, 1, i);
+		//std::cout << zValue << " " << energyValueIn << " " << energyValueOut << std::endl;
+		labEnergyInside->SetPoint(i - 1, zValue, energyValueIn);
+		labEnergyOutside->SetPoint(i - 1, zValue, energyValueOut);
+
+		if (counter == 0)
+		{
+			zValues.push_back(zValue);
+		}
+		insideEnergies.push_back(energyValueIn);
+		outsideEnergies.push_back(energyValueOut);
+	}
+
+	energyValuesInside.push_back(insideEnergies);
+	energyValuesOutside.push_back(outsideEnergies);
+	counter++;
+
+	m_secondCanvas->cd(6);
+	labEnergyInside->SetLineColor(kRed);
+	labEnergyInside->SetTitle("lab energy on e-beam trajectory and on the outside");
+	labEnergyInside->GetXaxis()->SetTitle("z");
+	labEnergyInside->GetYaxis()->SetTitle("energy");
+	
+	labEnergyInside->Draw("ALP");
+	labEnergyOutside->Draw("LP");
+	
 }
 

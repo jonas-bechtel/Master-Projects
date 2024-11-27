@@ -306,8 +306,8 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 				{
 					ImPlot::PlotLine(eDist->label.c_str(), eDist->binCenters.data(), eDist->binValues.data(), eDist->binCenters.size());
 				}
-				i++;
 			}
+			i++;
 		}
 		ImPlot::EndPlot();
 	}

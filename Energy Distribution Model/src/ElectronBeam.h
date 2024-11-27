@@ -53,6 +53,8 @@ public:
 	void LoadDensityFile(std::filesystem::path file);
 	void GenerateElectronBeamDensity();
 
+	double Trajectory(double z);
+
 	TVector3 GetDirection(double z);
 	TVector3 GetDirection(Point3D point);
 	double GetLongitudinal_kT(double labEnergy);
@@ -65,7 +67,7 @@ private:
 	void CreateLargeDistribution();
 
 	TVector3 GetNormal(double z);
-	double Trajectory(double z);
+	
 	double Derivative(double z);
 	double DistancePointToTrajectoryOfZ(double z, Point3D point);
 
