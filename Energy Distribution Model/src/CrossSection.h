@@ -4,7 +4,7 @@
 
 class CrossSection : public Module
 {
-	enum Binning {PaperBinning, ConstantBinning, FactorBinning, PaperFactorMix, FWHM};
+	enum Binning {PaperBinning, ConstantBinning, FactorBinning, PaperFactorMix, Paper_FWHM};
 
 public:
 	CrossSection();
@@ -41,9 +41,11 @@ private:
 	TGraph* rateCoefficients = new TGraph();
 	TGraph* rateCoefficientsFit = new TGraph();
 
-	const char* binningOptions[4] = {"paper binning" , "const binning", "factor binning", "paper/factor mix"};
+	const char* binningOptions[5] = {"paper binning" , "const binning", "factor binning", "paper/factor mix", "paper/FWHM"};
 	//bool optionUsed[3] = { true, false ,false };
 	int currentOption = PaperFactorMix;
+
+	double binFactor = 1;
 
 	int numberBins = 50;
 	bool limitBinSize = false;

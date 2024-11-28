@@ -144,7 +144,7 @@ struct Parameters
 public:
 	std::string toString(bool excludeOptionals = true)
 	{
-		std::string result = "# " + m_name + ":\n";
+		std::string result = "# " + m_name + "\n";
 		char* pointer = (char*)this;
 
 		for (int offset = m_dataStart; offset < GetSize(); offset += sizeof(ParameterValue<int>))
@@ -189,6 +189,7 @@ public:
 	{
 		std::istringstream stream(header);
 		std::string line;
+		bool foundSection = false;
 
 		while (std::getline(stream, line))
 		{
@@ -200,10 +201,29 @@ public:
 
 			// Read the name (everything before ':')
 			std::getline(lineStream, name, ':');
+			if (lineStream.eof())
+			{
+				// found our section
+				if (name == m_name)
+				{
+					foundSection = true;
+					continue;
+				}
+				// found different section
+				else
+				{
+					// end on the first section after our section
+					if (foundSection) break;
+				}
+			}
+			else
+			{
+				if (!foundSection) continue;
 
-			// Read the value (everything after ':')
-			std::getline(lineStream, value);
-
+				// Read the value (everything after ':')
+				std::getline(lineStream, value);
+			}
+			
 			//std::cout << "name: " << name << " value: " << value << std::endl;
 
 			void* object = getParameterValue(name);

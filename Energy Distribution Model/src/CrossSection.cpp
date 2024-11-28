@@ -41,33 +41,31 @@ void CrossSection::SetupFitCrossSectionHist()
 	std::vector<EnergyDistribution*>& energyDistributions = model->GetEnergyDistributions();
 
 	std::vector<double> binEdges;
-	double maxEnergy = 100; //just a gues, not fixed
+	double maxEnergy = 93; //just a gues, not fixed
 	double minEnergy = energyDistributions.back()->eBeamParameter.detuningEnergy / 10;
 	
 	// binning like in the paper 
 	if (currentOption == PaperBinning)
 	{
-		EnergyDistribution* representativeEnergyDist = energyDistributions[energyDistributions.size() - 1];
+		EnergyDistribution* representativeEnergyDist = energyDistributions.back();
 		double kT_trans = representativeEnergyDist->eBeamParameter.transverse_kT;
 		double kT_long = 0.00047; // representativeEnergyDist->eBeamParameter.longitudinal_kT; //eBeam->GetLongitudinal_kT(labEnergiesParameter.centerLabEnergy);
 
-		double factor = 1;
-
 		binEdges.push_back(0);
-		binEdges.push_back(factor * kT_trans / 20);
+		binEdges.push_back(kT_trans / 20);
 
 		for (int i = 1; binEdges[i] < kT_trans; i++)
 		{
-			binEdges.push_back(factor * 2 * binEdges[i]);
-			//std::cout << binEdges[i + 1] << "\n";
+			binEdges.push_back(binFactor * 2 * binEdges.back());
+			//std::cout << binEdges.back() << "\n";
 		}
 		while (binEdges[binEdges.size() - 1] < maxEnergy)
 		{
 			double previousEdge = binEdges[binEdges.size() - 1];
 			double delta_E = sqrt(pow((kT_trans * log(2)), 2) + 16 * log(2) * kT_long * previousEdge);
-			binEdges.push_back(previousEdge + factor * delta_E);
+			binEdges.push_back(previousEdge + binFactor * delta_E);
 
-			//std::cout << previousEdge << " " << delta_E << "\n";
+			//std::cout << "delta E " << delta_E << "\n";
 			//std::cout << binEdges[binEdges.size()] << "\n";
 			//std::cout << (binEdges[binEdges.size()] < maxEnergy) << "\n";
 		}
@@ -136,14 +134,19 @@ void CrossSection::SetupFitCrossSectionHist()
 		}
 	}
 	
-	if (currentOption == FWHM)
+	if (currentOption == Paper_FWHM)
 	{
-
+		
 	}
+
 	//for (double edge : binEdges)
 	//{
 	//	std::cout << edge << "\n";
 	//}
+	for (int i = 1; i < binEdges.size(); i++)
+	{
+		std::cout << "bin center: " << (binEdges[i] + binEdges[i - 1]) / 2 << "\tbin width:	" << (binEdges[i] - binEdges[i - 1]) << std::endl;
+	}
 	std::cout << "number cross section bins: " << binEdges.size() - 1 << "\n";
 
 	crossSectionFit = new TH1D("cross section fit", "cross section fit", binEdges.size() - 1, binEdges.data());
@@ -215,11 +218,11 @@ void CrossSection::CalculatePsis()
 	{
 		distribution->psi.clear();
 		int nBins = crossSectionFit->GetNbinsX();
-		std::cout << nBins << std::endl;
+		//std::cout << nBins << std::endl;
 		//distribution->psi.reserve(nBins);
 		distribution->psi.resize(nBins);
 
-		std::cout << "distribution: " << distribution->index << std::endl;
+		//std::cout << "distribution: " << distribution->index << std::endl;
 		for (double energy : distribution->collisionEnergies)
 		{
 			int bin = crossSectionFit->FindBin(energy);
@@ -240,8 +243,8 @@ void CrossSection::CalculatePsis()
 		for (int i = 0; i < distribution->psi.size(); i++)
 		{
 			distribution->psi[i] /= distribution->collisionEnergies.size();
-			std::cout << "Psi_" << i << ": " << distribution->psi[i] << "\t" << crossSectionFit->GetBinLowEdge(i+1)
-				 << " - " << crossSectionFit->GetBinLowEdge(i+2) << "\n";
+			//std::cout << "Psi_" << i << ": " << distribution->psi[i] << "\t" << crossSectionFit->GetBinLowEdge(i+1)
+			//	 << " - " << crossSectionFit->GetBinLowEdge(i+2) << "\n";
 		}
 	}
 }
@@ -474,10 +477,18 @@ void CrossSection::FitWithEigenGD()
 		std::cout << "no energy distributions\n";
 		return;
 	}
-
-	SetupFitCrossSectionHist();
-	CalculatePsis();
-	SetupInitialGuess();
+	if (initialGuess.empty())
+	{
+		// create Fit cross section
+		SetupFitCrossSectionHist();
+		CalculatePsis();
+		SetupInitialGuess();
+	}
+	else
+	{
+		initialGuess.clear();
+		initialGuess = binValuesFit;
+	}
 
 	binValuesFit.clear();
 	binCentersFit.clear();
@@ -507,7 +518,7 @@ void CrossSection::FitWithEigenGD()
 	std::cout << alphaVector << std::endl;
 
 	// Gradient descent parameters
-	double factor = 0;
+	double factor = 1;
 	Eigen::MatrixXd D = Eigen::MatrixXd::Zero(p - 2, p);
 	for (int i = 0; i < p - 2; i++)
 	{
@@ -702,6 +713,11 @@ void CrossSection::ShowUI()
 		ImGui::SetNextItemWidth(100.0f);
 		ImGui::InputDouble("min bin size", &minBinSize, 0.0, 0.0, "%.1e");
 		ImGui::EndDisabled();
+	}
+	if (currentOption == PaperBinning)
+	{
+		ImGui::SameLine();
+		ImGui::InputDouble("factor", &binFactor);
 	}
 	if (ImGui::Button("fit cross section"))
 	{
