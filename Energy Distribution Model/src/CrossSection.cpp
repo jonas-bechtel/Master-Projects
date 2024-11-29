@@ -1,7 +1,5 @@
 #include "pch.h"
 
-#include <TDecompSVD.h>
-
 #include "CrossSection.h"
 #include "EnergyDistributionManager.h"
 #include "Constants.h"
@@ -293,12 +291,16 @@ void CrossSection::FitCrossSectionHistogram()
 	}
 	TF1* fitFunction = new TF1("fit function", this, &CrossSection::FitFunction, 0, 99, crossSectionFit->GetNbinsX());
 
-	fitFunction->SetParameters(initialGuess.data());
-	for (int i = fixParamStart; i < fixParamStop; i++)
+	if (limitParamRange)
 	{
-		std::cout << i << " " << initialGuess[i] << std::endl;
-		fitFunction->FixParameter(i, initialGuess[i]);
+		for (int i = 0; i < crossSectionFit->GetNbinsX(); i++)
+		{
+			fitFunction->SetParLimits(i, 0, 1e30);
+		}
 	}
+	
+	fitFunction->SetParameters(initialGuess.data());
+
 
 	binValuesFit.clear();
 	binCentersFit.clear();
@@ -552,9 +554,13 @@ void CrossSection::FitWithEigenGD()
 		Eigen::VectorXd grad = PsiMatrix.transpose() * r + lambda * (DtD * x);
 		//grad += 2 * lambda * x;
 		//std::cout << "gradient: " << grad << std::endl;
-		//std::cout << "gradient modified: " << grad.cwiseMin(1 / learningRate).cwiseMax(-1 / learningRate) << std::endl;
+		//std::cout << "gradient modified: " << grad.cwiseMin(0.001 / learningRate).cwiseMax(-0.001 / learningRate) << std::endl;
 		// Update x using gradient descent step
+		//double noise_scale = 0.00001 / (iter + 1);
+		//Eigen::VectorXd noise = Eigen::VectorXd::Random(n);
+		//std::cout << "random noise: " << noise << std::endl;
 		x = x - learningRate * grad.cwiseMin(0.001 / learningRate).cwiseMax(-0.001 / learningRate);
+			//+ noise * noise_scale);
 		//std::cout << "new x: " << x << std::endl;
 		// Project onto the non-negative orthant (i.e., enforce x >= 0)
 		
@@ -571,6 +577,116 @@ void CrossSection::FitWithEigenGD()
 	// Output the solution
 	std::cout << "Solution x (with non-negativity constraints): " << std::endl << x << std::endl;
 	FillFitPlots(x.data());
+}
+
+torch::Tensor CrossSection::custom_loss(const torch::Tensor& x, const torch::Tensor& A, const torch::Tensor& b) 
+{
+	// Compute the residual
+	torch::Tensor residual = torch::matmul(A, x) - b;
+
+	// Compute the residual loss (MSE)
+	torch::Tensor loss_residual = torch::mean(torch::pow(residual, 2));
+
+	// Add constraints
+	// L2 regularization
+	torch::Tensor l2_reg = torch::mean(torch::pow(x, 2));
+
+	torch::Tensor negative_penalty = torch::relu(-x).sum();
+
+	// Second derivative (smoothness constraint)
+	if (x.size(0) >= 3) { // Ensure there are at least 3 elements to compute second differences
+		torch::Tensor second_diff = x.slice(0, 2) - 2 * x.slice(0, 1, -1) + x.slice(0, 0, -2);
+		torch::Tensor smoothness = torch::mean(torch::pow(second_diff, 2)); // Penalize curvature
+		return loss_residual + 1000 * negative_penalty + l2regularisation * l2_reg + smoothRegularisation * smoothness;
+	}
+	else {
+		// If x has fewer than 3 elements, return only the residual and L2 regularization
+		return loss_residual + 1000 * negative_penalty + l2regularisation * l2_reg;
+	}
+}
+
+void CrossSection::FitWithTorch()
+{
+	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	std::vector<EnergyDistribution*>& energyDistributions = model->GetEnergyDistributions();
+
+	if (model->GetEnergyDistributions().empty())
+	{
+		std::cout << "no energy distributions\n";
+		return;
+	}
+	if (initialGuess.empty())
+	{
+		// create Fit cross section
+		SetupFitCrossSectionHist();
+		CalculatePsis();
+		SetupInitialGuess();
+	}
+	else
+	{
+		initialGuess.clear();
+		initialGuess = binValuesFit;
+	}
+
+	binValuesFit.clear();
+	binCentersFit.clear();
+	binValuesFit.reserve(crossSectionFit->GetNbinsX());
+	binCentersFit.reserve(crossSectionFit->GetNbinsX());
+
+	int n = energyDistributions.size();
+	int p = crossSectionFit->GetNbinsX();
+
+	torch::Tensor PsiMatrix = torch::zeros({ n, p }, torch::kDouble);
+	torch::Tensor alphaVector = torch::zeros({ n }, torch::kDouble);
+
+	for (int i = 0; i < n; i++)
+	{
+		for (int j = 0; j < p; j++)
+		{
+			// fill matrix and vector with 0 if p > n
+			PsiMatrix[i][j] = energyDistributions[i]->psi[j];
+		}
+		alphaVector[i] = energyDistributions[i]->rateCoefficient;
+	}
+
+	// Initial guess for x
+	torch::Tensor x = torch::from_blob(initialGuess.data(), initialGuess.size(), torch::TensorOptions()
+		.dtype(torch::kDouble)
+		.requires_grad(true));
+
+	//torch::Tensor x = torch::randn({ p }, torch::requires_grad(true));
+	//std::cout << "matrix size: " << PsiMatrix.sizes() << std::endl;
+	//std::cout << "alpha size: " << alphaVector.sizes() << std::endl;
+	//std::cout << "parameter size: " << x.sizes() << std::endl;
+	//std::cout << "psi matrix: \n" << PsiMatrix << std::endl;
+	//std::cout << "alpha vector: \n" << alphaVector << std::endl;
+	//std::cout << "parameters: \n" << x << std::endl;
+	// 
+	// Define an optimizer (e.g., SGD)
+	//torch::optim::Adam optimizer({ x });
+	//torch::optim::LBFGS optimizer({ x });
+	torch::optim::SGD optimizer({ x }, torch::optim::SGDOptions(torchLearningRate).momentum(0.9));
+
+	// Training loop to minimize the loss
+	for (size_t epoch = 0; epoch < nEpochs; epoch++) 
+	{
+		// Compute the loss
+		torch::Tensor loss = custom_loss(x, PsiMatrix, alphaVector);
+
+		// Backward pass and optimization step
+		optimizer.zero_grad();
+		loss.backward();
+		optimizer.step();
+
+		// Print progress
+		if (epoch % (int)(nEpochs / 10) == 0 || epoch == nEpochs - 1)
+		{
+			std::cout << "Epoch [" << epoch + 1 << "], Loss: " << loss.item<float>() << std::endl;
+		}
+	}
+
+	std::cout << "Optimized x:\n" << x << std::endl;
+	FillFitPlots(x.data_ptr<double>());
 }
 
 double CrossSection::FitFunction(double* x, double* params)
@@ -736,11 +852,13 @@ void CrossSection::ShowUI()
 	{
 		test();
 	}
+	//ImGui::SameLine();
+	//if (ImGui::InputInt2("fix parameter", &fixParamStart))
+	//{
+	//	fixParamStop = std::min(fixParamStop, (int)initialGuess.size());
+	//}
 	ImGui::SameLine();
-	if (ImGui::InputInt2("fix parameter", &fixParamStart))
-	{
-		fixParamStop = std::min(fixParamStop, (int)initialGuess.size());
-	}
+	ImGui::Checkbox("limit params", &limitParamRange);
 	if (ImGui::Button("Fit with SVD"))
 	{
 		FitWithSVD();
@@ -761,6 +879,19 @@ void CrossSection::ShowUI()
 	ImGui::InputDouble("lambda", &lambda);
 	ImGui::SameLine();
 	ImGui::InputInt("iter", &iterations);
+
+	if (ImGui::Button("Fit with Torch"))
+	{
+		FitWithTorch();
+	}
+	ImGui::SameLine();
+	ImGui::InputDouble("lr ##torch", &torchLearningRate, 0, 0, "%e");
+	ImGui::SameLine();
+	ImGui::InputInt("epochs", &nEpochs);
+	ImGui::SameLine();
+	ImGui::InputDouble("smooth ##torch", &smoothRegularisation);
+	ImGui::SameLine();
+	ImGui::InputDouble("l2 ##torch", &l2regularisation);
 }
 
 void CrossSection::SetupTrueCrossSection()

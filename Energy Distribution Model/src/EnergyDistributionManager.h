@@ -12,7 +12,7 @@ struct BinningSettings
 
 	bool constantBinSize = true;
 	double normalStepSize = 0.5;
-	double peakStepSize = 0.03;
+	double peakStepSize = 0.01;
 
 	bool factorBinning = false;
 	int binsPerDecade = 200;
@@ -41,7 +41,7 @@ private:
 
 	// functions for the analytical model
 	void FitAnalyticalToGeneratedDistribution(EnergyDistribution* distribution);
-	void GenerateAnalyticalDistribution();
+	//void GenerateAnalyticalDistribution();
 	double AnalyticalEnergyDistributionFit(double* x, double* params);
 	double AnalyticalEnergyDistribution(double* x, double* params);
 	double AnalyticalEnergyDistribution(double Ecm, double Ed, double Ttr, double Tlong);

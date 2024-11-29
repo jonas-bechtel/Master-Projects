@@ -1,5 +1,7 @@
 #pragma once
 
+#include "torch/torch.h"
+
 #include "Eigen/Dense"
 
 #include <iostream>
@@ -36,6 +38,7 @@
 #include <TApplication.h>
 #include <TSystem.h>
 #include <TStyle.h>
+#include <TDecompSVD.h>
 
 #include "imgui.h"
 #include "implot.h"

@@ -36,6 +36,7 @@ struct AnalyticalDistributionParameters : public Parameters
 	ParameterValue<double> transverseTemperature = ParameterValue(0.002, "transverse kT", "%.2e eV");
 	ParameterValue<double> FWHM = ParameterValue(0.0, "FWHM", "%.3f eV");
 	ParameterValue<double> effectiveLength = ParameterValue(0.0, "effective length", "%.3f m");
+	ParameterValue<double> scalingFactor = ParameterValue(0.0, "scaling factor", "%.3f");
 
 private:
 	int GetSize() override
@@ -65,8 +66,8 @@ public:
 	std::vector<double> binCenters;
 	std::vector<double> binValues;
 	std::vector<double> binValuesNormalised;
-	std::array<double, 200> fitX;
-	std::array<double, 200> fitY;
+	std::vector<double> fitX;
+	std::vector<double> fitY;
 
 	// all the things used to create it
 	MCMC_Parameters mcmcParameter;

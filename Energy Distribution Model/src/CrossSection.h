@@ -23,6 +23,8 @@ private:
 	void FitWithSVD();
 	void FitWithEigenSVD();
 	void FitWithEigenGD();
+	void FitWithTorch();
+	torch::Tensor custom_loss(const torch::Tensor& x, const torch::Tensor& A, const torch::Tensor& b);
 	double FitFunction(double* x, double* params);
 
 	void FillFitPlots(double* crossSectionParamater);
@@ -50,16 +52,23 @@ private:
 	int numberBins = 50;
 	bool limitBinSize = false;
 	double minBinSize = 1e-5;
-	int fixParamStart = 0;
-	int fixParamStop = 0;
 
 	// plot parameters
 	bool logX = true;
 	bool logY = true;
 
+	//fitting things
+	bool limitParamRange = false;
+
 	// test 
 	double learningRate = 1e-1;
 	int iterations = 100000;
 	double lambda = 1;
+
+	// torch parameter
+	double torchLearningRate = 1e-14;
+	int nEpochs = 10000;
+	double l2regularisation = 0.01;
+	double smoothRegularisation = 0.01;
 };
 

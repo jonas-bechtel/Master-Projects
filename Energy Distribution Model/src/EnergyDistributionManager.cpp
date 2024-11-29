@@ -126,24 +126,24 @@ void EnergyDistributionManager::ShowSettings()
 		ImGui::InputInt("bins per decade", &binSettings.binsPerDecade);
 		ImGui::EndDisabled();
 
-		ImGui::SeparatorText("analytical distribution");
-		ImGui::PushID("analytical energy distribution");
-		if (ImGui::Button("generate analytical distribution"))
-		{
-			GenerateAnalyticalDistribution();
-		}
-		ImGui::SetNextItemWidth(200.0f);
-		ImGui::InputFloat2("energy range", analyticalEnergyRange, "%.1e");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(100.0f);
-		ImGui::InputInt("number bins", &analyticalNumberBins);
-		ImGui::SetNextItemWidth(100.0f);
-		ImGui::InputDouble("detuning energy [eV]", analyticalParameter.detuningEnergy);
-		ImGui::SetNextItemWidth(100.0f);
-		ImGui::InputDouble("transverse kT [eV]", analyticalParameter.transverseTemperature);
-		ImGui::SetNextItemWidth(100.0f);
-		ImGui::InputDouble("longitudinal kT [eV]", analyticalParameter.longitudinalTemperature);
-		ImGui::PopID();
+		//ImGui::SeparatorText("analytical distribution");
+		//ImGui::PushID("analytical energy distribution");
+		//if (ImGui::Button("generate analytical distribution"))
+		//{
+		//	GenerateAnalyticalDistribution();
+		//}
+		//ImGui::SetNextItemWidth(200.0f);
+		//ImGui::InputFloat2("energy range", analyticalEnergyRange, "%.1e");
+		//ImGui::SameLine();
+		//ImGui::SetNextItemWidth(100.0f);
+		//ImGui::InputInt("number bins", &analyticalNumberBins);
+		//ImGui::SetNextItemWidth(100.0f);
+		//ImGui::InputDouble("detuning energy [eV]", analyticalParameter.detuningEnergy);
+		//ImGui::SetNextItemWidth(100.0f);
+		//ImGui::InputDouble("transverse kT [eV]", analyticalParameter.transverseTemperature);
+		//ImGui::SetNextItemWidth(100.0f);
+		//ImGui::InputDouble("longitudinal kT [eV]", analyticalParameter.longitudinalTemperature);
+		//ImGui::PopID();
 
 		ImGui::EndChild();
 	}
@@ -434,10 +434,10 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 		double ionVelocityMagnitude = TMath::Sqrt(2 * eBeam->GetParameter().coolingEnergy * TMath::Qe() / PhysicalConstants::electronMass); // calc from cooling energy;
 		TVector3 ionVelocity(0, 0, ionVelocityMagnitude);
 
-		double collosionVelocity = (finalElectronVelocity - ionVelocity).Mag();
+		double collisionVelocity = (finalElectronVelocity - ionVelocity).Mag();
 
 		// calculate collision energy [eV] and put it in a histogram
-		double collisionEnergy = 0.5 * PhysicalConstants::electronMass * collosionVelocity * collosionVelocity / TMath::Qe();
+		double collisionEnergy = 0.5 * PhysicalConstants::electronMass * collisionVelocity * collisionVelocity / TMath::Qe();
 		currentDistribution->Fill(collisionEnergy);
 		currentDistribution->collisionEnergies.push_back(collisionEnergy);
 	}
@@ -606,15 +606,19 @@ void EnergyDistributionManager::FitAnalyticalToGeneratedDistribution(EnergyDistr
 	double kt_trans = distribution->eBeamParameter.transverse_kT;
 	double kT_long = distribution->eBeamParameter.longitudinal_kT;
 
-	double peakWidthGuess = sqrt(pow((kt_trans * log(2)), 2) + 16 * log(2) * kT_long * detuningEnergy);;
-	double energyMin = distribution->eBeamParameter.detuningEnergy + peakWidthGuess;
-	double energyMax = distribution->eBeamParameter.detuningEnergy - peakWidthGuess;
+	double peakWidthGuess = sqrt(pow((kt_trans * log(2)), 2) + 16 * log(2) * kT_long * detuningEnergy);
+	double energyMin = distribution->eBeamParameter.detuningEnergy - 3 * peakWidthGuess;
+	double energyMax = distribution->eBeamParameter.detuningEnergy + 3 * peakWidthGuess;
 	const int nParameter = 4;
+
+	//std::cout << "min: " << energyMin << " max: " << energyMax << std::endl;	
 	// first parameter is a scaling factor
 	double initialGuess[nParameter] = {1, detuningEnergy, kt_trans, kT_long };
 
 	TF1* fitFunction = new TF1("fit function", this, &EnergyDistributionManager::AnalyticalEnergyDistributionFit, energyMin, energyMax, nParameter);
-	fitFunction->SetParameters(initialGuess); 
+	fitFunction->SetParameters(initialGuess);
+	//fitFunction->FixParameter(1, detuningEnergy);
+	fitFunction->FixParameter(2, kt_trans);
 
 	TFitResultPtr result = distribution->Fit(fitFunction, "QRN0");
 	double maxValue = fitFunction->GetMaximum();
@@ -624,50 +628,56 @@ void EnergyDistributionManager::FitAnalyticalToGeneratedDistribution(EnergyDistr
 
 	double* fitParameter = fitFunction->GetParameters();
 	distribution->analyticalParameter.detuningEnergy = fitParameter[1];
-	distribution->analyticalParameter.transverseTemperature = fitParameter[2];
+	//distribution->analyticalParameter.transverseTemperature = fitParameter[2];
 	distribution->analyticalParameter.longitudinalTemperature = fitParameter[3];
 	distribution->analyticalParameter.FWHM = xRight - xLeft;
 	distribution->analyticalParameter.effectiveLength = fitParameter[0] * CSR::overlapLength;
+	distribution->analyticalParameter.scalingFactor = fitParameter[0];
 
 	// Fill distribution Fit data with these parameters
-	double energyStep = (energyMax - energyMin) / distribution->fitX.size();
-	for (int i = 0; i < distribution->fitX.size(); i++)
+	double energyStep = (energyMax - energyMin) / 200;
+	for (int i = 0; distribution->fitX.size() < 200; i++)
 	{
 		double energy = energyMin + i * energyStep;
-		distribution->fitX[i] = energy;
-		distribution->fitY[i] = AnalyticalEnergyDistributionFit(&energy, fitParameter);
+		double value = AnalyticalEnergyDistributionFit(&energy, fitParameter);
+		if (value < 1e-1 && distribution->fitX.size() > 0) break;
+		if (value < 1e-1) continue;
+
+		distribution->fitX.push_back(energy);
+		distribution->fitY.push_back(value);
 	}
+	std::cout << "fit array size: " << distribution->fitX.size() << std::endl;
 	fitFunction->Delete();
 }
 
-void EnergyDistributionManager::GenerateAnalyticalDistribution()
-{
-	EnergyDistribution* analyticalDist = new EnergyDistribution();
-	analyticalDist->analyticalParameter = analyticalParameter;
-	analyticalDist->label = Form("E_d: %.3f analytical distribution", analyticalParameter.detuningEnergy.get());
-	analyticalDist->isAnalytical = true;
-
-	double eMin = analyticalEnergyRange[0];
-	double eMax = analyticalEnergyRange[1];
-	double step = (eMax - eMin) / analyticalNumberBins;
-
-	analyticalDist->binCenters.reserve(analyticalNumberBins);
-	analyticalDist->binValuesNormalised.reserve(analyticalNumberBins);
-
-	for (int i = 0; i < analyticalNumberBins; i++)
-	{
-		double energy = eMin + i * step;
-		double value = AnalyticalEnergyDistribution(energy, analyticalParameter.detuningEnergy,
-			analyticalParameter.transverseTemperature, analyticalParameter.longitudinalTemperature);
-
-		// skip too small values because they ruin the plot
-		if (value < 1e-8) continue;
-
-		analyticalDist->binCenters.push_back(energy);
-		analyticalDist->binValuesNormalised.push_back(value);
-	}
-	AddDistributionToList(analyticalDist);
-}
+//void EnergyDistributionManager::GenerateAnalyticalDistribution()
+//{
+//	EnergyDistribution* analyticalDist = new EnergyDistribution();
+//	analyticalDist->analyticalParameter = analyticalParameter;
+//	analyticalDist->label = Form("E_d: %.3f analytical distribution", analyticalParameter.detuningEnergy.get());
+//	analyticalDist->isAnalytical = true;
+//
+//	double eMin = analyticalEnergyRange[0];
+//	double eMax = analyticalEnergyRange[1];
+//	double step = (eMax - eMin) / analyticalNumberBins;
+//
+//	analyticalDist->binCenters.reserve(analyticalNumberBins);
+//	analyticalDist->binValuesNormalised.reserve(analyticalNumberBins);
+//
+//	for (int i = 0; i < analyticalNumberBins; i++)
+//	{
+//		double energy = eMin + i * step;
+//		double value = AnalyticalEnergyDistribution(energy, analyticalParameter.detuningEnergy,
+//			analyticalParameter.transverseTemperature, analyticalParameter.longitudinalTemperature);
+//
+//		// skip too small values because they ruin the plot
+//		if (value < 1e-8) continue;
+//
+//		analyticalDist->binCenters.push_back(energy);
+//		analyticalDist->binValuesNormalised.push_back(value);
+//	}
+//	AddDistributionToList(analyticalDist);
+//}
 
 double EnergyDistributionManager::AnalyticalEnergyDistributionFit(double* x, double* params)
 {
