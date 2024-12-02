@@ -8,14 +8,15 @@
 
 struct BinningSettings
 {
-	float energyRange[2] = { 1e-5, 100 };
+	float energyRange[2] = { 1e-3, 100 };
 
-	bool constantBinSize = true;
+	bool constantBinSize = false;
 	double normalStepSize = 0.5;
 	double peakStepSize = 0.01;
 
-	bool factorBinning = false;
-	int binsPerDecade = 200;
+	bool factorBinning = true;
+	int binsPerDecade = 20;
+	int binsAtPeak = 50;
 
 	bool increasePeakResolution = true;
 };
@@ -35,20 +36,10 @@ private:
 	void ShowEnergyDistributionList();
 	void ShowEnergyDistributionPlot();
 
-	void SetupEnergyDistribution(EnergyDistribution* distribution);
 	void AddDistributionToList(EnergyDistribution* distribution);
 	void RemoveDistributionFromList(int index);
 
-	// functions for the analytical model
-	void FitAnalyticalToGeneratedDistribution(EnergyDistribution* distribution);
-	//void GenerateAnalyticalDistribution();
-	double AnalyticalEnergyDistributionFit(double* x, double* params);
-	double AnalyticalEnergyDistribution(double* x, double* params);
-	double AnalyticalEnergyDistribution(double Ecm, double Ed, double Ttr, double Tlong);
-	double ComplexErrorFunction(double* x, double* par);
-	double DawsonIntegral(double* x, double* par);
-	double ExpDiff(double* x, double* par);
-
+	void SetupSecondaryPlots();
 	void PlotEnergyDistributions();
 	void PLotZweightByEnergy();
 	void PlotLongkTDistribution();
@@ -58,7 +49,7 @@ private:
 
 private:
 	std::vector<EnergyDistribution*> energyDistributions;
-	EnergyDistribution* currentDistribution;// = new EnergyDistribution();
+	EnergyDistribution* currentDistribution = new EnergyDistribution();
 	EnergyDistributionParameters parameter;
 	
 	// graphs and plots
@@ -67,7 +58,7 @@ private:
 	TH1D* long_ktDistribution = nullptr;
 	TH1D* long_VelAddition = nullptr;
 
-	// currently loaded files
+	// currently loaded file
 	std::filesystem::path currentDescriptionFile = std::filesystem::path("data\\C60 (2)\\100x100x100_Ie11.3_Ucath44.2_RelTol0_sort_energies.asc");
 	int maxIndex = 0;
 
@@ -83,11 +74,6 @@ private:
 
 	// binning related parameters
 	BinningSettings binSettings;
-	
-	// parameters for analytical energy distribution generation
-	AnalyticalDistributionParameters analyticalParameter;
-	float analyticalEnergyRange[2] = { 1e-1, 10 };
-	int analyticalNumberBins = 1000;
 	
 	// plot parameters
 	bool logX = true;

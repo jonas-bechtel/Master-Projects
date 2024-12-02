@@ -33,7 +33,7 @@ struct AnalyticalDistributionParameters : public Parameters
 
 	ParameterValue<double> detuningEnergy = ParameterValue(1.0, "detuning energy", "%.3f eV");
 	ParameterValue<double> longitudinalTemperature = ParameterValue(0.0005, "longitudinal kT", "%.2e eV");
-	ParameterValue<double> transverseTemperature = ParameterValue(0.002, "transverse kT", "%.2e eV");
+	//ParameterValue<double> transverseTemperature = ParameterValue(0.002, "transverse kT", "%.2e eV");
 	ParameterValue<double> FWHM = ParameterValue(0.0, "FWHM", "%.3f eV");
 	ParameterValue<double> effectiveLength = ParameterValue(0.0, "effective length", "%.3f m");
 	ParameterValue<double> scalingFactor = ParameterValue(0.0, "scaling factor", "%.3f");
@@ -50,9 +50,12 @@ struct EnergyDistribution : public TH1D
 	EnergyDistribution();
 	~EnergyDistribution();
 	
+	void CopyParameters();
 	void SetupLabellingThings();
 	void SetupBinning(const BinningSettings& binSettings);
+	void FillVectorsFromHist();
 	void RemoveEdgeZeros();
+	void FitAnalyticalToPeak();
 
 	std::string String();
 	std::string Filename();
@@ -83,7 +86,6 @@ public:
 	std::filesystem::path folder = "Test";
 	std::filesystem::path subFolder = "";
 	int index = 0;
-	bool isAnalytical = false;
 
 	// fitting things done by the Cross Section class
 	double rateCoefficient = 0;

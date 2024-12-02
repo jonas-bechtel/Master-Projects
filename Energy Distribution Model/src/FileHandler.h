@@ -38,6 +38,7 @@ private:
 	std::string xDelimiter = "\t";
 	std::string zDelimiter = ";";
 	
+	// size will be overwritten when reading files
 	mutable int matrixSize[3] = { 100, 100, 100 };
 };
 

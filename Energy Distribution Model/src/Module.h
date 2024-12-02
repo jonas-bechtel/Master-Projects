@@ -27,8 +27,7 @@ private:
 protected:
 	static std::unordered_map<std::string, Module*> s_moduleMap;
 	
-	//Parameters m_parameters;
-
+	//static EnergyDistribution currentDistribution;
 	std::string m_name;
 	TCanvas* m_mainCanvas;
 	TCanvas* m_secondCanvas;

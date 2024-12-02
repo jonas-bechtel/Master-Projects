@@ -102,28 +102,38 @@ void EnergyDistributionManager::ShowSettings()
 		ImGui::SeparatorText("Binning options");
 		ImGui::SetNextItemWidth(150.0f);
 		ImGui::InputFloat2("energy range", binSettings.energyRange, "%.1e");
+		ImGui::SameLine();
+		ImGui::Checkbox("more bins at peaks", &binSettings.increasePeakResolution);
+
+		if (ImGui::Checkbox("factor binning", &binSettings.factorBinning))
+		{
+			binSettings.constantBinSize = !binSettings.factorBinning;
+		}
+		ImGui::SameLine();
+		ImGui::BeginDisabled(!binSettings.factorBinning);
+		ImGui::SetNextItemWidth(50.0f);
+		ImGui::InputInt("bins per decade", &binSettings.binsPerDecade, 0);
+		ImGui::SameLine();
+		ImGui::BeginDisabled(!binSettings.increasePeakResolution);
+		ImGui::SetNextItemWidth(50.0f);
+		ImGui::InputInt("bins at peak", &binSettings.binsAtPeak, 0);
+		ImGui::EndDisabled();
+		ImGui::EndDisabled();
+
+
 		if (ImGui::Checkbox("constant bin size", &binSettings.constantBinSize))
 		{
 			binSettings.factorBinning = !binSettings.constantBinSize;
 		}
 		ImGui::BeginDisabled(!binSettings.constantBinSize);
 		ImGui::SameLine();
-		ImGui::Checkbox("more bins at peaks", &binSettings.increasePeakResolution);
-		ImGui::SetNextItemWidth(100.0f);
-		ImGui::InputDouble("step size", &binSettings.normalStepSize);
+		ImGui::SetNextItemWidth(50.0f);
+		ImGui::InputDouble("step size", &binSettings.normalStepSize, 0, 0, "%.3f");
 		ImGui::SameLine();
-		ImGui::SetNextItemWidth(100.0f);
-		ImGui::InputDouble("peak step size", &binSettings.peakStepSize);
+		ImGui::BeginDisabled(!binSettings.increasePeakResolution);
+		ImGui::SetNextItemWidth(50.0f);
+		ImGui::InputDouble("peak step size", &binSettings.peakStepSize, 0, 0, "%.3f");
 		ImGui::EndDisabled();
-
-		if(ImGui::Checkbox("factor binning", &binSettings.factorBinning))
-		{
-			binSettings.constantBinSize = !binSettings.factorBinning;
-		}
-		ImGui::SameLine();
-		ImGui::BeginDisabled(!binSettings.factorBinning);
-		ImGui::SetNextItemWidth(100.0f);
-		ImGui::InputInt("bins per decade", &binSettings.binsPerDecade);
 		ImGui::EndDisabled();
 
 		//ImGui::SeparatorText("analytical distribution");
@@ -183,11 +193,9 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 					ImGui::EndTooltip();
 				}
 
-				if (!eDist->isAnalytical)
-				{
-					ImGui::SameLine();
-					ImGui::Checkbox("normalised", &eDist->showNormalisedByWidth);
-				}
+				ImGui::SameLine();
+				ImGui::Checkbox("normalised", &eDist->showNormalisedByWidth);
+				
 				ImGui::SameLine();
 				if (ImGui::SmallButton("x"))
 				{
@@ -213,19 +221,6 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 		}
 		ImGui::SameLine();
 		ImGui::Checkbox("load samples", &loadSamples);
-		//ImGui::SameLine();
-		//if (ImGui::Button("load samples"))
-		//{
-		//	std::vector<std::filesystem::path> filenames = FileHandler::GetInstance().SelectFiles("output\\");
-		//	if (!filenames.empty())
-		//	{
-		//		for (const auto& filename : filenames)
-		//		{
-		//			EnergyDistribution* energyDist = FileHandler::GetInstance().LoadEnergyDistributionSamples(filename);
-		//			AddDistributionToList(energyDist);
-		//		}
-		//	}
-		//}
 
 		if (ImGui::Button("clear list"))
 		{
@@ -240,11 +235,18 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 			}
 		}
 		ImGui::SameLine();
+		if (ImGui::Button("plot all"))
+		{
+			for (EnergyDistribution* eDist : energyDistributions)
+			{
+				eDist->plotted = true;
+			}
+		}
+		ImGui::SameLine();
 		if (ImGui::Button("normalise all"))
 		{
 			for (EnergyDistribution* eDist : energyDistributions)
 			{
-				if (eDist->isAnalytical) continue;
 				eDist->showNormalisedByWidth = true;
 			}
 		}
@@ -253,7 +255,6 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 		{
 			for (EnergyDistribution* eDist : energyDistributions)
 			{
-				if (eDist->isAnalytical) continue;
 				eDist->showNormalisedByWidth = false;
 			}
 		}
@@ -284,7 +285,7 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 				ImGui::PushID(i);
 				if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
 
-				if (eDist->showNormalisedByWidth || eDist->isAnalytical)
+				if (eDist->showNormalisedByWidth)
 				{
 					// Get the automatic color for this pair
 					ImVec4 color = ImPlot::GetColormapColor(i % ImPlot::GetColormapSize());
@@ -313,25 +314,6 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 	}
 }
 
-void EnergyDistributionManager::SetupEnergyDistribution(EnergyDistribution* distribution)
-{
-	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
-	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
-	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
-	LabEnergies* labEnergies = (LabEnergies*)Module::Get("Lab Energies");
-	EnergyDistributionManager* eDistManager = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
-
-	distribution->mcmcParameter = mcmc->GetParameter();
-	distribution->eBeamParameter = eBeam->GetParameter();
-	distribution->ionBeamParameter = ionBeam->GetParameter();
-	distribution->labEnergiesParameter = labEnergies->GetParameter();
-	distribution->eDistParameter = eDistManager->GetParameter();
-	distribution->eBeamParameter.detuningEnergy = pow(sqrt(distribution->labEnergiesParameter.centerLabEnergy) 
-		- sqrt(distribution->eBeamParameter.coolingEnergy), 2);
-
-	distribution->SetupLabellingThings();
-	distribution->SetupBinning(binSettings);
-}
 
 void EnergyDistributionManager::AddDistributionToList(EnergyDistribution* distribution)
 {
@@ -347,8 +329,10 @@ void EnergyDistributionManager::RemoveDistributionFromList(int index)
 
 void EnergyDistributionManager::GenerateEnergyDistribution()
 {
-	currentDistribution = new EnergyDistribution();
-	SetupEnergyDistribution(currentDistribution);
+	// final setup of current distribution
+	currentDistribution->CopyParameters();
+	currentDistribution->SetupLabellingThings();
+	currentDistribution->SetupBinning(binSettings);
 
 	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
@@ -370,18 +354,7 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 		return; 
 	}
 
-	double kTLongGuess = eBeam->GetLongitudinal_kT(currentDistribution->labEnergiesParameter.centerLabEnergy);
-	double sigmaGuess = TMath::Sqrt(kTLongGuess * TMath::Qe() / PhysicalConstants::electronMass);
-	std::cout << "long kT guess: " << kTLongGuess << "\n";
-
-	delete zPositions;
-	delete zWeightByEnergy;
-	delete long_ktDistribution;
-	delete long_VelAddition;
-	zPositions = new TH1D("z-positions", "z-positions", 100, 0, 0.65);
-	zWeightByEnergy = new TH1D("z weight by energy", "z weight by energy", 100, 0, 0.65);
-	long_ktDistribution = new TH1D("long kT", "long kT", 1000, 0, kTLongGuess * 3);
-	long_VelAddition = new TH1D("long vel add", "long vel add", 500, -4 * sigmaGuess, 4 * sigmaGuess);
+	SetupSecondaryPlots();
 
 	for (const Point3D& point : positionSamples)
 	{
@@ -442,29 +415,9 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 		currentDistribution->collisionEnergies.push_back(collisionEnergy);
 	}
 
-	// write non normalised values to the vector
-	for (int i = 1; i <= currentDistribution->GetNbinsX(); i++)
-	{
-		currentDistribution->binCenters.push_back(currentDistribution->GetBinCenter(i));
-		currentDistribution->binValues.push_back(currentDistribution->GetBinContent(i));
-	}
-
-	// normalise the distribution to the width and to one
-	double numberEntries = currentDistribution->GetEntries();
-	for (int i = 1; i <= currentDistribution->GetNbinsX(); i++)
-	{
-		currentDistribution->SetBinContent(i,
-			currentDistribution->GetBinContent(i) / (currentDistribution->GetBinWidth(i) * numberEntries));
-	}
-
-	// write normalised values to the vector
-	for (int i = 1; i <= currentDistribution->GetNbinsX(); i++)
-	{
-		currentDistribution->binValuesNormalised.push_back(currentDistribution->GetBinContent(i));
-	}
-	
+	currentDistribution->FillVectorsFromHist();
 	currentDistribution->RemoveEdgeZeros();
-	FitAnalyticalToGeneratedDistribution(currentDistribution);
+	currentDistribution->FitAnalyticalToPeak();
 
 	// store and save current distribution that has been worked on
 	AddDistributionToList(currentDistribution);
@@ -482,7 +435,7 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 	}
 
 	// create new distribution object that will be worked on now
-	//currentDistribution = new EnergyDistribution();
+	currentDistribution = new EnergyDistribution();
 }
 
 void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesystem::path file)
@@ -511,7 +464,6 @@ void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesys
 		if (!additionalParameter[0]) continue;
 
 		// set read electron current and center lab energy
-		//currentDistribution->eDistParameter.driftTubeVoltage = additionalParameter[0];
 		labEnergies->GetParameter().driftTubeVoltage = additionalParameter[0];
 		eBeam->GetParameter().electronCurrent = additionalParameter[1];
 		labEnergies->GetParameter().centerLabEnergy = additionalParameter[2];
@@ -536,6 +488,25 @@ void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesys
 		// 3. generate energy distribution
 		GenerateEnergyDistribution();		
 	}
+}
+
+void EnergyDistributionManager::SetupSecondaryPlots()
+{
+	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
+
+	double kTLongGuess = eBeam->GetLongitudinal_kT(currentDistribution->labEnergiesParameter.centerLabEnergy);
+	double sigmaGuess = TMath::Sqrt(kTLongGuess * TMath::Qe() / PhysicalConstants::electronMass);
+	std::cout << "long kT guess: " << kTLongGuess << "\n";
+
+	delete zPositions;
+	delete zWeightByEnergy;
+	delete long_ktDistribution;
+	delete long_VelAddition;
+	zPositions = new TH1D("z-positions", "z-positions", 100, 0, 0.65);
+	zWeightByEnergy = new TH1D("z weight by energy", "z weight by energy", 100, 0, 0.65);
+	long_ktDistribution = new TH1D("long kT", "long kT", 1000, 0, kTLongGuess * 3);
+	long_VelAddition = new TH1D("long vel add", "long vel add", 500, -4 * sigmaGuess, 4 * sigmaGuess);
+
 }
 
 void EnergyDistributionManager::PlotEnergyDistributions()
@@ -598,283 +569,6 @@ void EnergyDistributionManager::PlotLongkTDistribution()
 	gPad->SetLogx();
 
 	long_ktDistribution->Draw();
-}
-
-void EnergyDistributionManager::FitAnalyticalToGeneratedDistribution(EnergyDistribution* distribution)
-{
-	double detuningEnergy = distribution->eBeamParameter.detuningEnergy;
-	double kt_trans = distribution->eBeamParameter.transverse_kT;
-	double kT_long = distribution->eBeamParameter.longitudinal_kT;
-
-	double peakWidthGuess = sqrt(pow((kt_trans * log(2)), 2) + 16 * log(2) * kT_long * detuningEnergy);
-	double energyMin = distribution->eBeamParameter.detuningEnergy - 3 * peakWidthGuess;
-	double energyMax = distribution->eBeamParameter.detuningEnergy + 3 * peakWidthGuess;
-	const int nParameter = 4;
-
-	//std::cout << "min: " << energyMin << " max: " << energyMax << std::endl;	
-	// first parameter is a scaling factor
-	double initialGuess[nParameter] = {1, detuningEnergy, kt_trans, kT_long };
-
-	TF1* fitFunction = new TF1("fit function", this, &EnergyDistributionManager::AnalyticalEnergyDistributionFit, energyMin, energyMax, nParameter);
-	fitFunction->SetParameters(initialGuess);
-	//fitFunction->FixParameter(1, detuningEnergy);
-	fitFunction->FixParameter(2, kt_trans);
-
-	TFitResultPtr result = distribution->Fit(fitFunction, "QRN0");
-	double maxValue = fitFunction->GetMaximum();
-	double energyOfMax = fitFunction->GetMaximumX();
-	double xLeft = fitFunction->GetX(maxValue / 2, 0, energyOfMax);
-	double xRight = fitFunction->GetX(maxValue / 2, energyOfMax, 1000);
-
-	double* fitParameter = fitFunction->GetParameters();
-	distribution->analyticalParameter.detuningEnergy = fitParameter[1];
-	//distribution->analyticalParameter.transverseTemperature = fitParameter[2];
-	distribution->analyticalParameter.longitudinalTemperature = fitParameter[3];
-	distribution->analyticalParameter.FWHM = xRight - xLeft;
-	distribution->analyticalParameter.effectiveLength = fitParameter[0] * CSR::overlapLength;
-	distribution->analyticalParameter.scalingFactor = fitParameter[0];
-
-	// Fill distribution Fit data with these parameters
-	double energyStep = (energyMax - energyMin) / 200;
-	for (int i = 0; distribution->fitX.size() < 200; i++)
-	{
-		double energy = energyMin + i * energyStep;
-		double value = AnalyticalEnergyDistributionFit(&energy, fitParameter);
-		if (value < 1e-1 && distribution->fitX.size() > 0) break;
-		if (value < 1e-1) continue;
-
-		distribution->fitX.push_back(energy);
-		distribution->fitY.push_back(value);
-	}
-	std::cout << "fit array size: " << distribution->fitX.size() << std::endl;
-	fitFunction->Delete();
-}
-
-//void EnergyDistributionManager::GenerateAnalyticalDistribution()
-//{
-//	EnergyDistribution* analyticalDist = new EnergyDistribution();
-//	analyticalDist->analyticalParameter = analyticalParameter;
-//	analyticalDist->label = Form("E_d: %.3f analytical distribution", analyticalParameter.detuningEnergy.get());
-//	analyticalDist->isAnalytical = true;
-//
-//	double eMin = analyticalEnergyRange[0];
-//	double eMax = analyticalEnergyRange[1];
-//	double step = (eMax - eMin) / analyticalNumberBins;
-//
-//	analyticalDist->binCenters.reserve(analyticalNumberBins);
-//	analyticalDist->binValuesNormalised.reserve(analyticalNumberBins);
-//
-//	for (int i = 0; i < analyticalNumberBins; i++)
-//	{
-//		double energy = eMin + i * step;
-//		double value = AnalyticalEnergyDistribution(energy, analyticalParameter.detuningEnergy,
-//			analyticalParameter.transverseTemperature, analyticalParameter.longitudinalTemperature);
-//
-//		// skip too small values because they ruin the plot
-//		if (value < 1e-8) continue;
-//
-//		analyticalDist->binCenters.push_back(energy);
-//		analyticalDist->binValuesNormalised.push_back(value);
-//	}
-//	AddDistributionToList(analyticalDist);
-//}
-
-double EnergyDistributionManager::AnalyticalEnergyDistributionFit(double* x, double* params)
-{
-	double factor = params[0];
-	return factor * AnalyticalEnergyDistribution(x, &params[1]);
-}
-
-double EnergyDistributionManager::ComplexErrorFunction(double* x, double* par)
-{
-	// Special implementation of the complex errorfunction:
-	// Returns real part of complex errorfunction (Voigt-Faddeeva function) of the argument representing complex part of the parameter
-	//
-	// x[0] - complex part of the parameter
-	Double_t yy = x[0];
-	//=============================
-	Double_t factor1 = 2.82842712474619029; // 2.*TMath::Sqrt(2.)
-	Double_t factor2 = 2.50662827463100024; // TMath::Sqrt(TMath::TwoPi())
-	Double_t f = factor2 * TMath::Voigt(0., 1., factor1 * yy, 5);
-	return f;
-}
-
-double EnergyDistributionManager::DawsonIntegral(double* xarg, double* par)
-{
-	// Returns Dawson's integral for any real x.
-	//        (From Numerical Recipes ch. 6.10)
-	Int_t i, n0;
-	#define NMAX 6        // #define NMAX 6 
-	const Double_t H = 0.4;      // #define H 0.4 
-	const Double_t A1 = 2.0 / 3.0; // #define A1 (2.0/3.0) 
-	const Double_t A2 = 0.4;   // #define A2 0.4 
-	const Double_t A3 = 2.0 / 7.0; // #define A3 (2.0/7.0) 
-	Double_t d1, d2, e1, e2, sum, x2, xp, xx, ans;
-	Double_t x = xarg[0];
-	static Double_t c[NMAX + 1];
-	static Int_t init = 0; //  Flag is 0 if we need to initialize, else 1.
-
-	if (init == 0)
-	{
-		init = 1;
-		for (i = 1; i <= NMAX; i++)
-			c[i] = TMath::Exp(-H * H * (Double_t)((2 * i - 1) * (2 * i - 1)));
-	}
-	if (TMath::Abs(x) < 0.2)
-	{   // Use series expansion. 
-		x2 = x * x;
-		ans = x * (1.0 - A1 * x2 * (1.0 - A2 * x2 * (1.0 - A3 * x2)));
-	}
-	else
-	{
-		//Use sampling theorem representation. 
-		xx = TMath::Abs(x);
-		//    n0=2*(Int_t)(0.5*xx/H+0.5); 
-		n0 = 2 * TMath::Nint(0.5 * xx / H);
-		xp = xx - (Double_t)n0 * H;
-		e1 = TMath::Exp(2.0 * xp * H);
-		e2 = e1 * e1;
-		d1 = (Double_t)n0 + 1.0;
-		d2 = d1 - 2.0;
-		sum = 0.0;
-		//    for (i=1;i<=NMAX;i++,d1+=2.0,d2-=2.0,e1*=e2) {
-		for (i = 1; i <= NMAX; i++, d1 += 2.0, d2 -= 2.0, e1 *= e2)
-		{
-			sum += c[i] * (e1 / d1 + 1.0 / (d2 * e1));
-		}
-
-		ans = 0.5641895835 * TMath::Sign(TMath::Exp(-xp * xp), x) * sum;
-		//Constant is 1/sqrt(pi) 
-	}
-	return ans;
-}
-
-double EnergyDistributionManager::ExpDiff(double* x, double* par)
-{
-	Double_t yy = x[0];
-	const Double_t A = 1. / 3.;
-	//=============================
-	Double_t f;
-	if (TMath::Abs(yy) > 1e-6) 
-	{
-		f = (TMath::Exp(yy) - TMath::Exp(-yy)) / yy;
-	}
-	else 
-	{
-		f = 2. + A * yy * yy;
-	}
-	return f;
-}
-
-double EnergyDistributionManager::AnalyticalEnergyDistribution(double* x, double* par)
-{
-	// Flaterned energy distribution, expects transverse mean velocity = 0!
-	// Original version written by Andreas Wolf (edistr.C) returns the same result normalised by 1/sqrt(ee)!!!
-	//
-	// x[0] energy in CM (the variable of the distribution) [eV]
-	// par[0] detuning energy (average CM energy) [eV]
-	// par[1] transversal electron temperature [eV]
-	// par[2] longitudinal electron temperature [eV]
-
-	Double_t ee = x[0];			//energy in CM (variable of the distribution) [eV]
-	Double_t edet = par[0]; 	//detuning energy (average CM energy) [eV]
-	Double_t tperp = par[1];	//transversal temperature [eV]
-	Double_t tpar = par[2];		//longitudinal temperature [eV]
-	//=============================
-	Double_t rpar[1];
-	rpar[0] = 0.;
-	Double_t rx[1];
-	//=============================
-	const Double_t sqrtpi = 1.77245385090551588;  // TMath::Sqrt(TMath::Pi())
-	const Double_t eps = 1e-5;
-	//cout<<"edis: "<<ee<<" "<<edet<<" "<<tperp<<" "<<tpar<<" "<<endl;
-	ee = TMath::Max(ee, 1e-20);
-	tperp = TMath::Max(tperp, 1e-20);
-	tpar = TMath::Max(tpar, 1e-20);
-	//=============================
-	Double_t eta = 1.0 - tpar / tperp;
-	Double_t ksi = TMath::Abs(eta);
-
-	if (ksi > eps)
-	{
-		Double_t aa = TMath::Sqrt(ksi * ee / tpar);
-		Double_t bb = TMath::Sqrt(edet / ksi / tpar);
-		//=============================
-		Double_t exp1 = TMath::Sqrt(ee) - TMath::Sqrt(edet);
-		exp1 = exp1 * exp1 / tpar;
-		Double_t exp2 = TMath::Sqrt(ee) + TMath::Sqrt(edet);
-		exp2 = exp2 * exp2 / tpar;
-		//=============================
-		if (eta > 0)
-		{
-			// Tpar < Tperp
-			Double_t f = TMath::Exp(-exp1);
-			if (bb >= aa)
-			{
-				rx[0] = bb - aa; f = f * ComplexErrorFunction(rx, rpar);
-			}
-			else
-			{
-				rx[0] = aa - bb; Double_t cc = (ee - edet / ksi) / tperp;
-				f = 2. * TMath::Exp(-cc) - f * ComplexErrorFunction(rx, rpar);
-			}
-			rx[0] = bb + aa; f = f - TMath::Exp(-exp2) * ComplexErrorFunction(rx, rpar);
-			f = f / (2. * tperp * TMath::Sqrt(tpar) * aa);  //factor for f(E)/sqrt(E)
-
-			return f * sqrt(ee);
-		}
-		else
-		{
-			// Tpar > Tperp
-			Double_t f = TMath::Exp(-exp1);
-			rx[0] = bb + aa; f = f * DawsonIntegral(rx, rpar);
-			rx[0] = bb - aa; f = f - TMath::Exp(-exp2) * DawsonIntegral(rx, rpar);
-			f = f / (sqrtpi * tperp * TMath::Sqrt(tpar) * aa);  //factor for f(E)/sqrt(E)
-
-			return f * sqrt(ee);
-		}
-	}
-	else
-	{
-		// Tpar = Tperp
-		Double_t aa = 2.0 * TMath::Sqrt(ee * edet) / tperp;
-		Double_t f = 1 / (sqrtpi * tperp * TMath::Sqrt(tperp));  //factor for f(E)/sqrt(E)
-
-		if (aa > 1)
-		{
-			Double_t exp1 = (TMath::Sqrt(ee) - TMath::Sqrt(edet));
-			exp1 = exp1 * exp1 / tperp;
-			Double_t exp2 = (TMath::Sqrt(ee) + TMath::Sqrt(edet));
-			exp2 = exp2 * exp2 / tperp;
-			f = f * (TMath::Exp(-exp1) - TMath::Exp(-exp2)) / aa;
-		}
-		else
-		{
-			rx[0] = aa;
-			f = f * TMath::Exp(-(ee + edet) / tperp) * ExpDiff(rx, rpar);
-		}
-		return f * sqrt(ee);
-	}
-}
-
-double EnergyDistributionManager::AnalyticalEnergyDistribution(double Ecm, double Ed, double Ttr, double Tlong)
-{
-	// The same as previous, different parameter representation
-	//
-	// Ecm energy in CM (the variable of the distribution) [eV]
-	// Ed detuning energy (average CM energy) [eV]
-	// Ttr transversal electron temperature [eV]
-	// Tlong longitudinal electron temperature [eV]
-
-	double x[1];
-	x[0] = Ecm;
-
-	double par[3];
-	par[0] = Ed;
-	par[1] = Ttr;
-	par[2] = Tlong;
-
-	return AnalyticalEnergyDistribution(x, par);
 }
 
 void EnergyDistributionManager::PlotLongVelAddition()
