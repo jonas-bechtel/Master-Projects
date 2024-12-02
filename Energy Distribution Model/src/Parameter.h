@@ -85,7 +85,7 @@ struct ParameterValue
 		}
 	}
 
-	inline ParameterValue(const ParameterValue& other) = delete;
+	inline ParameterValue(const ParameterValue& other) = default;
 	ParameterValue& operator=(const ParameterValue& other) 
 	{
 		if (this != &other) 

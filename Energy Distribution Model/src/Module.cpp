@@ -1,10 +1,11 @@
 #include "pch.h"
 
 #include "Module.h"
-
+#include "EnergyDistribution.h"
 
 std::unordered_map<std::string, Module*> Module::s_moduleMap;
 int Distribution3D::s_rebinningFactors[3] = { 10, 10, 10 };
+EnergyDistribution Module::currentDistribution;
 
 Module::Module(std::string name)
 	: m_name(name)//, m_parameters(Parameters(name + " parameters"))
@@ -123,6 +124,7 @@ void Distribution3D::PlotDistribution()
 	if (m_distributionSmall) delete m_distributionSmall;
 
 	m_mainCanvas->cd(2);
+	
 	m_distributionSmall = (TH3D*)m_distribution->Rebin3D(s_rebinningFactors[0],
 		s_rebinningFactors[1],
 		s_rebinningFactors[2], "dist small");

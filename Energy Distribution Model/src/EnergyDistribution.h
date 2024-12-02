@@ -49,6 +49,8 @@ struct EnergyDistribution : public TH1D
 {
 	EnergyDistribution();
 	~EnergyDistribution();
+
+
 	
 	void CopyParameters();
 	void SetupLabellingThings();

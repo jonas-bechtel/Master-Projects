@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Parameter.h"
+//#include "EnergyDistribution.h"
+
+struct EnergyDistribution;
 
 class Module
 {
@@ -10,8 +13,6 @@ public:
 
 	static Module* Get(std::string name);
 	static std::unordered_map<std::string, Module*>& GetModuleMap();
-
-	//Parameters GetParameter();
 
 	void ShowWindow();
 
@@ -27,7 +28,7 @@ private:
 protected:
 	static std::unordered_map<std::string, Module*> s_moduleMap;
 	
-	//static EnergyDistribution currentDistribution;
+	static EnergyDistribution currentDistribution;
 	std::string m_name;
 	TCanvas* m_mainCanvas;
 	TCanvas* m_secondCanvas;

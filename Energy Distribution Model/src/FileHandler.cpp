@@ -244,14 +244,14 @@ std::filesystem::path FileHandler::FindFileWithIndex(const std::filesystem::path
     return std::filesystem::path();
 }
 
-void FileHandler::SaveEnergyDistributionHistToFile(EnergyDistribution* energyDistribution)
+void FileHandler::SaveEnergyDistributionHistToFile(EnergyDistribution& energyDistribution)
 {
     // set the output filepath
     std::filesystem::path file = outputFolder.string() /        // general output folder
        // std::filesystem::path("histogram files") /              // folder for files with histogram of distribution
-        energyDistribution->folder.filename() /                  // folder of corresponfding desription file
-        energyDistribution->subFolder.filename() /               // subfolder with specific parameters
-        std::filesystem::path(energyDistribution->Filename() + ".asc");  // filename    
+        energyDistribution.folder.filename() /                  // folder of corresponfding desription file
+        energyDistribution.subFolder.filename() /               // subfolder with specific parameters
+        std::filesystem::path(energyDistribution.Filename() + ".asc");  // filename    
 
     // extract the directory 
     std::filesystem::path dir = std::filesystem::path(file).parent_path();
@@ -267,27 +267,27 @@ void FileHandler::SaveEnergyDistributionHistToFile(EnergyDistribution* energyDis
         std::cerr << "Error opening file" << std::endl;
         return ;
     }
-    outfile << energyDistribution->String();
+    outfile << energyDistribution.String();
 
     outfile << "# bin center [eV]\tbin value\tbin value normalised by bin width\n";
-    for (int i = 0; i < energyDistribution->binCenters.size(); i++)
+    for (int i = 0; i < energyDistribution.binCenters.size(); i++)
     {
-        outfile << energyDistribution->binCenters[i] << "\t";
-        outfile << energyDistribution->binValues[i]<< "\t";
-        outfile << energyDistribution->binValuesNormalised[i] << "\n";
+        outfile << energyDistribution.binCenters[i] << "\t";
+        outfile << energyDistribution.binValues[i]<< "\t";
+        outfile << energyDistribution.binValuesNormalised[i] << "\n";
     }
     
     outfile.close();
 }
 
-void FileHandler::SaveEnergyDistributionSamplesToFile(EnergyDistribution* energyDistribution)
+void FileHandler::SaveEnergyDistributionSamplesToFile(EnergyDistribution& energyDistribution)
 {
     // set the output filepath
     std::filesystem::path file = outputFolder.string() /                    // general output folder
         //std::filesystem::path("sample files") /                           // special folder for files with all samples in it
-        energyDistribution->folder.filename() /                             // folder of corresponfding desription file
-        energyDistribution->subFolder.filename() /                          // subfolder with specific parameters
-        std::filesystem::path(energyDistribution->Filename() + ".samples"); // filename
+        energyDistribution.folder.filename() /                             // folder of corresponfding desription file
+        energyDistribution.subFolder.filename() /                          // subfolder with specific parameters
+        std::filesystem::path(energyDistribution.Filename() + ".samples"); // filename
          
 
     // extract the directory 
@@ -305,10 +305,10 @@ void FileHandler::SaveEnergyDistributionSamplesToFile(EnergyDistribution* energy
         return;
     }
 
-    outfile << energyDistribution->String();
+    outfile << energyDistribution.String();
 
     outfile << "# sampled collision energy values\n";
-    for (double energy : energyDistribution->collisionEnergies)
+    for (double energy : energyDistribution.collisionEnergies)
     {
         outfile << energy << "\n";
     }
@@ -456,16 +456,16 @@ std::vector<double> FileHandler::CalculateBinEdges(const std::vector<double>& bi
 
 EnergyDistribution* FileHandler::CreateEnergyDistFromHeader(std::string& header)
 {
-    EnergyDistribution* energyDist = new EnergyDistribution();
+    EnergyDistribution energyDist;
 
-    energyDist->eBeamParameter.fromString(header);
-    energyDist->ionBeamParameter.fromString(header);
-    energyDist->labEnergiesParameter.fromString(header);
-    energyDist->mcmcParameter.fromString(header);
-    energyDist->eDistParameter.fromString(header);
-    energyDist->analyticalParameter.fromString(header);
+    energyDist.eBeamParameter.fromString(header);
+    energyDist.ionBeamParameter.fromString(header);
+    energyDist.labEnergiesParameter.fromString(header);
+    energyDist.mcmcParameter.fromString(header);
+    energyDist.eDistParameter.fromString(header);
+    energyDist.analyticalParameter.fromString(header);
+              
+    energyDist.SetupLabellingThings();
 
-    energyDist->SetupLabellingThings();
-
-    return energyDist;
+    return &energyDist;
 }

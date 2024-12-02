@@ -20,7 +20,7 @@ EnergyDistributionParameters& EnergyDistributionManager::GetParameter()
 	return parameter;
 }
 
-std::vector<EnergyDistribution*>& EnergyDistributionManager::GetEnergyDistributions()
+std::vector<EnergyDistribution>& EnergyDistributionManager::GetEnergyDistributions()
 {
 	return energyDistributions;
 }
@@ -170,31 +170,31 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 			for (int i = 0; i < energyDistributions.size(); i++)
 			{
 				ImGui::PushID(i);
-				EnergyDistribution* eDist = energyDistributions[i];
+				EnergyDistribution& eDist = energyDistributions[i];
 
-				std::string label = eDist->label;
-				if (!eDist->tags.empty())
+				std::string label = eDist.label;
+				if (!eDist.tags.empty())
 				{
 					label += "\n";
-					label += eDist->tags;
+					label += eDist.tags;
 				}
 
 				// Render each item as selectable
-				if (ImGui::Selectable(label.c_str(), eDist->plotted, ImGuiSelectableFlags_AllowItemOverlap))
+				if (ImGui::Selectable(label.c_str(), eDist.plotted, ImGuiSelectableFlags_AllowItemOverlap))
 				{
-					eDist->plotted = !eDist->plotted;
+					eDist.plotted = !eDist.plotted;
 				}
 
 				if (ImGui::BeginItemTooltip())
 				{
 					ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-					ImGui::TextUnformatted(eDist->String().c_str());
+					ImGui::TextUnformatted(eDist.String().c_str());
 					ImGui::PopTextWrapPos();
 					ImGui::EndTooltip();
 				}
 
 				ImGui::SameLine();
-				ImGui::Checkbox("normalised", &eDist->showNormalisedByWidth);
+				ImGui::Checkbox("normalised", &eDist.showNormalisedByWidth);
 				
 				ImGui::SameLine();
 				if (ImGui::SmallButton("x"))
@@ -215,7 +215,7 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 				for (auto& filename : filenames)
 				{
 					EnergyDistribution* energyDist = FileHandler::GetInstance().LoadEnergyDistribution(filename, loadSamples);
-					AddDistributionToList(energyDist);
+					AddDistributionToList(*energyDist);
 				}
 			}
 		}
@@ -229,33 +229,33 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 		ImGui::SameLine();
 		if (ImGui::Button("clear plot"))
 		{
-			for (EnergyDistribution* eDist : energyDistributions)
+			for (EnergyDistribution& eDist : energyDistributions)
 			{
-				eDist->plotted = false;
+				eDist.plotted = false;
 			}
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("plot all"))
 		{
-			for (EnergyDistribution* eDist : energyDistributions)
+			for (EnergyDistribution& eDist : energyDistributions)
 			{
-				eDist->plotted = true;
+				eDist.plotted = true;
 			}
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("normalise all"))
 		{
-			for (EnergyDistribution* eDist : energyDistributions)
+			for (EnergyDistribution& eDist : energyDistributions)
 			{
-				eDist->showNormalisedByWidth = true;
+				eDist.showNormalisedByWidth = true;
 			}
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("unnormalise all"))
 		{
-			for (EnergyDistribution* eDist : energyDistributions)
+			for (EnergyDistribution& eDist : energyDistributions)
 			{
-				eDist->showNormalisedByWidth = false;
+				eDist.showNormalisedByWidth = false;
 			}
 		}
 		ImGui::EndChild();
@@ -278,21 +278,21 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
 		ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside);
 		int i = 0;
-		for (EnergyDistribution* eDist : energyDistributions)
+		for (EnergyDistribution& eDist : energyDistributions)
 		{
-			if (eDist->plotted)
+			if (eDist.plotted)
 			{
 				ImGui::PushID(i);
 				if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
 
-				if (eDist->showNormalisedByWidth)
+				if (eDist.showNormalisedByWidth)
 				{
 					// Get the automatic color for this pair
 					ImVec4 color = ImPlot::GetColormapColor(i % ImPlot::GetColormapSize());
 
 					// Plot the first line with the automatic color
 					ImPlot::PushStyleColor(ImPlotCol_Line, color);
-					ImPlot::PlotLine(eDist->label.c_str(), eDist->binCenters.data(), eDist->binValuesNormalised.data(), eDist->binValuesNormalised.size());
+					ImPlot::PlotLine(eDist.label.c_str(), eDist.binCenters.data(), eDist.binValuesNormalised.data(), eDist.binValuesNormalised.size());
 					ImPlot::PopStyleColor();
 					color.x *= 2;
 					color.y *= 2;
@@ -300,12 +300,12 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 
 					// Plot the second line with a lighter color and dashed
 					ImPlot::PushStyleColor(ImPlotCol_Line, color);
-					ImPlot::PlotLine("##", eDist->fitX.data(), eDist->fitY.data(), eDist->fitX.size(), ImPlotLineFlags_Segments);
+					ImPlot::PlotLine("##", eDist.fitX.data(), eDist.fitY.data(), eDist.fitX.size(), ImPlotLineFlags_Segments);
 					ImPlot::PopStyleColor();
 				}
 				else
 				{
-					ImPlot::PlotLine(eDist->label.c_str(), eDist->binCenters.data(), eDist->binValues.data(), eDist->binCenters.size());
+					ImPlot::PlotLine(eDist.label.c_str(), eDist.binCenters.data(), eDist.binValues.data(), eDist.binCenters.size());
 				}
 			}
 			i++;
@@ -315,24 +315,26 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 }
 
 
-void EnergyDistributionManager::AddDistributionToList(EnergyDistribution* distribution)
+void EnergyDistributionManager::AddDistributionToList(EnergyDistribution& distribution)
 {
-	energyDistributions.push_back(distribution);
-	EnergyDistribution::s_allDistributions[distribution->eBeamParameter.detuningEnergy] = distribution;
+	// will call move Constructor
+	energyDistributions.emplace_back(std::move(distribution));
+	EnergyDistribution& justMoved = energyDistributions.back();
+	EnergyDistribution::s_allDistributions[justMoved.eBeamParameter.detuningEnergy] = &justMoved;
 }
 
 void EnergyDistributionManager::RemoveDistributionFromList(int index)
 {
-	delete energyDistributions[index];
+	//delete energyDistributions[index];
 	energyDistributions.erase(energyDistributions.begin() + index);
 }
 
 void EnergyDistributionManager::GenerateEnergyDistribution()
 {
 	// final setup of current distribution
-	currentDistribution->CopyParameters();
-	currentDistribution->SetupLabellingThings();
-	currentDistribution->SetupBinning(binSettings);
+	currentDistribution.CopyParameters();
+	currentDistribution.SetupLabellingThings();
+	currentDistribution.SetupBinning(binSettings);
 
 	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
@@ -340,7 +342,7 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 
 	// sample positions from electron density multiplied with ion density given from outside
 	std::vector<Point3D> positionSamples = mcmc->GetSamples();
-	currentDistribution->collisionEnergies.reserve(positionSamples.size());
+	currentDistribution.collisionEnergies.reserve(positionSamples.size());
 
 	if (positionSamples.empty())
 	{
@@ -411,18 +413,15 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 
 		// calculate collision energy [eV] and put it in a histogram
 		double collisionEnergy = 0.5 * PhysicalConstants::electronMass * collisionVelocity * collisionVelocity / TMath::Qe();
-		currentDistribution->Fill(collisionEnergy);
-		currentDistribution->collisionEnergies.push_back(collisionEnergy);
+		currentDistribution.Fill(collisionEnergy);
+		currentDistribution.collisionEnergies.push_back(collisionEnergy);
 	}
 
-	currentDistribution->FillVectorsFromHist();
-	currentDistribution->RemoveEdgeZeros();
-	currentDistribution->FitAnalyticalToPeak();
+	currentDistribution.FillVectorsFromHist();
+	currentDistribution.RemoveEdgeZeros();
+	currentDistribution.FitAnalyticalToPeak();
 
-	// store and save current distribution that has been worked on
-	AddDistributionToList(currentDistribution);
-	
-	std::cout << "Ed1: " << currentDistribution->eBeamParameter.detuningEnergy << "\n";
+	std::cout << "Ed1: " << currentDistribution.eBeamParameter.detuningEnergy << "\n";
 
 	if (saveAsHist)
 	{
@@ -434,8 +433,11 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 		FileHandler::GetInstance().SaveEnergyDistributionSamplesToFile(currentDistribution);
 	}
 
+	// store/move and save current distribution that has been worked on
+	AddDistributionToList(currentDistribution);
+
 	// create new distribution object that will be worked on now
-	currentDistribution = new EnergyDistribution();
+	//currentDistribution = new EnergyDistribution();
 }
 
 void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesystem::path file)
@@ -494,7 +496,7 @@ void EnergyDistributionManager::SetupSecondaryPlots()
 {
 	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
 
-	double kTLongGuess = eBeam->GetLongitudinal_kT(currentDistribution->labEnergiesParameter.centerLabEnergy);
+	double kTLongGuess = eBeam->GetLongitudinal_kT(currentDistribution.labEnergiesParameter.centerLabEnergy);
 	double sigmaGuess = TMath::Sqrt(kTLongGuess * TMath::Qe() / PhysicalConstants::electronMass);
 	std::cout << "long kT guess: " << kTLongGuess << "\n";
 
@@ -522,18 +524,18 @@ void EnergyDistributionManager::PlotEnergyDistributions()
 
 	for (int i = 0; i < energyDistributions.size(); i++)
 	{
-		if (!energyDistributions[i]) return;
+		//if (!energyDistributions[i]) return;
 		
-		energyDistributions[i]->SetLineColor(colors[i % 5]);
-		legend->AddEntry(energyDistributions[i], energyDistributions[i]->label.c_str(), "l");
+		energyDistributions[i].SetLineColor(colors[i % 5]);
+		legend->AddEntry(&energyDistributions[i], energyDistributions[i].label.c_str(), "l");
 
 		if (i == 0)
 		{
-			energyDistributions[i]->Draw("HIST");
+			energyDistributions[i].Draw("HIST");
 		}
 		else
 		{
-			energyDistributions[i]->Draw("HIST SAME");
+			energyDistributions[i].Draw("HIST SAME");
 		}
 	}
 	legend->Draw();
