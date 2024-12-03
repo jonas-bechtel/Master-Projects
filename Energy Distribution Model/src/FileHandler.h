@@ -16,7 +16,7 @@ public:
 
 	TH3D* LoadMatrixFile(const std::filesystem::path& filename);
 	//EnergyDistribution* LoadEnergyDistributionSamples(const std::filesystem::path& filename);
-	EnergyDistribution* LoadEnergyDistribution(std::filesystem::path& filename, bool loadSamples);
+	EnergyDistribution LoadEnergyDistribution(std::filesystem::path& filename, bool loadSamples);
 
 	int GetMaxIndex(std::filesystem::path energiesFile);
 	std::array<float, 3> GetParamtersFromDescriptionFileAtIndex(const std::filesystem::path& descriptionFile, int index);
@@ -29,7 +29,7 @@ private:
 	std::vector<std::string> SplitLine(std::string& string, const std::string& delimiter) const;
 	TH3D* CreateTH3DfromHeader(std::ifstream& file) const;
 	std::vector<double> CalculateBinEdges(const std::vector<double>& binCenters) const;
-	EnergyDistribution* CreateEnergyDistFromHeader(std::string& header);
+	EnergyDistribution CreateEnergyDistFromHeader(std::string& header);
 
 private:
 	std::filesystem::path dataFolder = "data/";

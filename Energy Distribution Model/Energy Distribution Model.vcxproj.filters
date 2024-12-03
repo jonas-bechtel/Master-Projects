@@ -167,5 +167,8 @@
     <ClInclude Include="src\AnalyticalDistribution.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\ParameterImplementations.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

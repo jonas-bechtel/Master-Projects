@@ -3,11 +3,11 @@
 #include "Module.h"
 #include "EnergyDistribution.h"
 
-std::unordered_map<std::string, Module*> Module::s_moduleMap;
+std::unordered_map<std::string, EnergyDistributionModule*> EnergyDistributionModule::s_moduleMap;
 int Distribution3D::s_rebinningFactors[3] = { 10, 10, 10 };
-EnergyDistribution Module::currentDistribution;
+EnergyDistribution EnergyDistributionModule::activeDist;
 
-Module::Module(std::string name)
+EnergyDistributionModule::EnergyDistributionModule(std::string name)
 	: m_name(name)//, m_parameters(Parameters(name + " parameters"))
 {
 	s_moduleMap[name] = this;
@@ -22,12 +22,12 @@ Module::Module(std::string name)
 	HideCanvas(m_secondCanvas);
 }
 
-Module* Module::Get(std::string name)
+EnergyDistributionModule* EnergyDistributionModule::Get(std::string name)
 {
 	return s_moduleMap.at(name);
 }
 
-std::unordered_map<std::string, Module*>& Module::GetModuleMap()
+std::unordered_map<std::string, EnergyDistributionModule*>& EnergyDistributionModule::GetModuleMap()
 {
 	return s_moduleMap;
 }
@@ -37,7 +37,7 @@ std::unordered_map<std::string, Module*>& Module::GetModuleMap()
 //	return m_parameters;
 //}
 
-void Module::ShowWindow()
+void EnergyDistributionModule::ShowWindow()
 {
 	if (ImGui::Begin((m_name + " Window").c_str()))
 	{
@@ -58,29 +58,29 @@ void Module::ShowWindow()
 	UpdateCanvas();
 }
 
-Module::~Module()
+EnergyDistributionModule::~EnergyDistributionModule()
 {
 	delete m_mainCanvas;
 	delete m_secondCanvas;
 }
 
-bool Module::IsCanvasShown(TCanvas* canvas)
+bool EnergyDistributionModule::IsCanvasShown(TCanvas* canvas)
 {
 	return ((TRootCanvas*)canvas->GetCanvasImp())->IsMapped();
 }
 
-void Module::ShowCanvas(TCanvas* canvas)
+void EnergyDistributionModule::ShowCanvas(TCanvas* canvas)
 {
 	((TRootCanvas*)canvas->GetCanvasImp())->MapRaised();
 
 }
 
-void Module::HideCanvas(TCanvas* canvas)
+void EnergyDistributionModule::HideCanvas(TCanvas* canvas)
 {
 	((TRootCanvas*)canvas->GetCanvasImp())->UnmapWindow();
 }
 
-void Module::ShowHideCanvasButton(TCanvas* canvas)
+void EnergyDistributionModule::ShowHideCanvasButton(TCanvas* canvas)
 {
 	if (ImGui::Button(("Show/Hide " + std::string(canvas->GetTitle())).c_str()))
 	{
@@ -96,7 +96,7 @@ void Module::ShowHideCanvasButton(TCanvas* canvas)
 	}
 }
 
-void Module::UpdateCanvas()
+void EnergyDistributionModule::UpdateCanvas()
 {
 	m_mainCanvas->cd();
 	m_mainCanvas->Modified();
@@ -108,7 +108,7 @@ void Module::UpdateCanvas()
 }
 
 Distribution3D::Distribution3D(std::string name)
-	: Module(name)
+	: EnergyDistributionModule(name)
 {
 
 }

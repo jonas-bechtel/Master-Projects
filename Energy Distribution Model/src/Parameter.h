@@ -85,7 +85,13 @@ struct ParameterValue
 		}
 	}
 
-	inline ParameterValue(const ParameterValue& other) = default;
+	// copy constructor
+	inline ParameterValue(const ParameterValue& other) = delete;
+	// move constructor
+	inline ParameterValue(const ParameterValue&& other) = delete;
+	// move assignment operator
+	ParameterValue& operator=(const ParameterValue&& other) = delete;
+	// copy assignment operator
 	ParameterValue& operator=(const ParameterValue& other) 
 	{
 		if (this != &other) 

@@ -6,13 +6,13 @@
 #include "EnergyDistributionManager.h"
 
 MCMC::MCMC()
-	: Distribution3D("MCMC")
+	: Distribution3D("MCMC"), m_parameters(activeDist.mcmcParameter)
 {
 }
 
 void MCMC::SetupDistribution(std::filesystem::path file)
 {
-	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
+	IonBeam* ionBeam = (IonBeam*)EnergyDistributionModule::Get("Ion Beam");
 	targetDist = ionBeam->MultiplyWithElectronDensities();
 
 	if (!targetDist)
@@ -49,11 +49,6 @@ std::vector<Point3D>& MCMC::GetSamples()
 	return chain;
 }
 
-MCMC_Parameters& MCMC::GetParameter()
-{
-	return m_parameters;
-}
-
 void MCMC::SetParameter(MCMC_Parameters params)
 {
 	m_parameters = params;
@@ -84,8 +79,8 @@ void MCMC::ShowUI()
 	ImGui::SetNextItemWidth(200.0f);
 	if (RebinningFactorInput())
 	{
-		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
-		ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
+		IonBeam* ionBeam = (IonBeam*)EnergyDistributionModule::Get("Ion Beam");
+		ElectronBeam* eBeam = (ElectronBeam*)EnergyDistributionModule::Get("Electron Beam");
 
 		ionBeam->PlotDistribution();
 		eBeam->PlotDistribution();

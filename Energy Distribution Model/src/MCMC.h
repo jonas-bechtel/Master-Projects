@@ -3,23 +3,6 @@
 #include "Module.h"
 #include "Point3D.h"
 
-struct MCMC_Parameters : public Parameters
-{
-	MCMC_Parameters() { setName("mcmc sampling parameters"); }
-
-	ParameterValue<int> numberSamples = ParameterValue((int)3e5, "number of samples", "%d");
-	ParameterValue<int> burnIn = ParameterValue(1000, "burn in", "%d");
-	ParameterValue<int> lag = ParameterValue(30, "lag", "%d");
-	ParameterValue<float3> proposalSigma = ParameterValue(float3(0.005f, 0.005f, 0.2f), "proposal sigmas", "%.4f, %.4f, %.3f m");
-	ParameterValue<int> seed = ParameterValue((int)std::time(0), "seed", "%d");
-
-private:
-	int GetSize() override
-	{
-		return sizeof(*this);
-	}
-};
-
 class MCMC : public Distribution3D
 {
 public:
@@ -27,7 +10,6 @@ public:
 	void SetupDistribution(std::filesystem::path file = "") override;
 	//void SetTargetDistribution(TH3D* targetDist);
 	std::vector<Point3D>& GetSamples();
-	MCMC_Parameters& GetParameter();
 	void SetParameter(MCMC_Parameters params);
 	void GenerateSamples();
 
@@ -48,7 +30,7 @@ private:
 	void PlotProjections();
 
 private:
-	MCMC_Parameters m_parameters;
+	MCMC_Parameters& m_parameters;
 
 	// graphs
 	TH3D* targetDist = nullptr;

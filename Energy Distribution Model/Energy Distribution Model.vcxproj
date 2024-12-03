@@ -254,6 +254,7 @@
     <ClInclude Include="src\EnergyDistributionManager.h" />
     <ClInclude Include="src\FileHandler.h" />
     <ClInclude Include="src\MCMC.h" />
+    <ClInclude Include="src\ParameterImplementations.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Constants.h" />
     <ClInclude Include="src\Point3D.h" />

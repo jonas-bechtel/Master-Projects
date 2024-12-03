@@ -21,11 +21,10 @@ struct BinningSettings
 	bool increasePeakResolution = true;
 };
 
-class EnergyDistributionManager : public Module
+class EnergyDistributionManager : public EnergyDistributionModule
 {
 public:
 	EnergyDistributionManager();
-	EnergyDistributionParameters& GetParameter();
 	std::vector<EnergyDistribution>& GetEnergyDistributions();
 	void GenerateEnergyDistribution();
 	void GenerateEnergyDistributionsFromFile(std::filesystem::path file);
@@ -36,7 +35,7 @@ private:
 	void ShowEnergyDistributionList();
 	void ShowEnergyDistributionPlot();
 
-	void AddDistributionToList(EnergyDistribution& distribution);
+	void AddDistributionToList(EnergyDistribution&& distribution);
 	void RemoveDistributionFromList(int index);
 
 	void SetupSecondaryPlots();
@@ -49,8 +48,6 @@ private:
 
 private:
 	std::vector<EnergyDistribution> energyDistributions;
-	//EnergyDistribution* currentDistribution = new EnergyDistribution();
-	EnergyDistributionParameters parameter;
 	
 	// graphs and plots
 	TH1D* zPositions = nullptr;

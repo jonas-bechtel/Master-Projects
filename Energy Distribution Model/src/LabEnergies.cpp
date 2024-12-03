@@ -4,7 +4,7 @@
 #include "FileHandler.h"
 
 LabEnergies::LabEnergies()
-	: Distribution3D("Lab Energies")
+	: Distribution3D("Lab Energies"), m_parameters(activeDist.labEnergiesParameter)
 {
 	
 }
@@ -22,15 +22,10 @@ double LabEnergies::Get(double x, double y, double z)
 	return m_distribution->Interpolate(x_modified, y_modified, z_modified);
 }
 
-LabEnergyParameters& LabEnergies::GetParameter()
-{
-	return m_parameters;
-}
-
 void LabEnergies::SetupDistribution(std::filesystem::path energyfile)
 {
 
-	if (m_parameters.useUniformEnergies && m_parameters.centerLabEnergy)
+	if (activeDist.simplifyParams.uniformLabEnergies && m_parameters.centerLabEnergy)
 	{
 		GenerateUniformLabEnergy();
 	}
@@ -38,7 +33,7 @@ void LabEnergies::SetupDistribution(std::filesystem::path energyfile)
 	{
 		LoadLabEnergyFile(energyfile);
 
-		if (m_parameters.useOnlySliceXY)
+		if (activeDist.simplifyParams.sliceLabEnergies)
 		{
 			FillEnergiesWithXY_Slice();
 		}
@@ -77,16 +72,16 @@ void LabEnergies::ShowUI()
 	}
 	ImGui::InputDouble("drift tube voltage", m_parameters.driftTubeVoltage, 0.0, 0.0, "%.3f");
 
-	ImGui::BeginDisabled(m_parameters.useOnlySliceXY);
-	ImGui::Checkbox("uniform energies", m_parameters.useUniformEnergies);
+	ImGui::BeginDisabled(activeDist.simplifyParams.sliceLabEnergies);
+	ImGui::Checkbox("uniform energies", activeDist.simplifyParams.uniformLabEnergies);
 	ImGui::EndDisabled();
 
-	ImGui::BeginDisabled(m_parameters.useUniformEnergies);
-	ImGui::Checkbox("fill energies with slice", m_parameters.useOnlySliceXY);
+	ImGui::BeginDisabled(activeDist.simplifyParams.uniformLabEnergies);
+	ImGui::Checkbox("fill energies with slice", activeDist.simplifyParams.sliceLabEnergies);
 	ImGui::EndDisabled();
 	ImGui::SameLine();
-	ImGui::BeginDisabled(!m_parameters.useOnlySliceXY);
-	ImGui::InputDouble("z slice", m_parameters.sliceToFill, 0.05f);
+	ImGui::BeginDisabled(!activeDist.simplifyParams.sliceLabEnergies);
+	ImGui::InputDouble("z slice", activeDist.simplifyParams.sliceToFill, 0.05f);
 	ImGui::EndDisabled();
 
 	ImGui::Separator();
@@ -138,7 +133,7 @@ void LabEnergies::FillEnergiesWithXY_Slice()
 {
 	if (!m_distribution) return;
 
-	int z_bin = m_distribution->GetZaxis()->FindBin(m_parameters.sliceToFill);
+	int z_bin = m_distribution->GetZaxis()->FindBin(activeDist.simplifyParams.sliceToFill);
 
 	TH3D* temp = (TH3D*)m_distribution->Clone("slice filled energies");
 
@@ -218,7 +213,7 @@ void LabEnergies::PlotOutInsideEnergyOnZ()
 	if (labEnergyInside) delete labEnergyInside;
 	if (labEnergyOutside) delete labEnergyOutside;
 
-	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
+	ElectronBeam* eBeam = (ElectronBeam*)EnergyDistributionModule::Get("Electron Beam");
 
 	labEnergyInside = new TGraph(m_distribution->GetNbinsZ());
 	labEnergyOutside = new TGraph(m_distribution->GetNbinsZ());

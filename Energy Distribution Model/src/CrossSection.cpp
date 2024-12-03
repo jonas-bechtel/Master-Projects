@@ -6,7 +6,7 @@
 
 
 CrossSection::CrossSection()
-	: Module("Cross Section")
+	: EnergyDistributionModule("Cross Section")
 {
 	SetupTrueCrossSection();
 }
@@ -35,7 +35,7 @@ void CrossSection::test()
 
 void CrossSection::SetupFitCrossSectionHist()
 {
-	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	EnergyDistributionManager* model = (EnergyDistributionManager*)EnergyDistributionModule::Get("Energy Distribution Manager");
 	std::vector<EnergyDistribution>& energyDistributions = model->GetEnergyDistributions();
 
 	std::vector<double> binEdges;
@@ -152,7 +152,7 @@ void CrossSection::SetupFitCrossSectionHist()
 
 void CrossSection::CalculateRateCoefficients()
 {
-	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	EnergyDistributionManager* model = (EnergyDistributionManager*)EnergyDistributionModule::Get("Energy Distribution Manager");
 	std::vector<EnergyDistribution>& energyDistributions = model->GetEnergyDistributions();
 	
 	//if (useSigmaHist)
@@ -209,7 +209,7 @@ void CrossSection::CalculateRateCoefficients()
 
 void CrossSection::CalculatePsis()
 {
-	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	EnergyDistributionManager* model = (EnergyDistributionManager*)EnergyDistributionModule::Get("Energy Distribution Manager");
 	std::vector<EnergyDistribution>& energyDistributions = model->GetEnergyDistributions();
 
 	for (EnergyDistribution& distribution : energyDistributions)
@@ -266,7 +266,7 @@ void CrossSection::SetupInitialGuess()
 
 void CrossSection::FitCrossSectionHistogram()
 {
-	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	EnergyDistributionManager* model = (EnergyDistributionManager*)EnergyDistributionModule::Get("Energy Distribution Manager");
 	if (model->GetEnergyDistributions().empty())
 	{
 		std::cout << "no energy distributions\n";
@@ -319,7 +319,7 @@ void CrossSection::FitWithSVD()
 {
 	// solve Ax = b with SVD
 
-	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	EnergyDistributionManager* model = (EnergyDistributionManager*)EnergyDistributionModule::Get("Energy Distribution Manager");
 	std::vector<EnergyDistribution>& energyDistributions = model->GetEnergyDistributions();
 
 	if (model->GetEnergyDistributions().empty())
@@ -419,7 +419,7 @@ void CrossSection::FitWithSVD()
 
 void CrossSection::FitWithEigenSVD()
 {
-	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	EnergyDistributionManager* model = (EnergyDistributionManager*)EnergyDistributionModule::Get("Energy Distribution Manager");
 	std::vector<EnergyDistribution>& energyDistributions = model->GetEnergyDistributions();
 
 	if (model->GetEnergyDistributions().empty())
@@ -471,7 +471,7 @@ Eigen::VectorXd projectOntoNonNegative(const Eigen::VectorXd& x) {
 
 void CrossSection::FitWithEigenGD()
 {
-	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	EnergyDistributionManager* model = (EnergyDistributionManager*)EnergyDistributionModule::Get("Energy Distribution Manager");
 	std::vector<EnergyDistribution>& energyDistributions = model->GetEnergyDistributions();
 
 	if (model->GetEnergyDistributions().empty())
@@ -607,7 +607,7 @@ torch::Tensor CrossSection::custom_loss(const torch::Tensor& x, const torch::Ten
 
 void CrossSection::FitWithTorch()
 {
-	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	EnergyDistributionManager* model = (EnergyDistributionManager*)EnergyDistributionModule::Get("Energy Distribution Manager");
 	std::vector<EnergyDistribution>& energyDistributions = model->GetEnergyDistributions();
 
 	if (model->GetEnergyDistributions().empty())
@@ -722,7 +722,7 @@ void CrossSection::FillFitPlots(double* crossSectionParamater)
 	}
 
 	// create rate coefficient fit
-	EnergyDistributionManager* model = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	EnergyDistributionManager* model = (EnergyDistributionManager*)EnergyDistributionModule::Get("Energy Distribution Manager");
 	std::vector<EnergyDistribution>& energyDistributions = model->GetEnergyDistributions();
 
 	delete rateCoefficientsFit;

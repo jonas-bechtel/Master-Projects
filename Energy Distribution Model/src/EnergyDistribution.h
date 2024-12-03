@@ -7,52 +7,17 @@
 
 struct BinningSettings;
 
-struct EnergyDistributionParameters : public Parameters
-{
-	EnergyDistributionParameters()
-	{
-		setName("energy distribution parameters");
-	}
-
-	ParameterValue<bool> cutOutZValues = ParameterValue(false, "cut out z values", "%d", true);
-	ParameterValue<float2> cutOutRange = ParameterValue(float2(0.0f, 0.4f), "cut out range", "%.2f, %.2f m", true);
-
-private:
-	int GetSize() override
-	{
-		return sizeof(*this);
-	}
-};
-
-struct AnalyticalDistributionParameters : public Parameters
-{
-	AnalyticalDistributionParameters()
-	{
-		setName("analytical/fit distribution parameters");
-	}
-
-	ParameterValue<double> detuningEnergy = ParameterValue(1.0, "detuning energy", "%.3f eV");
-	ParameterValue<double> longitudinalTemperature = ParameterValue(0.0005, "longitudinal kT", "%.2e eV");
-	//ParameterValue<double> transverseTemperature = ParameterValue(0.002, "transverse kT", "%.2e eV");
-	ParameterValue<double> FWHM = ParameterValue(0.0, "FWHM", "%.3f eV");
-	ParameterValue<double> effectiveLength = ParameterValue(0.0, "effective length", "%.3f m");
-	ParameterValue<double> scalingFactor = ParameterValue(0.0, "scaling factor", "%.3f");
-
-private:
-	int GetSize() override
-	{
-		return sizeof(*this);
-	}
-};
-
 struct EnergyDistribution : public TH1D
 {
 	EnergyDistribution();
 	~EnergyDistribution();
 
-
+	EnergyDistribution(const EnergyDistribution& other) = delete;
+	EnergyDistribution& operator=(const EnergyDistribution& other) = delete;
+	EnergyDistribution(EnergyDistribution&& other);
+	EnergyDistribution& operator=(EnergyDistribution&& other);
 	
-	void CopyParameters();
+	void ResetDefaultValues();
 	void SetupLabellingThings();
 	void SetupBinning(const BinningSettings& binSettings);
 	void FillVectorsFromHist();
@@ -79,8 +44,8 @@ public:
 	ElectronBeamParameters eBeamParameter;
 	IonBeamParameters ionBeamParameter;
 	LabEnergyParameters labEnergiesParameter;
-	EnergyDistributionParameters eDistParameter;
 	AnalyticalDistributionParameters analyticalParameter;
+	SimplificationParameter simplifyParams;
 
 	// additional labelling things
 	std::string label = "";

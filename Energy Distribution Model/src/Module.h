@@ -1,18 +1,17 @@
 #pragma once
 
-#include "Parameter.h"
-//#include "EnergyDistribution.h"
+#include "ParameterImplementations.h"
 
 struct EnergyDistribution;
 
-class Module
+class EnergyDistributionModule
 {
 public:
-	Module(std::string name);
-	virtual ~Module();
+	EnergyDistributionModule(std::string name);
+	virtual ~EnergyDistributionModule();
 
-	static Module* Get(std::string name);
-	static std::unordered_map<std::string, Module*>& GetModuleMap();
+	static EnergyDistributionModule* Get(std::string name);
+	static std::unordered_map<std::string, EnergyDistributionModule*>& GetModuleMap();
 
 	void ShowWindow();
 
@@ -26,15 +25,15 @@ private:
 	virtual void ShowUI() = 0;
 
 protected:
-	static std::unordered_map<std::string, Module*> s_moduleMap;
+	static std::unordered_map<std::string, EnergyDistributionModule*> s_moduleMap;
 	
-	static EnergyDistribution currentDistribution;
+	static EnergyDistribution activeDist;
 	std::string m_name;
 	TCanvas* m_mainCanvas;
 	TCanvas* m_secondCanvas;
 };
 
-class Distribution3D : public Module
+class Distribution3D : public EnergyDistributionModule
 {
 public:
 	Distribution3D(std::string name);

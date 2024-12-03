@@ -3,15 +3,16 @@
 #include "IonBeam.h"
 #include "ElectronBeam.h"
 #include "MCMC.h"
+#include "EnergyDistribution.h"
 
 IonBeam::IonBeam()
-	: Distribution3D("Ion Beam")
+	: Distribution3D("Ion Beam"), m_parameters(activeDist.ionBeamParameter)
 {
 }
 
 void IonBeam::SetupDistribution(std::filesystem::path file)
 {
-	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
+	ElectronBeam* eBeam = (ElectronBeam*)EnergyDistributionModule::Get("Electron Beam");
 	TH3D* electronBeam = eBeam->GetDistribution();
 
 	if (!electronBeam) return;
@@ -40,9 +41,9 @@ void IonBeam::SetupDistribution(std::filesystem::path file)
 
 				double value = 0;
 				// Calculate the value using a single Gaussian distribution centered at z = 0
-				if (m_parameters.useSingleGaussian)
+				if (activeDist.simplifyParams.singleGaussianIonBeam)
 				{
-					value = exp(-(x * x + y * y) / (2.0 * m_parameters.radius * m_parameters.radius));
+					value = exp(-(x * x + y * y) / (2.0 * pow(activeDist.simplifyParams.ionBeamRadius, 2)));
 				}
 				// or use the double gaussian version
 				else
@@ -56,14 +57,9 @@ void IonBeam::SetupDistribution(std::filesystem::path file)
 	}
 }
 
-IonBeamParameters& IonBeam::GetParameter()
-{
-	return m_parameters;
-}
-
 TH3D* IonBeam::MultiplyWithElectronDensities()
 {
-	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
+	ElectronBeam* eBeam = (ElectronBeam*)EnergyDistributionModule::Get("Electron Beam");
 	TH3D* electronDensities = eBeam->GetDistribution();
 
 	if (!electronDensities)
@@ -98,15 +94,15 @@ TH3D* IonBeam::MultiplyWithElectronDensities()
 void IonBeam::ShowUI()
 {
 	bool somethingChanged = false;
-	ImGui::Checkbox("use single gaussian", m_parameters.useSingleGaussian);
-	ImGui::BeginDisabled(!m_parameters.useSingleGaussian);
-	somethingChanged |= ImGui::InputDouble("ion beam radius / sigma in [m]", m_parameters.radius, 0.001f, 0.001f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+	ImGui::Checkbox("use single gaussian", activeDist.simplifyParams.singleGaussianIonBeam);
+	ImGui::BeginDisabled(!activeDist.simplifyParams.singleGaussianIonBeam);
+	somethingChanged |= ImGui::InputDouble("ion beam radius / sigma in [m]", activeDist.simplifyParams.ionBeamRadius, 0.001f, 0.001f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
 	ImGui::EndDisabled();
 
 	ImGui::Separator();
 	ImGui::SetNextItemWidth(200.0f);
 	somethingChanged |= ImGui::InputFloat2("shift in x and y [m]", m_parameters.shift, "%.4f");
-	ImGui::BeginDisabled(m_parameters.useSingleGaussian);
+	ImGui::BeginDisabled(activeDist.simplifyParams.singleGaussianIonBeam);
 	somethingChanged |= ImGui::InputDouble("amplitude 1", m_parameters.amplitude1, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
 	somethingChanged |= ImGui::InputDouble("amplitude 2", m_parameters.amplitude2, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);	
 	ImGui::SetNextItemWidth(200.0f);
@@ -117,7 +113,7 @@ void IonBeam::ShowUI()
 
 	if(somethingChanged)
 	{
-		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
+		MCMC* mcmc = (MCMC*)EnergyDistributionModule::Get("MCMC");
 		SetupDistribution();
 		mcmc->SetupDistribution();
 	

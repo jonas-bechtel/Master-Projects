@@ -234,7 +234,7 @@ void Application::ShowWindows()
     ImGui::DockSpaceOverViewport();
 
     
-    auto modules = Module::GetModuleMap();
+    auto modules = EnergyDistributionModule::GetModuleMap();
     for (auto& [name, module] : modules)
     {
         module->ShowWindow();

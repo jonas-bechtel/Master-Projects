@@ -3,52 +3,14 @@
 #include "Module.h"
 #include "Point3D.h"
 
-struct ElectronBeamParameters : public Parameters
-{
-	ElectronBeamParameters()
-	{
-		setName("electron beam parameters");
-	}
-
-	ParameterValue<double> detuningEnergy = ParameterValue(10.0, "detuning energy", "%.3f eV");
-
-	ParameterValue<double> transverse_kT = ParameterValue(2.0e-3, "transverse kT", "%.2e eV");
-	ParameterValue<double> coolingEnergy = ParameterValue(0.15, "cooling energy", "%.3f eV");
-	ParameterValue<double> cathodeRadius = ParameterValue(0.0012955, "cathode radius", "%.3e m");
-	ParameterValue<double> expansionFactor = ParameterValue(30.0, "expansion factor", "%.1f");
-
-	ParameterValue<double> electronCurrent = ParameterValue(1.2e-08, "electron current", "%.2e A");
-	ParameterValue<double> cathodeTemperature = ParameterValue(300.0, "cathode tempperature", "%.1f K");
-	//ParameterValue<double> Ecath = ParameterValue(0.0, "cathode energy", "%.3e eV");
-	ParameterValue<double> LLR = ParameterValue(1.9, "LLR", "%.1f");
-	// sigma of gaussian spread of the acceleration voltage (Elab) [eV]
-	ParameterValue<double> sigmaLabEnergy = ParameterValue(0.0, "sigma lab energy", "%.3f eV");
-	ParameterValue<double> extractionEnergy = ParameterValue(31.26, "extraction energy", "%.3f eV");
-	
-	ParameterValue<Path> densityFile = ParameterValue(Path(""), "density file", "%s");
-
-	// parameters for analytical electron beam shape to test model
-	ParameterValue<bool> hasGaussianShape = ParameterValue(false, "using gaussian beam shape", "%d", true);
-	ParameterValue<bool> hasCylindricalShape = ParameterValue(false, "using cylindrical beam shape", "%d", true);
-	ParameterValue<bool> hasNoBending = ParameterValue(false, "exclude bend", "%d", true);
-	ParameterValue<bool> hasFixedLongitudinalTemperature = ParameterValue(false, "using fixed longitudial Temperature", "%d", true);
-	ParameterValue<double> radius = ParameterValue(0.003, "radius", "%.4f m", true);
-	ParameterValue<double> longitudinal_kT = ParameterValue(0.0, "longitudinal kT", "%.2e eV", true);
-
-private:
-	int GetSize() override
-	{
-		return sizeof(*this);
-	}
-};
-
 class ElectronBeam : public Distribution3D
 {
 public:
 	ElectronBeam();
 	void SetupDistribution(std::filesystem::path densityfile = "") override;
-	ElectronBeamParameters& GetParameter();
 	TH3D* GetDistribution() override;
+
+	void CalculateDetuningEnergy();
 	
 	void LoadDensityFile(std::filesystem::path file);
 	void GenerateElectronBeamDensity();
@@ -77,7 +39,7 @@ private:
 	void PlotProjections();
 
 private:
-	ElectronBeamParameters m_parameters;
+	ElectronBeamParameters& m_parameters;
 
 	TH3D* generatedBeamDensity = nullptr;
 	TH3D* generatedBeamDensitySmall = nullptr;

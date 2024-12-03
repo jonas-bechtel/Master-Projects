@@ -72,7 +72,7 @@ TH3D* FileHandler::LoadMatrixFile(const std::filesystem::path& filename)
 //    return energyDist;
 //}
 
-EnergyDistribution* FileHandler::LoadEnergyDistribution(std::filesystem::path& filename, bool loadSamples)
+EnergyDistribution FileHandler::LoadEnergyDistribution(std::filesystem::path& filename, bool loadSamples)
 {
     // load the .asc file with the histogram data
     std::ifstream histFile(filename);
@@ -81,20 +81,20 @@ EnergyDistribution* FileHandler::LoadEnergyDistribution(std::filesystem::path& f
     if (!histFile.is_open())
     {
         std::cerr << "Error: Could not open the file " << filename << std::endl;
-        return nullptr;
+        return EnergyDistribution();
     }
 
     std::string header = GetHeaderFromFile(histFile);
-    EnergyDistribution* energyDist = CreateEnergyDistFromHeader(header);
+    EnergyDistribution energyDist = CreateEnergyDistFromHeader(header);
 
     std::string line;
     while (std::getline(histFile, line))
     {
         std::vector<std::string> tokens = SplitLine(line, xDelimiter);
 
-        energyDist->binCenters.push_back(std::stod(tokens[0]));
-        energyDist->binValues.push_back(std::stod(tokens[1]));
-        energyDist->binValuesNormalised.push_back(std::stod(tokens[2]));
+        energyDist.binCenters.push_back(std::stod(tokens[0]));
+        energyDist.binValues.push_back(std::stod(tokens[1]));
+        energyDist.binValuesNormalised.push_back(std::stod(tokens[2]));
     }
     std::cout << "loaded file: " << filename.filename();
 
@@ -114,11 +114,11 @@ EnergyDistribution* FileHandler::LoadEnergyDistribution(std::filesystem::path& f
             }
 
             header = GetHeaderFromFile(samplesFile);
-            energyDist->collisionEnergies.reserve(energyDist->mcmcParameter.numberSamples);
+            energyDist.collisionEnergies.reserve(energyDist.mcmcParameter.numberSamples);
 
             while (std::getline(samplesFile, line))
             {
-                energyDist->collisionEnergies.push_back(std::stod(line));
+                energyDist.collisionEnergies.push_back(std::stod(line));
             }
             std::cout << "\tsamples file found";
         }
@@ -454,7 +454,7 @@ std::vector<double> FileHandler::CalculateBinEdges(const std::vector<double>& bi
     return binEdges;
 }
 
-EnergyDistribution* FileHandler::CreateEnergyDistFromHeader(std::string& header)
+EnergyDistribution FileHandler::CreateEnergyDistFromHeader(std::string& header)
 {
     EnergyDistribution energyDist;
 
@@ -462,10 +462,10 @@ EnergyDistribution* FileHandler::CreateEnergyDistFromHeader(std::string& header)
     energyDist.ionBeamParameter.fromString(header);
     energyDist.labEnergiesParameter.fromString(header);
     energyDist.mcmcParameter.fromString(header);
-    energyDist.eDistParameter.fromString(header);
     energyDist.analyticalParameter.fromString(header);
+    energyDist.simplifyParams.fromString(header);
               
     energyDist.SetupLabellingThings();
 
-    return &energyDist;
+    return energyDist;
 }

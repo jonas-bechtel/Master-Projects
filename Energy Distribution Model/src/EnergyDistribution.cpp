@@ -10,6 +10,7 @@ std::unordered_map<double, EnergyDistribution*> EnergyDistribution::s_allDistrib
 EnergyDistribution::EnergyDistribution()
 	: TH1D()
 {
+	std::cout << "calling Energy Distribution default Constructor" << std::endl;
 }
 
 EnergyDistribution::~EnergyDistribution()
@@ -23,23 +24,92 @@ EnergyDistribution::~EnergyDistribution()
 			break;
 		}
 	}
+	std::cout << "calling Energy Distribution destructor" << std::endl;
 }
 
-void EnergyDistribution::CopyParameters()
+EnergyDistribution::EnergyDistribution(EnergyDistribution&& other)
+	: TH1D(std::move(other))
 {
-	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
-	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
-	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
-	LabEnergies* labEnergies = (LabEnergies*)Module::Get("Lab Energies");
-	EnergyDistributionManager* eDistManager = (EnergyDistributionManager*)Module::Get("Energy Distribution Manager");
+	other.Reset();
 
-	mcmcParameter = mcmc->GetParameter();
-	eBeamParameter = eBeam->GetParameter();
-	ionBeamParameter = ionBeam->GetParameter();
-	labEnergiesParameter = labEnergies->GetParameter();
-	eDistParameter = eDistManager->GetParameter();
-	eBeamParameter.detuningEnergy = pow(sqrt(labEnergiesParameter.centerLabEnergy)
-		- sqrt(eBeamParameter.coolingEnergy), 2);
+	collisionEnergies	= std::move(other.collisionEnergies);
+	binCenters			= std::move(other.binCenters);
+	binValues			= std::move(other.binValues);
+	binValuesNormalised = std::move(other.binValuesNormalised);
+	fitX				= std::move(other.fitX);
+	fitY				= std::move(other.fitY);
+
+	mcmcParameter = other.mcmcParameter;
+	eBeamParameter = other.eBeamParameter;
+	ionBeamParameter = other.ionBeamParameter;
+	labEnergiesParameter = other.labEnergiesParameter;
+	analyticalParameter = other.analyticalParameter;
+	simplifyParams = other.simplifyParams;
+
+	label = std::move(other.label);
+	tags = std::move(other.tags);
+	folder = std::move(other.folder);
+	subFolder = std::move(other.subFolder);
+	index = std::move(other.index);
+
+	rateCoefficient = other.rateCoefficient;
+	psi = std::move(other.psi);
+
+	plotted = other.plotted;
+	showNormalisedByWidth = other.showNormalisedByWidth;
+
+	other.ResetDefaultValues();
+
+	std::cout << "calling Energy Distribution Move Constructor" << std::endl;
+}
+
+EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other)
+{
+	if (this == &other) return *this;
+	
+	TH1D::operator=(std::move(other));
+
+	collisionEnergies = std::move(other.collisionEnergies);
+	binCenters = std::move(other.binCenters);
+	binValues = std::move(other.binValues);
+	binValuesNormalised = std::move(other.binValuesNormalised);
+	fitX = std::move(other.fitX);
+	fitY = std::move(other.fitY);
+
+	mcmcParameter = other.mcmcParameter;
+	eBeamParameter = other.eBeamParameter;
+	ionBeamParameter = other.ionBeamParameter;
+	labEnergiesParameter = other.labEnergiesParameter;
+	analyticalParameter = other.analyticalParameter;
+	simplifyParams = other.simplifyParams;
+
+	label = std::move(other.label);
+	tags = std::move(other.tags);
+	folder = std::move(other.folder);
+	subFolder = std::move(other.subFolder);
+	index = std::move(other.index);
+
+	rateCoefficient = other.rateCoefficient;
+	psi = std::move(other.psi);
+
+	plotted = other.plotted;
+	showNormalisedByWidth = other.showNormalisedByWidth;
+
+	other.ResetDefaultValues();
+
+	std::cout << "calling Energy Distribution Move assignment operator" << std::endl;
+
+	return *this;
+}
+
+void EnergyDistribution::ResetDefaultValues()
+{
+	//std::cout << "binvalues size: " << binValues.size() << std::endl;
+	folder = "Test";
+	index = 0;
+	rateCoefficient = 0;
+	plotted = false;
+	showNormalisedByWidth = true;
 }
 
 void EnergyDistribution::SetupLabellingThings()
@@ -47,19 +117,19 @@ void EnergyDistribution::SetupLabellingThings()
 	if (!eBeamParameter.densityFile.get().empty() && !labEnergiesParameter.energyFile.get().empty())
 	{
 		folder = eBeamParameter.densityFile.get().parent_path().parent_path();
-		subFolder = Form("E_cool %.3feV I_e %.2eA r_ion %.4fm", eBeamParameter.coolingEnergy.get(),
-			eBeamParameter.electronCurrent.get(), ionBeamParameter.radius.get());
+		subFolder = Form("E_cool %.3feV I_e %.2eA", eBeamParameter.coolingEnergy.get(),
+			eBeamParameter.electronCurrent.get());
 
 		index = std::stoi(eBeamParameter.densityFile.get().filename().string().substr(0, 4));
 	}
 
-	if (eBeamParameter.hasGaussianShape) tags += "e-gaus, ";
-	if (eBeamParameter.hasCylindricalShape) tags += "e-cylinder, ";
-	if (eBeamParameter.hasNoBending) tags += "no bend, ";
-	if (eBeamParameter.hasFixedLongitudinalTemperature) tags += "fixed kT||, ";
-	if (labEnergiesParameter.useUniformEnergies) tags += "uniform energy, ";
-	if (labEnergiesParameter.useOnlySliceXY) tags += Form("energy sliced %.3f, ", labEnergiesParameter.sliceToFill.get());
-	if (eDistParameter.cutOutZValues) tags += Form("z samples %.3f - %.3f, ", eDistParameter.cutOutRange.get().x, eDistParameter.cutOutRange.get().y);
+	if (simplifyParams.gaussianElectronBeam) tags += "e-gaus, ";
+	if (simplifyParams.cylindricalElectronBeam) tags += "e-cylinder, ";
+	if (simplifyParams.noElectronBeamBend) tags += "no bend, ";
+	if (simplifyParams.fixedLongitudinalTemperature) tags += "fixed kT||, ";
+	if (simplifyParams.uniformLabEnergies) tags += "uniform energy, ";
+	if (simplifyParams.sliceLabEnergies) tags += Form("energy sliced %.3f, ", simplifyParams.sliceToFill.get());
+	if (simplifyParams.cutOutZValues) tags += Form("z samples %.3f - %.3f, ", simplifyParams.cutOutRange.get().x, simplifyParams.cutOutRange.get().y);
 	label = Form("%d: U drift = %.2fV, E_d = %.4f", index, labEnergiesParameter.driftTubeVoltage.get(),
 		eBeamParameter.detuningEnergy.get());
 
@@ -78,9 +148,9 @@ void EnergyDistribution::SetupBinning(const BinningSettings& binSettings)
 
 	double firstPeak = eBeamParameter.detuningEnergy;
 	double secondPeak = pow(sqrt(CSR::energyOutsideDriftTube) - sqrt(eBeamParameter.coolingEnergy), 2);
-	std::cout << "delta E1: " << sqrt(pow((eBeamParameter.transverse_kT * log(2)), 2) + 16 * log(2) * eBeamParameter.longitudinal_kT * firstPeak) << std::endl;
+	//std::cout << "delta E1: " << sqrt(pow((eBeamParameter.transverse_kT * log(2)), 2) + 16 * log(2) * eBeamParameter.longitudinal_kT * firstPeak) << std::endl;
 	// estimate half of the width
-	double estimatedPeakWidth1 = 2 * sqrt(pow((eBeamParameter.transverse_kT * log(2)), 2) + 16 * log(2) * eBeamParameter.longitudinal_kT * firstPeak);
+	double estimatedPeakWidth1 = 2 * sqrt(pow((eBeamParameter.transverse_kT * log(2)), 2) + 16 * log(2) * eBeamParameter.longitudinal_kT_estimate * firstPeak);
 	double estimatedPeakWidth2 = 0.7; //5 * sqrt(pow((eBeamParameter.transverse_kT * log(2)), 2) + 16 * log(2) * eBeamParameter.longitudinal_kT * secondPeak);
 
 	// in case of constant bins
@@ -96,9 +166,9 @@ void EnergyDistribution::SetupBinning(const BinningSettings& binSettings)
 	double peakFactor1 = TMath::Power(((firstPeak + estimatedPeakWidth1) / std::max(firstPeak - estimatedPeakWidth1, min)), (1.0 / numberPeakBins));
 	double peakFactor2 = TMath::Power(((secondPeak + estimatedPeakWidth2) / std::max(secondPeak - estimatedPeakWidth2, min)), (2.0 / numberPeakBins));
 
-	std::cout << "peak factor 1: " << peakFactor1 << std::endl;
-	std::cout << "peak factor 2: " << peakFactor2 << std::endl;
-	std::cout << "normalFactor: " << normalFactor << std::endl;
+	//std::cout << "peak factor 1: " << peakFactor1 << std::endl;
+	//std::cout << "peak factor 2: " << peakFactor2 << std::endl;
+	//std::cout << "normalFactor: " << normalFactor << std::endl;
 	//std::cout << "guess of bin number: " << numberBins << std::endl;
 	//std::cout << "estimate peak positions: " << firstPeak << ", " << secondPeak << std::endl;
 	//std::cout << "estimate peak widths: " << estimatedPeakWidth1 << ", " << estimatedPeakWidth2 << std::endl;
@@ -122,7 +192,7 @@ void EnergyDistribution::SetupBinning(const BinningSettings& binSettings)
 			{
 				// put one edge at the start of the peak
 				binEdges.push_back(std::max(firstPeak - estimatedPeakWidth1, min));
-				std::cout << "found first peak\n";
+				//std::cout << "found first peak\n";
 				// and then add more bins until the end of the peak
 				while (binEdges.back() < firstPeak + estimatedPeakWidth1)
 				{
@@ -137,7 +207,7 @@ void EnergyDistribution::SetupBinning(const BinningSettings& binSettings)
 			else if (std::abs(propsedNextEdge - secondPeak) < estimatedPeakWidth2 || (lastEdge - secondPeak) / (propsedNextEdge - secondPeak) < 0)
 			{
 				binEdges.push_back(std::max(secondPeak - estimatedPeakWidth2, min));
-				std::cout << "found second peak\n";
+				//std::cout << "found second peak\n";
 				while (binEdges.back() < secondPeak + estimatedPeakWidth2)
 				{
 					if (binSettings.constantBinSize)
@@ -182,6 +252,7 @@ void EnergyDistribution::FillVectorsFromHist()
 
 	// normalise the distribution to the width and to one
 	double numberEntries = GetEntries();
+
 	for (int i = 1; i <= GetNbinsX(); i++)
 	{
 		SetBinContent(i, GetBinContent(i) / (GetBinWidth(i) * numberEntries));
@@ -233,7 +304,7 @@ void EnergyDistribution::FitAnalyticalToPeak()
 {
 	double detuningEnergy = eBeamParameter.detuningEnergy;
 	double kt_trans = eBeamParameter.transverse_kT;
-	double kT_long = eBeamParameter.longitudinal_kT;
+	double kT_long = eBeamParameter.longitudinal_kT_estimate;
 
 	double peakWidthGuess = sqrt(pow((kt_trans * log(2)), 2) + 16 * log(2) * kT_long * detuningEnergy);
 	double energyMin = eBeamParameter.detuningEnergy - 1 * peakWidthGuess;
@@ -291,14 +362,17 @@ void EnergyDistribution::FitAnalyticalToPeak()
 
 std::string EnergyDistribution::String()
 {
-	bool excludeOptionals = !(folder.filename().string() == "Test");
 	std::string string = Form("# folder: %s\n", (folder.filename().string() + subFolder.filename().string()).c_str()) +
-		eBeamParameter.toString(excludeOptionals) +
-		labEnergiesParameter.toString(excludeOptionals) +
-		eDistParameter.toString(excludeOptionals) +
-		ionBeamParameter.toString(excludeOptionals) +
-		mcmcParameter.toString(excludeOptionals) +
-		analyticalParameter.toString(excludeOptionals);
+		eBeamParameter.toString() +
+		labEnergiesParameter.toString() +
+		ionBeamParameter.toString() +
+		mcmcParameter.toString() +
+		analyticalParameter.toString();
+
+	if (folder.filename().string() == "Test")
+	{
+		string += simplifyParams.toString();
+	}
 
 	return string;
 }

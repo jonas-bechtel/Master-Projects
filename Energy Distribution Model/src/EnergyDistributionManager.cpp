@@ -5,7 +5,7 @@
 #include "FileHandler.h"
 
 EnergyDistributionManager::EnergyDistributionManager()
-	: Module("Energy Distribution Manager")
+	: EnergyDistributionModule("Energy Distribution Manager")
 {
 	m_mainCanvas->cd();
 	m_mainCanvas->Clear();
@@ -13,11 +13,6 @@ EnergyDistributionManager::EnergyDistributionManager()
 	m_mainCanvas->SetWindowSize(1500, 800);
 
 	energyDistributions.reserve(5);
-}
-
-EnergyDistributionParameters& EnergyDistributionManager::GetParameter()
-{
-	return parameter;
 }
 
 std::vector<EnergyDistribution>& EnergyDistributionManager::GetEnergyDistributions()
@@ -93,11 +88,11 @@ void EnergyDistributionManager::ShowSettings()
 		ImGui::EndDisabled();
 
 		ImGui::SetNextItemWidth(200.0f);
-		ImGui::BeginDisabled(!parameter.cutOutZValues);
-		ImGui::InputFloat2("", parameter.cutOutRange);
+		ImGui::BeginDisabled(!activeDist.simplifyParams.cutOutZValues);
+		ImGui::InputFloat2("", activeDist.simplifyParams.cutOutRange);
 		ImGui::EndDisabled();
 		ImGui::SameLine();
-		ImGui::Checkbox("cut out z range", parameter.cutOutZValues);
+		ImGui::Checkbox("cut out z range", activeDist.simplifyParams.cutOutZValues);
 
 		ImGui::SeparatorText("Binning options");
 		ImGui::SetNextItemWidth(150.0f);
@@ -214,8 +209,8 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 			{
 				for (auto& filename : filenames)
 				{
-					EnergyDistribution* energyDist = FileHandler::GetInstance().LoadEnergyDistribution(filename, loadSamples);
-					AddDistributionToList(*energyDist);
+					EnergyDistribution energyDist = FileHandler::GetInstance().LoadEnergyDistribution(filename, loadSamples);
+					AddDistributionToList(std::move(energyDist));
 				}
 			}
 		}
@@ -315,7 +310,7 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 }
 
 
-void EnergyDistributionManager::AddDistributionToList(EnergyDistribution& distribution)
+void EnergyDistributionManager::AddDistributionToList(EnergyDistribution&& distribution)
 {
 	// will call move Constructor
 	energyDistributions.emplace_back(std::move(distribution));
@@ -332,17 +327,16 @@ void EnergyDistributionManager::RemoveDistributionFromList(int index)
 void EnergyDistributionManager::GenerateEnergyDistribution()
 {
 	// final setup of current distribution
-	currentDistribution.CopyParameters();
-	currentDistribution.SetupLabellingThings();
-	currentDistribution.SetupBinning(binSettings);
+	activeDist.SetupLabellingThings();
+	activeDist.SetupBinning(binSettings);
 
-	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
-	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
-	LabEnergies* labEnergies = (LabEnergies*)Module::Get("Lab Energies");
+	MCMC* mcmc = (MCMC*)EnergyDistributionModule::Get("MCMC");
+	ElectronBeam* eBeam = (ElectronBeam*)EnergyDistributionModule::Get("Electron Beam");
+	LabEnergies* labEnergies = (LabEnergies*)EnergyDistributionModule::Get("Lab Energies");
 
 	// sample positions from electron density multiplied with ion density given from outside
 	std::vector<Point3D> positionSamples = mcmc->GetSamples();
-	currentDistribution.collisionEnergies.reserve(positionSamples.size());
+	activeDist.collisionEnergies.reserve(positionSamples.size());
 
 	if (positionSamples.empty())
 	{
@@ -363,10 +357,10 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 		double x = point.x;
 		double y = point.y;
 		double z = point.z;
-		if (parameter.cutOutZValues)
+		if (activeDist.simplifyParams.cutOutZValues)
 		{
-			if (z < parameter.cutOutRange.get().x ||
-				z > parameter.cutOutRange.get().y)
+			if (z < activeDist.simplifyParams.cutOutRange.get().x ||
+				z > activeDist.simplifyParams.cutOutRange.get().y)
 				continue;
 		}
 		
@@ -406,48 +400,48 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 										 + sqrt(2) * transverseAddition * transverseDirection;
 
 		// calculate collision velocity vector and magnitude using a fixed ion beam velocity
-		double ionVelocityMagnitude = TMath::Sqrt(2 * eBeam->GetParameter().coolingEnergy * TMath::Qe() / PhysicalConstants::electronMass); // calc from cooling energy;
+		double ionVelocityMagnitude = TMath::Sqrt(2 * activeDist.eBeamParameter.coolingEnergy * TMath::Qe() / PhysicalConstants::electronMass); // calc from cooling energy;
 		TVector3 ionVelocity(0, 0, ionVelocityMagnitude);
 
 		double collisionVelocity = (finalElectronVelocity - ionVelocity).Mag();
 
 		// calculate collision energy [eV] and put it in a histogram
 		double collisionEnergy = 0.5 * PhysicalConstants::electronMass * collisionVelocity * collisionVelocity / TMath::Qe();
-		currentDistribution.Fill(collisionEnergy);
-		currentDistribution.collisionEnergies.push_back(collisionEnergy);
+		activeDist.Fill(collisionEnergy);
+		activeDist.collisionEnergies.push_back(collisionEnergy);
 	}
 
-	currentDistribution.FillVectorsFromHist();
-	currentDistribution.RemoveEdgeZeros();
-	currentDistribution.FitAnalyticalToPeak();
+	activeDist.FillVectorsFromHist();
+	activeDist.RemoveEdgeZeros();
+	activeDist.FitAnalyticalToPeak();
 
-	std::cout << "Ed1: " << currentDistribution.eBeamParameter.detuningEnergy << "\n";
+	std::cout << "Ed1: " << activeDist.eBeamParameter.detuningEnergy << "\n";
 
 	if (saveAsHist)
 	{
-		FileHandler::GetInstance().SaveEnergyDistributionHistToFile(currentDistribution);
+		FileHandler::GetInstance().SaveEnergyDistributionHistToFile(activeDist);
 	}
 	
 	if (saveSamplesToFile)
 	{
-		FileHandler::GetInstance().SaveEnergyDistributionSamplesToFile(currentDistribution);
+		FileHandler::GetInstance().SaveEnergyDistributionSamplesToFile(activeDist);
 	}
 
 	// store/move and save current distribution that has been worked on
-	AddDistributionToList(currentDistribution);
+	AddDistributionToList(std::move(activeDist));
 
 	// create new distribution object that will be worked on now
-	//currentDistribution = new EnergyDistribution();
+	//activeDist = new EnergyDistribution();
 }
 
 void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesystem::path file)
 {
 	// get all necessary modules
 	FileHandler fileHandler = FileHandler::GetInstance();
-	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
-	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
-	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
-	LabEnergies* labEnergies = (LabEnergies*)Module::Get("Lab Energies");
+	ElectronBeam* eBeam = (ElectronBeam*)EnergyDistributionModule::Get("Electron Beam");
+	IonBeam* ionBeam = (IonBeam*)EnergyDistributionModule::Get("Ion Beam");
+	MCMC* mcmc = (MCMC*)EnergyDistributionModule::Get("MCMC");
+	LabEnergies* labEnergies = (LabEnergies*)EnergyDistributionModule::Get("Lab Energies");
 
 	int end = endIndex;
 	int start = startIndex;
@@ -466,10 +460,11 @@ void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesys
 		if (!additionalParameter[0]) continue;
 
 		// set read electron current and center lab energy
-		labEnergies->GetParameter().driftTubeVoltage = additionalParameter[0];
-		eBeam->GetParameter().electronCurrent = additionalParameter[1];
-		labEnergies->GetParameter().centerLabEnergy = additionalParameter[2];
-		eBeam->GetParameter().longitudinal_kT = eBeam->GetLongitudinal_kT(additionalParameter[2]);
+		activeDist.labEnergiesParameter.driftTubeVoltage = additionalParameter[0];
+		activeDist.eBeamParameter.electronCurrent = additionalParameter[1];
+		activeDist.labEnergiesParameter.centerLabEnergy = additionalParameter[2];
+		activeDist.eBeamParameter.longitudinal_kT_estimate = eBeam->GetLongitudinal_kT(additionalParameter[2]);
+		eBeam->CalculateDetuningEnergy();
 		
 		// full procedure to generate one energy distribution 
 		// 1. setup necessary distributions
@@ -494,9 +489,9 @@ void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesys
 
 void EnergyDistributionManager::SetupSecondaryPlots()
 {
-	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
+	ElectronBeam* eBeam = (ElectronBeam*)EnergyDistributionModule::Get("Electron Beam");
 
-	double kTLongGuess = eBeam->GetLongitudinal_kT(currentDistribution.labEnergiesParameter.centerLabEnergy);
+	double kTLongGuess = eBeam->GetLongitudinal_kT(activeDist.labEnergiesParameter.centerLabEnergy);
 	double sigmaGuess = TMath::Sqrt(kTLongGuess * TMath::Qe() / PhysicalConstants::electronMass);
 	std::cout << "long kT guess: " << kTLongGuess << "\n";
 

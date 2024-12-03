@@ -5,14 +5,16 @@
 #include "FileHandler.h"
 
 ElectronBeam::ElectronBeam()
-	: Distribution3D("Electron Beam")
+	: Distribution3D("Electron Beam"), m_parameters(activeDist.eBeamParameter)
 {
 	PlotTrajectory();
+
+	CalculateDetuningEnergy();
 }
 
 void ElectronBeam::SetupDistribution(std::filesystem::path densityfile)
 {
-	if (m_parameters.hasGaussianShape || m_parameters.hasCylindricalShape)
+	if (activeDist.simplifyParams.gaussianElectronBeam || activeDist.simplifyParams.cylindricalElectronBeam)
 	{
 		GenerateElectronBeamDensity();
 	}
@@ -22,18 +24,19 @@ void ElectronBeam::SetupDistribution(std::filesystem::path densityfile)
 	}
 }
 
-ElectronBeamParameters& ElectronBeam::GetParameter()
-{
-	return m_parameters;
-}
-
 TH3D* ElectronBeam::GetDistribution()
 {
-	if (m_parameters.hasGaussianShape || m_parameters.hasCylindricalShape)
+	if (activeDist.simplifyParams.gaussianElectronBeam || activeDist.simplifyParams.cylindricalElectronBeam)
 	{
 		return generatedBeamDensity;
 	}
 	return m_distribution;
+}
+
+void ElectronBeam::CalculateDetuningEnergy()
+{
+	m_parameters.detuningEnergy = pow(sqrt(activeDist.labEnergiesParameter.centerLabEnergy)
+		- sqrt(m_parameters.coolingEnergy), 2);
 }
 
 void ElectronBeam::LoadDensityFile(std::filesystem::path file)
@@ -59,7 +62,7 @@ void ElectronBeam::LoadDensityFile(std::filesystem::path file)
 
 TVector3 ElectronBeam::GetDirection(double z)
 {
-	if(m_parameters.hasNoBending)
+	if(activeDist.simplifyParams.noElectronBeamBend)
 		return TVector3(0, 0, 1);
 
 	double derivative = Derivative(z);
@@ -94,9 +97,9 @@ TVector3 ElectronBeam::GetNormal(double z)
 
 double ElectronBeam::GetLongitudinal_kT(double labEnergy)
 {
-	if (m_parameters.hasFixedLongitudinalTemperature)
+	if (activeDist.simplifyParams.fixedLongitudinalTemperature)
 	{
-		return m_parameters.longitudinal_kT;
+		return activeDist.eBeamParameter.longitudinal_kT_estimate;
 	}
 
 	// intermediate unit is [J] final unit is [eV]
@@ -124,12 +127,12 @@ void ElectronBeam::ShowUI()
 		PlotProjections();
 		PlotDensitySlice();
 
-		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
+		IonBeam* ionBeam = (IonBeam*)EnergyDistributionModule::Get("Ion Beam");
 		ionBeam->SetupDistribution();
 		ionBeam->PlotDistribution();
 		ionBeam->PlotIonBeamProjections();
 
-		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
+		MCMC* mcmc = (MCMC*)EnergyDistributionModule::Get("MCMC");
 		mcmc->SetupDistribution();
 		mcmc->PlotTargetDistribution();
 	}
@@ -145,21 +148,21 @@ void ElectronBeam::ShowUI()
 	ImGui::EndDisabled();
 
 	ImGui::Separator();
-	if (ImGui::Checkbox("gaussian beam shape", m_parameters.hasGaussianShape))
+	if (ImGui::Checkbox("gaussian beam shape", activeDist.simplifyParams.gaussianElectronBeam))
 	{
 		m_parameters.densityFile.get().clear();
-		m_parameters.hasCylindricalShape = false;
+		activeDist.simplifyParams.cylindricalElectronBeam = false;
 	}
 	ImGui::SameLine();
-	if (ImGui::Checkbox("cylindrical beam shape", m_parameters.hasCylindricalShape))
+	if (ImGui::Checkbox("cylindrical beam shape", activeDist.simplifyParams.cylindricalElectronBeam))
 	{
 		m_parameters.densityFile.get().clear();
-		m_parameters.hasGaussianShape = false;
+		activeDist.simplifyParams.gaussianElectronBeam = false;
 	}
-	ImGui::BeginDisabled(!(m_parameters.hasGaussianShape || m_parameters.hasCylindricalShape));
-	ImGui::InputDouble("radius [m]", m_parameters.radius);
+	ImGui::BeginDisabled(!(activeDist.simplifyParams.gaussianElectronBeam || activeDist.simplifyParams.cylindricalElectronBeam));
+	ImGui::InputDouble("radius [m]", activeDist.simplifyParams.electronBeamRadius);
 	ImGui::SameLine();
-	ImGui::Checkbox("exclude bend", m_parameters.hasNoBending);
+	ImGui::Checkbox("exclude bend", activeDist.simplifyParams.noElectronBeamBend);
 	if (ImGui::Button("generate density"))
 	{
 		GenerateElectronBeamDensity();
@@ -167,25 +170,28 @@ void ElectronBeam::ShowUI()
 		PlotProjections();
 		PlotDensitySlice();
 		
-		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
+		IonBeam* ionBeam = (IonBeam*)EnergyDistributionModule::Get("Ion Beam");
 		ionBeam->SetupDistribution();
 		ionBeam->PlotDistribution();
 		ionBeam->PlotIonBeamProjections();
 
-		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
+		MCMC* mcmc = (MCMC*)EnergyDistributionModule::Get("MCMC");
 		mcmc->SetupDistribution();
 		mcmc->PlotTargetDistribution();
 	}
 	ImGui::EndDisabled();
 
 	ImGui::Separator();
-	ImGui::Checkbox("use fixed longitudinal kT", m_parameters.hasFixedLongitudinalTemperature); 
-	ImGui::BeginDisabled(!m_parameters.hasFixedLongitudinalTemperature);
-	ImGui::InputDouble("longitudinal kT [eV]", m_parameters.longitudinal_kT);
+	ImGui::Checkbox("use fixed longitudinal kT", activeDist.simplifyParams.fixedLongitudinalTemperature);
+	ImGui::BeginDisabled(!activeDist.simplifyParams.fixedLongitudinalTemperature);
+	ImGui::InputDouble("longitudinal kT [eV]", activeDist.eBeamParameter.longitudinal_kT_estimate);
 	ImGui::EndDisabled();														
-	ImGui::InputDouble("cooling energy [eV]", m_parameters.coolingEnergy);		
+	if (ImGui::InputDouble("cooling energy [eV]", m_parameters.coolingEnergy))
+	{
+		CalculateDetuningEnergy();
+	}
 	ImGui::InputDouble("transverse kT [eV]", m_parameters.transverse_kT);		
-	ImGui::BeginDisabled(m_parameters.hasFixedLongitudinalTemperature);
+	ImGui::BeginDisabled(activeDist.simplifyParams.fixedLongitudinalTemperature);
 	ImGui::InputDouble("electron current: [A]", m_parameters.electronCurrent, 0.0, 0.0, "%.2e");	
 	ImGui::InputDouble("cathode radius [m]", m_parameters.cathodeRadius);		
 	ImGui::InputDouble("cathode Temperature [K]", m_parameters.cathodeTemperature); 
@@ -362,18 +368,18 @@ void ElectronBeam::GenerateElectronBeamDensity()
 
 				double ymean = 0;
 				double value = 0;
-				if (!m_parameters.hasNoBending)
+				if (!activeDist.simplifyParams.noElectronBeamBend)
 				{
 					ymean = Trajectory(z);
 				}
-				if (m_parameters.hasGaussianShape)
+				if (activeDist.simplifyParams.gaussianElectronBeam)
 				{
 					// Calculate the value using the Gaussian distribution centered at z = 0
-					value = exp(-(x * x + (y - ymean) * (y - ymean)) / (2.0 * m_parameters.radius * m_parameters.radius));
+					value = exp(-(x * x + (y - ymean) * (y - ymean)) / (2.0 * pow(activeDist.simplifyParams.electronBeamRadius, 2)));
 				}
-				else if (m_parameters.hasCylindricalShape)
+				else if (activeDist.simplifyParams.cylindricalElectronBeam)
 				{
-					if (x * x + (y - ymean) * (y - ymean) <= m_parameters.radius * m_parameters.radius)
+					if (x * x + (y - ymean) * (y - ymean) <= pow(activeDist.simplifyParams.electronBeamRadius, 2))
 					{
 						// if inside the cylinder, set the value to an arbitrary constant value
 						value = 1;
