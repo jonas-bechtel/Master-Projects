@@ -8,7 +8,7 @@ int Distribution3D::s_rebinningFactors[3] = { 10, 10, 10 };
 EnergyDistribution EnergyDistributionModule::activeDist;
 
 EnergyDistributionModule::EnergyDistributionModule(std::string name)
-	: m_name(name)//, m_parameters(Parameters(name + " parameters"))
+	: m_name(name)
 {
 	s_moduleMap[name] = this;
 	
@@ -32,13 +32,9 @@ std::unordered_map<std::string, EnergyDistributionModule*>& EnergyDistributionMo
 	return s_moduleMap;
 }
 
-//Parameters Module::GetParameter()
-//{
-//	return m_parameters;
-//}
-
 void EnergyDistributionModule::ShowWindow()
 {
+	//ImGui::begin
 	if (ImGui::Begin((m_name + " Window").c_str()))
 	{
 		ImGui::PushItemWidth(100.0f);

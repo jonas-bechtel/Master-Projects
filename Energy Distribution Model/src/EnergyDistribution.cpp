@@ -1,6 +1,5 @@
 #include "pch.h"
 
-#include "EnergyDistributionManager.h"
 #include "EnergyDistribution.h"
 #include "AnalyticalDistribution.h"
 #include "Constants.h"

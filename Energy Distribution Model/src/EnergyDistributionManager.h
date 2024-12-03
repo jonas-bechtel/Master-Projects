@@ -6,21 +6,6 @@
 #include "LabEnergies.h"
 #include "EnergyDistribution.h"
 
-struct BinningSettings
-{
-	float energyRange[2] = { 1e-3, 100 };
-
-	bool constantBinSize = false;
-	double normalStepSize = 0.5;
-	double peakStepSize = 0.01;
-
-	bool factorBinning = true;
-	int binsPerDecade = 20;
-	int binsAtPeak = 50;
-
-	bool increasePeakResolution = true;
-};
-
 class EnergyDistributionManager : public EnergyDistributionModule
 {
 public:

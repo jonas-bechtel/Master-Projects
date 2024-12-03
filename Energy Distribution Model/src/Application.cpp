@@ -233,13 +233,23 @@ void Application::ShowWindows()
 {
     ImGui::DockSpaceOverViewport();
 
-    
-    auto modules = EnergyDistributionModule::GetModuleMap();
-    for (auto& [name, module] : modules)
+    if (ImGui::Begin("Energy Distribution Generation Window"))
     {
-        module->ShowWindow();
+        ImGuiID dockspace_id = ImGui::GetID("e-dist generation");
+        ImGui::DockSpace(dockspace_id);
+
+        auto modules = EnergyDistributionModule::GetModuleMap();
+        for (auto& [name, module] : modules)
+        {
+            module->ShowWindow();
+        }
     }
-   
+    if (ImGui::Begin("Cross Section Deconvolution Window"))
+    {
+        ImGuiID dockspace_id = ImGui::GetID("cs deconvolution");
+        ImGui::DockSpace(dockspace_id);
+    }
+    
 
     //ImGui::ShowDemoWindow();
     //ImPlot::ShowDemoWindow();
