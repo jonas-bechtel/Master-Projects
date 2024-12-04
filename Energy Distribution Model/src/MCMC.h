@@ -3,7 +3,7 @@
 #include "Module.h"
 #include "Point3D.h"
 
-class MCMC : public Distribution3D
+class MCMC : public EnergyDistributionModule
 {
 public:
 	MCMC();

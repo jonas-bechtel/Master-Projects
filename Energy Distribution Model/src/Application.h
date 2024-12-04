@@ -20,7 +20,7 @@ private:
 	IonBeam ionBeam;
 	MCMC mcmc;
 	LabEnergies labEnergies;
-	EnergyDistributionManager model;
+	EnergyDistributionManager manager;
 
 	CrossSection crossSection;
 };

@@ -4,7 +4,7 @@
 #include "FileHandler.h"
 
 LabEnergies::LabEnergies()
-	: Distribution3D("Lab Energies"), m_parameters(activeDist.labEnergiesParameter)
+	: EnergyDistributionModule("Lab Energies"), m_parameters(activeDist.labEnergiesParameter)
 {
 	
 }
@@ -213,7 +213,7 @@ void LabEnergies::PlotOutInsideEnergyOnZ()
 	if (labEnergyInside) delete labEnergyInside;
 	if (labEnergyOutside) delete labEnergyOutside;
 
-	ElectronBeam* eBeam = (ElectronBeam*)EnergyDistributionModule::Get("Electron Beam");
+	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
 
 	labEnergyInside = new TGraph(m_distribution->GetNbinsZ());
 	labEnergyOutside = new TGraph(m_distribution->GetNbinsZ());

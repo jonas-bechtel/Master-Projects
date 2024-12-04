@@ -3,7 +3,7 @@
 #include "Module.h"
 #include "Point3D.h"
 
-class ElectronBeam : public Distribution3D
+class ElectronBeam : public EnergyDistributionModule
 {
 public:
 	ElectronBeam();

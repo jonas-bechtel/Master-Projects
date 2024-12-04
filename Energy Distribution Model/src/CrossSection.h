@@ -2,7 +2,7 @@
 
 #include "Module.h"
 
-class CrossSection : public EnergyDistributionModule
+class CrossSection : public Module
 {
 	enum Binning {PaperBinning, ConstantBinning, FactorBinning, PaperFactorMix, Paper_FWHM};
 

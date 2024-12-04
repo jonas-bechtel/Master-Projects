@@ -94,6 +94,9 @@ void EnergyDistributionManager::ShowSettings()
 		ImGui::SameLine();
 		ImGui::Checkbox("cut out z range", activeDist.simplifyParams.cutOutZValues);
 
+		ImGui::SeparatorText("input things");
+		ImGui::SeparatorText("output things");
+
 		ImGui::SeparatorText("Binning options");
 		ImGui::SetNextItemWidth(150.0f);
 		ImGui::InputFloat2("energy range", binSettings.energyRange, "%.1e");
@@ -330,9 +333,9 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 	activeDist.SetupLabellingThings();
 	activeDist.SetupBinning(binSettings);
 
-	MCMC* mcmc = (MCMC*)EnergyDistributionModule::Get("MCMC");
-	ElectronBeam* eBeam = (ElectronBeam*)EnergyDistributionModule::Get("Electron Beam");
-	LabEnergies* labEnergies = (LabEnergies*)EnergyDistributionModule::Get("Lab Energies");
+	MCMC* mcmc = (MCMC*)Get("MCMC");
+	ElectronBeam* eBeam = (ElectronBeam*)Get("Electron Beam");
+	LabEnergies* labEnergies = (LabEnergies*)Get("Lab Energies");
 
 	// sample positions from electron density multiplied with ion density given from outside
 	std::vector<Point3D> positionSamples = mcmc->GetSamples();
@@ -438,10 +441,10 @@ void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesys
 {
 	// get all necessary modules
 	FileHandler fileHandler = FileHandler::GetInstance();
-	ElectronBeam* eBeam = (ElectronBeam*)EnergyDistributionModule::Get("Electron Beam");
-	IonBeam* ionBeam = (IonBeam*)EnergyDistributionModule::Get("Ion Beam");
-	MCMC* mcmc = (MCMC*)EnergyDistributionModule::Get("MCMC");
-	LabEnergies* labEnergies = (LabEnergies*)EnergyDistributionModule::Get("Lab Energies");
+	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
+	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
+	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
+	LabEnergies* labEnergies = (LabEnergies*)Module::Get("Lab Energies");
 
 	int end = endIndex;
 	int start = startIndex;
@@ -489,7 +492,7 @@ void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesys
 
 void EnergyDistributionManager::SetupSecondaryPlots()
 {
-	ElectronBeam* eBeam = (ElectronBeam*)EnergyDistributionModule::Get("Electron Beam");
+	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
 
 	double kTLongGuess = eBeam->GetLongitudinal_kT(activeDist.labEnergiesParameter.centerLabEnergy);
 	double sigmaGuess = TMath::Sqrt(kTLongGuess * TMath::Qe() / PhysicalConstants::electronMass);

@@ -238,16 +238,24 @@ void Application::ShowWindows()
         ImGuiID dockspace_id = ImGui::GetID("e-dist generation");
         ImGui::DockSpace(dockspace_id);
 
-        auto modules = EnergyDistributionModule::GetModuleMap();
-        for (auto& [name, module] : modules)
-        {
-            module->ShowWindow();
-        }
+        mcmc.ShowWindow();
+        electronBeam.ShowWindow();
+        ionBeam.ShowWindow();
+        labEnergies.ShowWindow();
+        manager.ShowWindow();
+
+        //auto modules = Module::GetModuleMap();
+        //for (auto& [name, module] : modules)
+        //{
+        //    module->ShowWindow();
+        //}
     }
     if (ImGui::Begin("Cross Section Deconvolution Window"))
     {
         ImGuiID dockspace_id = ImGui::GetID("cs deconvolution");
         ImGui::DockSpace(dockspace_id);
+
+        crossSection.ShowWindow();
     }
     
 

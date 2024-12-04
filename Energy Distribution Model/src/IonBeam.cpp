@@ -6,13 +6,13 @@
 #include "EnergyDistribution.h"
 
 IonBeam::IonBeam()
-	: Distribution3D("Ion Beam"), m_parameters(activeDist.ionBeamParameter)
+	: EnergyDistributionModule("Ion Beam"), m_parameters(activeDist.ionBeamParameter)
 {
 }
 
 void IonBeam::SetupDistribution(std::filesystem::path file)
 {
-	ElectronBeam* eBeam = (ElectronBeam*)EnergyDistributionModule::Get("Electron Beam");
+	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
 	TH3D* electronBeam = eBeam->GetDistribution();
 
 	if (!electronBeam) return;
@@ -59,7 +59,7 @@ void IonBeam::SetupDistribution(std::filesystem::path file)
 
 TH3D* IonBeam::MultiplyWithElectronDensities()
 {
-	ElectronBeam* eBeam = (ElectronBeam*)EnergyDistributionModule::Get("Electron Beam");
+	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
 	TH3D* electronDensities = eBeam->GetDistribution();
 
 	if (!electronDensities)
@@ -113,7 +113,7 @@ void IonBeam::ShowUI()
 
 	if(somethingChanged)
 	{
-		MCMC* mcmc = (MCMC*)EnergyDistributionModule::Get("MCMC");
+		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 		SetupDistribution();
 		mcmc->SetupDistribution();
 	

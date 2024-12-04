@@ -5,7 +5,7 @@
 #include "FileHandler.h"
 
 ElectronBeam::ElectronBeam()
-	: Distribution3D("Electron Beam"), m_parameters(activeDist.eBeamParameter)
+	: EnergyDistributionModule("Electron Beam"), m_parameters(activeDist.eBeamParameter)
 {
 	PlotTrajectory();
 
@@ -127,12 +127,12 @@ void ElectronBeam::ShowUI()
 		PlotProjections();
 		PlotDensitySlice();
 
-		IonBeam* ionBeam = (IonBeam*)EnergyDistributionModule::Get("Ion Beam");
+		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 		ionBeam->SetupDistribution();
 		ionBeam->PlotDistribution();
 		ionBeam->PlotIonBeamProjections();
 
-		MCMC* mcmc = (MCMC*)EnergyDistributionModule::Get("MCMC");
+		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 		mcmc->SetupDistribution();
 		mcmc->PlotTargetDistribution();
 	}
@@ -170,12 +170,12 @@ void ElectronBeam::ShowUI()
 		PlotProjections();
 		PlotDensitySlice();
 		
-		IonBeam* ionBeam = (IonBeam*)EnergyDistributionModule::Get("Ion Beam");
+		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 		ionBeam->SetupDistribution();
 		ionBeam->PlotDistribution();
 		ionBeam->PlotIonBeamProjections();
 
-		MCMC* mcmc = (MCMC*)EnergyDistributionModule::Get("MCMC");
+		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 		mcmc->SetupDistribution();
 		mcmc->PlotTargetDistribution();
 	}

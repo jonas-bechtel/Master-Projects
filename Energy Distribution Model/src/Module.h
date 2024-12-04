@@ -4,14 +4,14 @@
 
 struct EnergyDistribution;
 
-class EnergyDistributionModule
+class Module
 {
 public:
-	EnergyDistributionModule(std::string name);
-	virtual ~EnergyDistributionModule();
+	Module(std::string name);
+	virtual ~Module();
 
-	static EnergyDistributionModule* Get(std::string name);
-	static std::unordered_map<std::string, EnergyDistributionModule*>& GetModuleMap();
+	static Module* Get(std::string name);
+	static std::unordered_map<std::string, Module*>& GetModuleMap();
 
 	void ShowWindow();
 
@@ -25,28 +25,29 @@ private:
 	virtual void ShowUI() = 0;
 
 protected:
-	static std::unordered_map<std::string, EnergyDistributionModule*> s_moduleMap;
+	static std::unordered_map<std::string, Module*> s_moduleMap;
 	
-	static EnergyDistribution activeDist;
 	std::string m_name;
 	TCanvas* m_mainCanvas;
 	TCanvas* m_secondCanvas;
 };
 
-class Distribution3D : public EnergyDistributionModule
+class EnergyDistributionModule : public Module
 {
 public:
-	Distribution3D(std::string name);
+	EnergyDistributionModule(std::string name);
 	virtual void SetupDistribution(std::filesystem::path = "") = 0;
 	virtual TH3D* GetDistribution();
 	void PlotDistribution();
 	 
-	virtual ~Distribution3D() override;
+	virtual ~EnergyDistributionModule() override;
 
 protected:
 	bool RebinningFactorInput();
 
 protected:
+	static EnergyDistribution activeDist;
+
 	TH3D* m_distribution;
 	TH3D* m_distributionSmall;
 

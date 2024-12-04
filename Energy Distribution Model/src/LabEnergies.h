@@ -2,7 +2,7 @@
 
 #include "Module.h"
 
-class LabEnergies : public Distribution3D
+class LabEnergies : public EnergyDistributionModule
 {
 public:
 	LabEnergies();

@@ -3,11 +3,11 @@
 #include "Module.h"
 #include "EnergyDistribution.h"
 
-std::unordered_map<std::string, EnergyDistributionModule*> EnergyDistributionModule::s_moduleMap;
-int Distribution3D::s_rebinningFactors[3] = { 10, 10, 10 };
+std::unordered_map<std::string, Module*> Module::s_moduleMap;
+int EnergyDistributionModule::s_rebinningFactors[3] = { 10, 10, 10 };
 EnergyDistribution EnergyDistributionModule::activeDist;
 
-EnergyDistributionModule::EnergyDistributionModule(std::string name)
+Module::Module(std::string name)
 	: m_name(name)
 {
 	s_moduleMap[name] = this;
@@ -22,17 +22,17 @@ EnergyDistributionModule::EnergyDistributionModule(std::string name)
 	HideCanvas(m_secondCanvas);
 }
 
-EnergyDistributionModule* EnergyDistributionModule::Get(std::string name)
+Module* Module::Get(std::string name)
 {
 	return s_moduleMap.at(name);
 }
 
-std::unordered_map<std::string, EnergyDistributionModule*>& EnergyDistributionModule::GetModuleMap()
+std::unordered_map<std::string, Module*>& Module::GetModuleMap()
 {
 	return s_moduleMap;
 }
 
-void EnergyDistributionModule::ShowWindow()
+void Module::ShowWindow()
 {
 	//ImGui::begin
 	if (ImGui::Begin((m_name + " Window").c_str()))
@@ -54,29 +54,29 @@ void EnergyDistributionModule::ShowWindow()
 	UpdateCanvas();
 }
 
-EnergyDistributionModule::~EnergyDistributionModule()
+Module::~Module()
 {
 	delete m_mainCanvas;
 	delete m_secondCanvas;
 }
 
-bool EnergyDistributionModule::IsCanvasShown(TCanvas* canvas)
+bool Module::IsCanvasShown(TCanvas* canvas)
 {
 	return ((TRootCanvas*)canvas->GetCanvasImp())->IsMapped();
 }
 
-void EnergyDistributionModule::ShowCanvas(TCanvas* canvas)
+void Module::ShowCanvas(TCanvas* canvas)
 {
 	((TRootCanvas*)canvas->GetCanvasImp())->MapRaised();
 
 }
 
-void EnergyDistributionModule::HideCanvas(TCanvas* canvas)
+void Module::HideCanvas(TCanvas* canvas)
 {
 	((TRootCanvas*)canvas->GetCanvasImp())->UnmapWindow();
 }
 
-void EnergyDistributionModule::ShowHideCanvasButton(TCanvas* canvas)
+void Module::ShowHideCanvasButton(TCanvas* canvas)
 {
 	if (ImGui::Button(("Show/Hide " + std::string(canvas->GetTitle())).c_str()))
 	{
@@ -92,7 +92,7 @@ void EnergyDistributionModule::ShowHideCanvasButton(TCanvas* canvas)
 	}
 }
 
-void EnergyDistributionModule::UpdateCanvas()
+void Module::UpdateCanvas()
 {
 	m_mainCanvas->cd();
 	m_mainCanvas->Modified();
@@ -103,18 +103,18 @@ void EnergyDistributionModule::UpdateCanvas()
 	m_secondCanvas->Update();
 }
 
-Distribution3D::Distribution3D(std::string name)
-	: EnergyDistributionModule(name)
+EnergyDistributionModule::EnergyDistributionModule(std::string name)
+	: Module(name)
 {
 
 }
 
-TH3D* Distribution3D::GetDistribution()
+TH3D* EnergyDistributionModule::GetDistribution()
 {
 	return m_distribution;
 }
 
-void Distribution3D::PlotDistribution()
+void EnergyDistributionModule::PlotDistribution()
 {
 	if (!m_distribution) return;
 	if (m_distributionSmall) delete m_distributionSmall;
@@ -131,13 +131,13 @@ void Distribution3D::PlotDistribution()
 	m_distributionSmall->Draw("BOX2 COLZ");
 }
 
-Distribution3D::~Distribution3D()
+EnergyDistributionModule::~EnergyDistributionModule()
 {
 	delete m_distribution;
 	delete m_distributionSmall;
 }
 
-bool Distribution3D::RebinningFactorInput()
+bool EnergyDistributionModule::RebinningFactorInput()
 {
 	return ImGui::InputInt3("Rebinning factors", s_rebinningFactors);
 }

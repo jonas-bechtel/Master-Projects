@@ -15,6 +15,8 @@ public:
 	void GenerateEnergyDistributionsFromFile(std::filesystem::path file);
 
 private:
+	void SetupDistribution(std::filesystem::path = "") override {}
+
 	void ShowUI() override;
 	void ShowSettings();
 	void ShowEnergyDistributionList();
