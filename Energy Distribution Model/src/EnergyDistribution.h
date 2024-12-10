@@ -4,7 +4,7 @@
 
 struct BinningSettings
 {
-	float energyRange[2] = { 1e-3, 100 };
+	float energyRange[2] = { 1e-7, 100 };
 
 	bool constantBinSize = false;
 	double normalStepSize = 0.5;

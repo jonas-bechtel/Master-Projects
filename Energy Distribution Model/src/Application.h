@@ -3,6 +3,7 @@
 #include "MCMC.h"
 #include "EnergyDistributionManager.h"
 #include "CrossSection.h"
+#include "RateCoefficient.h"
 
 class Application
 {
@@ -23,5 +24,7 @@ private:
 	EnergyDistributionManager manager;
 
 	CrossSection crossSection;
+	RateCoefficient rateCoefficient;
+
 };
 

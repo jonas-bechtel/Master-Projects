@@ -6,9 +6,13 @@
 # data Files
 *.asc
 *.samples
+*.dat
 
 # screenshots
 *.PNG
+*.png
+
+*.toml
 
 # User-specific files
 *.rsuser

@@ -3,6 +3,7 @@
 #include "CrossSection.h"
 #include "EnergyDistributionManager.h"
 #include "Constants.h"
+#include "RateCoefficient.h"
 
 
 CrossSection::CrossSection()
@@ -788,22 +789,7 @@ void CrossSection::ShowUI()
 	ImGui::Checkbox("log X", &logX);
 	ImGui::SameLine();
 	ImGui::Checkbox("log Y", &logY);
-	if (ImPlot::BeginPlot("rate coefficient"))
-	{
-		ImPlot::SetupAxis(ImAxis_X1, "detuning energy [eV]");
-		ImPlot::SetupAxis(ImAxis_Y1, "rate coefficient");
-		if (logX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
-		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
-
-		ImPlot::SetupLegend(ImPlotLocation_NorthEast);
-
-		ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
-		ImPlot::PlotLine("rate coefficient", rateCoefficients->GetX(), rateCoefficients->GetY(), rateCoefficients->GetN());
-		ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
-		ImPlot::PlotLine("rate coefficient fit", rateCoefficientsFit->GetX(), rateCoefficientsFit->GetY(), rateCoefficientsFit->GetN());
-		
-		ImPlot::EndPlot();
-	}
+	
 
 	if (ImGui::Button("calculate rate Coefficients"))
 	{

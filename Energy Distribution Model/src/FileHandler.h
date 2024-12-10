@@ -2,6 +2,8 @@
 
 #include "EnergyDistributionManager.h"
 
+struct mbrcData;
+
 class FileHandler
 {
 public:
@@ -10,13 +12,14 @@ public:
 		static FileHandler instance;
 		return instance;
 	}
-	std::filesystem::path SelectFile(const std::filesystem::path& startPath = "data\\");
+	std::filesystem::path SelectFile(const std::filesystem::path& startPath = "data\\", const std::vector<const char*>& filterPatterns = { "*.asc" });
 	std::vector<std::filesystem::path> SelectFiles(const std::filesystem::path& startPath = "data\\");
 	std::filesystem::path FindFileWithIndex(const std::filesystem::path& folder, int index);
 
 	TH3D* LoadMatrixFile(const std::filesystem::path& filename);
 	//EnergyDistribution* LoadEnergyDistributionSamples(const std::filesystem::path& filename);
 	EnergyDistribution LoadEnergyDistribution(std::filesystem::path& filename, bool loadSamples);
+	std::vector<mbrcData> LoadRateCoefficients(std::filesystem::path& filename);
 
 	int GetMaxIndex(std::filesystem::path energiesFile);
 	std::array<float, 3> GetParamtersFromDescriptionFileAtIndex(const std::filesystem::path& descriptionFile, int index);

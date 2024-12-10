@@ -4,6 +4,8 @@
 
 #include "tinyfiledialogs.h"
 
+#include "RateCoefficient.h"
+
 
 TH3D* FileHandler::LoadMatrixFile(const std::filesystem::path& filename)
 {
@@ -128,6 +130,31 @@ EnergyDistribution FileHandler::LoadEnergyDistribution(std::filesystem::path& fi
     return energyDist;
 }
 
+std::vector<mbrcData> FileHandler::LoadRateCoefficients(std::filesystem::path& filename)
+{
+    std::ifstream file(filename);
+
+    std::vector<mbrcData> list;
+
+    // Check if the file was successfully opened
+    if (!file.is_open())
+    {
+        std::cerr << "Error: Could not open the file " << filename << std::endl;
+        return list;
+    }
+
+    std::string line;
+    // skip first line
+    std::getline(file, line);
+    while (std::getline(file, line))
+    {
+        std::vector<std::string> tokens = SplitLine(line, "\t");
+        list.emplace_back( std::stod(tokens[0]), std::stod(tokens[1]), std::stod(tokens[3]));
+    }
+
+    return list;
+}
+
 int FileHandler::GetMaxIndex(std::filesystem::path energiesFile)
 {
     std::ifstream file(energiesFile);
@@ -186,14 +213,14 @@ std::array<float, 3> FileHandler::GetParamtersFromDescriptionFileAtIndex(const s
     return parameter;
 }
 
-std::filesystem::path FileHandler::SelectFile(const std::filesystem::path& startPath)
+std::filesystem::path FileHandler::SelectFile(const std::filesystem::path& startPath, const std::vector<const char*>& filterPatterns)
 {
-    const char* filterPatterns[] = { "*.asc" };
+    //const char* filterPatterns[] = { "*.asc" };
     const char* filePath = tinyfd_openFileDialog(
         "Choose a file",               // Dialog title
         startPath.string().c_str(),    // Default path or file
         1,                             // Number of filters
-        filterPatterns,                // Filter patterns (NULL for any file type)
+        filterPatterns.data(),                // Filter patterns (NULL for any file type)
         NULL,                          // Filter description (optional)
         0                              // Allow multiple selection (0 = false)
     );

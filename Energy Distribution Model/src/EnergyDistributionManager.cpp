@@ -12,7 +12,7 @@ EnergyDistributionManager::EnergyDistributionManager()
 	m_mainCanvas->Divide(3,2);
 	m_mainCanvas->SetWindowSize(1500, 800);
 
-	energyDistributions.reserve(5);
+	energyDistributions.reserve(100);
 }
 
 std::vector<EnergyDistribution>& EnergyDistributionManager::GetEnergyDistributions()
@@ -312,12 +312,12 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 	}
 }
 
-
 void EnergyDistributionManager::AddDistributionToList(EnergyDistribution&& distribution)
 {
 	// will call move Constructor
 	energyDistributions.emplace_back(std::move(distribution));
 	EnergyDistribution& justMoved = energyDistributions.back();
+	std::cout << "E_d: " << justMoved.eBeamParameter.detuningEnergy << std::endl;
 	EnergyDistribution::s_allDistributions[justMoved.eBeamParameter.detuningEnergy] = &justMoved;
 }
 

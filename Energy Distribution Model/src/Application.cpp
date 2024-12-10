@@ -256,6 +256,7 @@ void Application::ShowWindows()
         ImGui::DockSpace(dockspace_id);
 
         crossSection.ShowWindow();
+        rateCoefficient.ShowWindow();
     }
     
 

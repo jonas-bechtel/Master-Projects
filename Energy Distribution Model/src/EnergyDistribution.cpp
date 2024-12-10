@@ -9,7 +9,7 @@ std::unordered_map<double, EnergyDistribution*> EnergyDistribution::s_allDistrib
 EnergyDistribution::EnergyDistribution()
 	: TH1D()
 {
-	std::cout << "calling Energy Distribution default Constructor" << std::endl;
+	//std::cout << "calling Energy Distribution default Constructor" << std::endl;
 }
 
 EnergyDistribution::~EnergyDistribution()
@@ -23,7 +23,7 @@ EnergyDistribution::~EnergyDistribution()
 			break;
 		}
 	}
-	std::cout << "calling Energy Distribution destructor" << std::endl;
+	//std::cout << "calling Energy Distribution destructor" << std::endl;
 }
 
 EnergyDistribution::EnergyDistribution(EnergyDistribution&& other)
@@ -59,7 +59,7 @@ EnergyDistribution::EnergyDistribution(EnergyDistribution&& other)
 
 	other.ResetDefaultValues();
 
-	std::cout << "calling Energy Distribution Move Constructor" << std::endl;
+	//std::cout << "calling Energy Distribution Move Constructor" << std::endl;
 }
 
 EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other)
@@ -96,7 +96,7 @@ EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other)
 
 	other.ResetDefaultValues();
 
-	std::cout << "calling Energy Distribution Move assignment operator" << std::endl;
+	//std::cout << "calling Energy Distribution Move assignment operator" << std::endl;
 
 	return *this;
 }

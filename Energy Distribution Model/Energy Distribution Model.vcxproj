@@ -156,6 +156,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\RateCoefficient.cpp" />
     <ClCompile Include="src\AnalyticalDistribution.cpp" />
     <ClCompile Include="src\CrossSection.cpp" />
     <ClCompile Include="src\EnergyDistribution.cpp" />
@@ -242,6 +243,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\RateCoefficient.h" />
     <ClInclude Include="src\AnalyticalDistribution.h" />
     <ClInclude Include="src\Parameter.h" />
     <ClInclude Include="src\CrossSection.h" />
