@@ -6,7 +6,7 @@
 #include "LabEnergies.h"
 #include "EnergyDistribution.h"
 
-class EnergyDistributionManager : public EnergyDistributionModule
+class EnergyDistributionManager : public EnergyDistributionModule, public EnergyDistribtionListContainer
 {
 public:
 	EnergyDistributionManager();
@@ -33,9 +33,7 @@ private:
 
 	void ClearDistributionList();
 
-private:
-	std::vector<EnergyDistribution> energyDistributions;
-	
+private:	
 	// graphs and plots
 	TH1D* zPositions = nullptr;
 	TH1D* zWeightByEnergy = nullptr;

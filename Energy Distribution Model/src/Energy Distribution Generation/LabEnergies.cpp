@@ -6,7 +6,7 @@
 LabEnergies::LabEnergies()
 	: EnergyDistributionModule("Lab Energies"), m_parameters(activeDist.labEnergiesParameter)
 {
-	
+	labEnergies = this;
 }
 
 double LabEnergies::Get(double x, double y, double z)
@@ -212,8 +212,6 @@ void LabEnergies::PlotOutInsideEnergyOnZ()
 	if (!m_distribution) return;
 	if (labEnergyInside) delete labEnergyInside;
 	if (labEnergyOutside) delete labEnergyOutside;
-
-	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
 
 	labEnergyInside = new TGraph(m_distribution->GetNbinsZ());
 	labEnergyOutside = new TGraph(m_distribution->GetNbinsZ());

@@ -7,17 +7,19 @@
 EnergyDistributionManager::EnergyDistributionManager()
 	: EnergyDistributionModule("Energy Distribution Manager")
 {
+	manager = this;
+
 	m_mainCanvas->cd();
 	m_mainCanvas->Clear();
 	m_mainCanvas->Divide(3,2);
 	m_mainCanvas->SetWindowSize(1500, 800);
 
-	energyDistributions.reserve(100);
+	energyDistributionList.reserve(100);
 }
 
 std::vector<EnergyDistribution>& EnergyDistributionManager::GetEnergyDistributions()
 {
-	return energyDistributions;
+	return energyDistributionList;
 }
 
 void EnergyDistributionManager::ShowUI()
@@ -165,10 +167,10 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 		ImGui::Text("loaded distributions");
 		if (ImGui::BeginListBox("##", ImVec2(-1, 250)))
 		{
-			for (int i = 0; i < energyDistributions.size(); i++)
+			for (int i = 0; i < energyDistributionList.size(); i++)
 			{
 				ImGui::PushID(i);
-				EnergyDistribution& eDist = energyDistributions[i];
+				EnergyDistribution& eDist = energyDistributionList[i];
 
 				std::string label = eDist.label;
 				if (!eDist.tags.empty())
@@ -227,7 +229,7 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 		ImGui::SameLine();
 		if (ImGui::Button("clear plot"))
 		{
-			for (EnergyDistribution& eDist : energyDistributions)
+			for (EnergyDistribution& eDist : energyDistributionList)
 			{
 				eDist.plotted = false;
 			}
@@ -235,7 +237,7 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 		ImGui::SameLine();
 		if (ImGui::Button("plot all"))
 		{
-			for (EnergyDistribution& eDist : energyDistributions)
+			for (EnergyDistribution& eDist : energyDistributionList)
 			{
 				eDist.plotted = true;
 			}
@@ -243,7 +245,7 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 		ImGui::SameLine();
 		if (ImGui::Button("normalise all"))
 		{
-			for (EnergyDistribution& eDist : energyDistributions)
+			for (EnergyDistribution& eDist : energyDistributionList)
 			{
 				eDist.showNormalisedByWidth = true;
 			}
@@ -251,7 +253,7 @@ void EnergyDistributionManager::ShowEnergyDistributionList()
 		ImGui::SameLine();
 		if (ImGui::Button("unnormalise all"))
 		{
-			for (EnergyDistribution& eDist : energyDistributions)
+			for (EnergyDistribution& eDist : energyDistributionList)
 			{
 				eDist.showNormalisedByWidth = false;
 			}
@@ -276,7 +278,7 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
 		ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside);
 		int i = 0;
-		for (EnergyDistribution& eDist : energyDistributions)
+		for (EnergyDistribution& eDist : energyDistributionList)
 		{
 			if (eDist.plotted)
 			{
@@ -315,16 +317,16 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 void EnergyDistributionManager::AddDistributionToList(EnergyDistribution&& distribution)
 {
 	// will call move Constructor
-	energyDistributions.emplace_back(std::move(distribution));
-	EnergyDistribution& justMoved = energyDistributions.back();
+	energyDistributionList.emplace_back(std::move(distribution));
+	EnergyDistribution& justMoved = energyDistributionList.back();
 	std::cout << "E_d: " << justMoved.eBeamParameter.detuningEnergy << std::endl;
 	EnergyDistribution::s_allDistributions[justMoved.eBeamParameter.detuningEnergy] = &justMoved;
 }
 
 void EnergyDistributionManager::RemoveDistributionFromList(int index)
 {
-	//delete energyDistributions[index];
-	energyDistributions.erase(energyDistributions.begin() + index);
+	//delete energyDistributionList[index];
+	energyDistributionList.erase(energyDistributionList.begin() + index);
 }
 
 void EnergyDistributionManager::GenerateEnergyDistribution()
@@ -332,10 +334,6 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 	// final setup of current distribution
 	activeDist.SetupLabellingThings();
 	activeDist.SetupBinning(binSettings);
-
-	MCMC* mcmc = (MCMC*)Get("MCMC");
-	ElectronBeam* eBeam = (ElectronBeam*)Get("Electron Beam");
-	LabEnergies* labEnergies = (LabEnergies*)Get("Lab Energies");
 
 	// sample positions from electron density multiplied with ion density given from outside
 	std::vector<Point3D> positionSamples = mcmc->GetSamples();
@@ -441,10 +439,6 @@ void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesys
 {
 	// get all necessary modules
 	FileHandler fileHandler = FileHandler::GetInstance();
-	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
-	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
-	MCMC* mcmc = (MCMC*)Module::Get("MCMC");
-	LabEnergies* labEnergies = (LabEnergies*)Module::Get("Lab Energies");
 
 	int end = endIndex;
 	int start = startIndex;
@@ -492,8 +486,6 @@ void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesys
 
 void EnergyDistributionManager::SetupSecondaryPlots()
 {
-	ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
-
 	double kTLongGuess = eBeam->GetLongitudinal_kT(activeDist.labEnergiesParameter.centerLabEnergy);
 	double sigmaGuess = TMath::Sqrt(kTLongGuess * TMath::Qe() / PhysicalConstants::electronMass);
 	std::cout << "long kT guess: " << kTLongGuess << "\n";
@@ -516,24 +508,24 @@ void EnergyDistributionManager::PlotEnergyDistributions()
 
 	gPad->SetLogy();
 	gPad->SetLogx();
-	
+
 	// Create a legend
 	TLegend* legend = new TLegend(0.7, 0.7, 0.9, 0.9);
 
-	for (int i = 0; i < energyDistributions.size(); i++)
+	for (int i = 0; i < energyDistributionList.size(); i++)
 	{
-		//if (!energyDistributions[i]) return;
+		//if (!energyDistributionList[i]) return;
 		
-		energyDistributions[i].SetLineColor(colors[i % 5]);
-		legend->AddEntry(&energyDistributions[i], energyDistributions[i].label.c_str(), "l");
+		energyDistributionList[i].SetLineColor(colors[i % 5]);
+		legend->AddEntry(&energyDistributionList[i], energyDistributionList[i].label.c_str(), "l");
 
 		if (i == 0)
 		{
-			energyDistributions[i].Draw("HIST");
+			energyDistributionList[i].Draw("HIST");
 		}
 		else
 		{
-			energyDistributions[i].Draw("HIST SAME");
+			energyDistributionList[i].Draw("HIST SAME");
 		}
 	}
 	legend->Draw();
@@ -553,7 +545,7 @@ void EnergyDistributionManager::PLotZweightByEnergy()
 
 void EnergyDistributionManager::ClearDistributionList()
 {
-	for (int i = energyDistributions.size() - 1; i >= 0; i--)
+	for (int i = energyDistributionList.size() - 1; i >= 0; i--)
 	{
 		RemoveDistributionFromList(i);
 	}

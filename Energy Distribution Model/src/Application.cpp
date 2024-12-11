@@ -255,8 +255,8 @@ void Application::ShowWindows()
         ImGuiID dockspace_id = ImGui::GetID("cs deconvolution");
         ImGui::DockSpace(dockspace_id);
 
-        crossSection.ShowWindow();
-        rateCoefficient.ShowWindow();
+        crossSectionManager.ShowWindow();
+        rateCoefficientManager.ShowWindow();
     }
     
 

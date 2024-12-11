@@ -18,25 +18,25 @@
     <ClCompile Include="src\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\ElectronBeam.cpp">
+    <ClCompile Include="src\Energy Distribution Generation\ElectronBeam.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\EnergyDistributionManager.cpp">
+    <ClCompile Include="src\Energy Distribution Generation\EnergyDistributionManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\FileHandler.cpp">
+    <ClCompile Include="src\general\FileHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\MCMC.cpp">
+    <ClCompile Include="src\Energy Distribution Generation\MCMC.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\IonBeam.cpp">
+    <ClCompile Include="src\Energy Distribution Generation\IonBeam.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Module.cpp">
+    <ClCompile Include="src\general\Module.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vendor\tinyfiledialogs\tinyfiledialogs.c">
@@ -72,22 +72,31 @@
     <ClCompile Include="vendor\imgui_plot\implot_items.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\LabEnergies.cpp">
+    <ClCompile Include="src\Energy Distribution Generation\LabEnergies.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\CrossSection.cpp">
+    <ClCompile Include="src\Cross Section Deconvolution\CrossSection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\EnergyDistribution.cpp">
+    <ClCompile Include="src\Energy Distribution Generation\EnergyDistribution.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\AnalyticalDistribution.cpp">
+    <ClCompile Include="src\Energy Distribution Generation\AnalyticalDistribution.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\RateCoefficient.cpp">
+    <ClCompile Include="src\Cross Section Deconvolution\RateCoefficient.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Cross Section Deconvolution\RateCoefficientManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Cross Section Deconvolution\CrossSectionManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -95,28 +104,28 @@
     <ClInclude Include="src\Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\ElectronBeam.h">
+    <ClInclude Include="src\Energy Distribution Generation\ElectronBeam.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\EnergyDistributionManager.h">
+    <ClInclude Include="src\Energy Distribution Generation\EnergyDistributionManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\FileHandler.h">
+    <ClInclude Include="src\general\FileHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\MCMC.h">
+    <ClInclude Include="src\Energy Distribution Generation\MCMC.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Constants.h">
+    <ClInclude Include="src\general\Constants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Point3D.h">
+    <ClInclude Include="src\Energy Distribution Generation\Point3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\IonBeam.h">
+    <ClInclude Include="src\Energy Distribution Generation\IonBeam.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Module.h">
+    <ClInclude Include="src\general\Module.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="vendor\tinyfiledialogs\tinyfiledialogs.h">
@@ -152,28 +161,37 @@
     <ClInclude Include="vendor\imgui_plot\imstb_truetype.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\LabEnergies.h">
+    <ClInclude Include="src\Energy Distribution Generation\LabEnergies.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\CrossSection.h">
+    <ClInclude Include="src\Cross Section Deconvolution\CrossSection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\EnergyDistribution.h">
+    <ClInclude Include="src\Energy Distribution Generation\EnergyDistribution.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Parameter.h">
+    <ClInclude Include="src\general\Parameter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\AnalyticalDistribution.h">
+    <ClInclude Include="src\Energy Distribution Generation\AnalyticalDistribution.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\ParameterImplementations.h">
+    <ClInclude Include="src\general\ParameterImplementations.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\RateCoefficient.h">
+    <ClInclude Include="src\Cross Section Deconvolution\RateCoefficient.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Cross Section Deconvolution\RateCoefficientManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Cross Section Deconvolution\CrossSectionManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -51,7 +51,6 @@ EnergyDistribution::EnergyDistribution(EnergyDistribution&& other)
 	subFolder = std::move(other.subFolder);
 	index = std::move(other.index);
 
-	rateCoefficient = other.rateCoefficient;
 	psi = std::move(other.psi);
 
 	plotted = other.plotted;
@@ -88,7 +87,6 @@ EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other)
 	subFolder = std::move(other.subFolder);
 	index = std::move(other.index);
 
-	rateCoefficient = other.rateCoefficient;
 	psi = std::move(other.psi);
 
 	plotted = other.plotted;
@@ -106,7 +104,6 @@ void EnergyDistribution::ResetDefaultValues()
 	//std::cout << "binvalues size: " << binValues.size() << std::endl;
 	folder = "Test";
 	index = 0;
-	rateCoefficient = 0;
 	plotted = false;
 	showNormalisedByWidth = true;
 }
@@ -357,6 +354,55 @@ void EnergyDistribution::FitAnalyticalToPeak()
 
 	std::cout << "fit array size: " << fitX.size() << std::endl;
 	fitFunction->Delete();
+}
+
+void EnergyDistribution::CalculatePsisFromBinning(TH1D* crossSection)
+{
+	psi.clear();
+	int nBins = crossSection->GetNbinsX();
+	//std::cout << nBins << std::endl;
+	//distribution.psi.reserve(nBins);
+	psi.resize(nBins);
+
+	//std::cout << "distribution: " << distribution.index << std::endl;
+	for (double energy : collisionEnergies)
+	{
+		int bin = crossSection->FindBin(energy);
+		if (bin == 0)
+		{
+			std::cout << "crossection hist too small, got underflow when putting in " << energy << std::endl;
+			continue;
+		}
+		//if (bin < 10) std::cout << "bin " << bin << ": " << energy << std::endl;
+		double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
+		if (bin - 1 >= psi.size())
+		{
+			//std::cout << "want to access " << bin - 1 << " but size is " << distribution.psi.size() << std::endl;
+			//std::cout << energy << std::endl;
+		}
+		psi[bin - 1] += velocity;
+	}
+	for (int i = 0; i < psi.size(); i++)
+	{
+		psi[i] /= collisionEnergies.size();
+		//std::cout << "Psi_" << i << ": " << distribution.psi[i] << "\t" << crossSectionFit->GetBinLowEdge(i+1)
+		//	 << " - " << crossSectionFit->GetBinLowEdge(i+2) << "\n";
+	}
+}
+
+double EnergyDistribution::CalculateTestRateCoefficient()
+{
+	if (collisionEnergies.empty()) return 0.0;
+	double rc = 0.0;
+	for (const double collisionEnergy : collisionEnergies)
+	{
+		double crossSectionValue = 1 / collisionEnergy;
+		double collosionVelocity = TMath::Sqrt(2 * collisionEnergy * TMath::Qe() / PhysicalConstants::electronMass);
+		rc += crossSectionValue * collosionVelocity;
+	}
+	rc /= collisionEnergies.size();
+
+	return rc;
 }
 
 std::string EnergyDistribution::String()

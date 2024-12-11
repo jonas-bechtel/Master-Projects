@@ -2,16 +2,30 @@
 
 #include "Module.h"
 #include "EnergyDistribution.h"
+#include "PlasmaRateCoefficient.h"
+#include "RateCoefficient.h"
+#include "CrossSection.h"
 
-std::unordered_map<std::string, Module*> Module::s_moduleMap;
 int EnergyDistributionModule::s_rebinningFactors[3] = { 10, 10, 10 };
-EnergyDistribution EnergyDistributionModule::activeDist;
 
-Module::Module(std::string name)
+EnergyDistribution EnergyDistributionModule::activeDist;
+MCMC* EnergyDistributionModule::mcmc = nullptr;
+ElectronBeam* EnergyDistributionModule::eBeam = nullptr;
+IonBeam* EnergyDistributionModule::ionBeam = nullptr;
+LabEnergies* EnergyDistributionModule::labEnergies = nullptr;
+EnergyDistributionManager* EnergyDistributionModule::manager = nullptr;
+
+std::vector<EnergyDistribution> EnergyDistribtionListContainer::energyDistributionList;
+
+std::vector<CrossSection> CrossSectionDeconvolutionModule::crossSectionList;
+std::vector<RateCoefficient> CrossSectionDeconvolutionModule::rateCoefficientList;
+std::vector<PlasmaRateCoefficient> CrossSectionDeconvolutionModule::plasmaRateCoefficientList;
+CrossSectionManager* CrossSectionDeconvolutionModule::CSmanager = nullptr;
+RateCoefficientManager* CrossSectionDeconvolutionModule::RCmanager = nullptr;
+
+Window::Window(std::string name)
 	: m_name(name)
 {
-	s_moduleMap[name] = this;
-	
 	m_mainCanvas = new TCanvas((m_name + " main canvas").c_str(), (m_name + " main canvas").c_str(), 1200, 500);
 	m_mainCanvas->Divide(2, 1);
 
@@ -22,17 +36,7 @@ Module::Module(std::string name)
 	HideCanvas(m_secondCanvas);
 }
 
-Module* Module::Get(std::string name)
-{
-	return s_moduleMap.at(name);
-}
-
-std::unordered_map<std::string, Module*>& Module::GetModuleMap()
-{
-	return s_moduleMap;
-}
-
-void Module::ShowWindow()
+void Window::ShowWindow()
 {
 	//ImGui::begin
 	if (ImGui::Begin((m_name + " Window").c_str()))
@@ -54,29 +58,29 @@ void Module::ShowWindow()
 	UpdateCanvas();
 }
 
-Module::~Module()
+Window::~Window()
 {
 	delete m_mainCanvas;
 	delete m_secondCanvas;
 }
 
-bool Module::IsCanvasShown(TCanvas* canvas)
+bool Window::IsCanvasShown(TCanvas* canvas)
 {
 	return ((TRootCanvas*)canvas->GetCanvasImp())->IsMapped();
 }
 
-void Module::ShowCanvas(TCanvas* canvas)
+void Window::ShowCanvas(TCanvas* canvas)
 {
 	((TRootCanvas*)canvas->GetCanvasImp())->MapRaised();
 
 }
 
-void Module::HideCanvas(TCanvas* canvas)
+void Window::HideCanvas(TCanvas* canvas)
 {
 	((TRootCanvas*)canvas->GetCanvasImp())->UnmapWindow();
 }
 
-void Module::ShowHideCanvasButton(TCanvas* canvas)
+void Window::ShowHideCanvasButton(TCanvas* canvas)
 {
 	if (ImGui::Button(("Show/Hide " + std::string(canvas->GetTitle())).c_str()))
 	{
@@ -92,7 +96,7 @@ void Module::ShowHideCanvasButton(TCanvas* canvas)
 	}
 }
 
-void Module::UpdateCanvas()
+void Window::UpdateCanvas()
 {
 	m_mainCanvas->cd();
 	m_mainCanvas->Modified();
@@ -104,7 +108,7 @@ void Module::UpdateCanvas()
 }
 
 EnergyDistributionModule::EnergyDistributionModule(std::string name)
-	: Module(name)
+	: Window(name)
 {
 
 }
@@ -140,4 +144,13 @@ EnergyDistributionModule::~EnergyDistributionModule()
 bool EnergyDistributionModule::RebinningFactorInput()
 {
 	return ImGui::InputInt3("Rebinning factors", s_rebinningFactors);
+}
+
+CrossSectionDeconvolutionModule::CrossSectionDeconvolutionModule(std::string name)
+	: Window(name)
+{
+}
+
+CrossSectionDeconvolutionModule::~CrossSectionDeconvolutionModule()
+{
 }

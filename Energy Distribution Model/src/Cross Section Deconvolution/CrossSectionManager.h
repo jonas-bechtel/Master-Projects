@@ -1,23 +1,23 @@
 #pragma once
-
 #include "Module.h"
+#include "CrossSection.h"
 
-class CrossSection : public Module
+class CrossSectionManager : public CrossSectionDeconvolutionModule
 {
-	enum Binning {PaperBinning, ConstantBinning, FactorBinning, PaperFactorMix, Paper_FWHM};
+	enum Binning { PaperBinning, ConstantBinning, FactorBinning, PaperFactorMix, Paper_FWHM };
 
 public:
-	CrossSection();
+	CrossSectionManager();
 
 private:
 	void ShowUI() override;
-	void SetupTrueCrossSection();
 
 	void test();
 
 	void SetupFitCrossSectionHist();
 	void CalculateRateCoefficients();
 	void CalculatePsis();
+
 	void SetupInitialGuess();
 	void FitCrossSectionHistogram();
 	void FitWithSVD();
@@ -29,22 +29,10 @@ private:
 
 	void FillFitPlots(double* crossSectionParamater);
 
-	void PlotRateCoefficients();
-
 private:
-	std::vector<double> binCentersTrue;
-	std::vector<double> binValuesTrue;
-
 	std::vector<double> initialGuess;
-	TH1D* crossSectionFit = nullptr;
-	std::vector<double> binCentersFit;
-	std::vector<double> binValuesFit;
 
-	TGraph* rateCoefficients = new TGraph();
-	TGraph* rateCoefficientsFit = new TGraph();
-
-	const char* binningOptions[5] = {"paper binning" , "const binning", "factor binning", "paper/factor mix", "paper/FWHM"};
-	//bool optionUsed[3] = { true, false ,false };
+	const char* binningOptions[5] = { "paper binning" , "const binning", "factor binning", "paper/factor mix", "paper/FWHM" };
 	int currentOption = PaperFactorMix;
 
 	double binFactor = 1;

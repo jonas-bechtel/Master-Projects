@@ -7,6 +7,7 @@
 ElectronBeam::ElectronBeam()
 	: EnergyDistributionModule("Electron Beam"), m_parameters(activeDist.eBeamParameter)
 {
+	eBeam = this;
 	PlotTrajectory();
 
 	CalculateDetuningEnergy();
@@ -127,12 +128,10 @@ void ElectronBeam::ShowUI()
 		PlotProjections();
 		PlotDensitySlice();
 
-		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 		ionBeam->SetupDistribution();
 		ionBeam->PlotDistribution();
 		ionBeam->PlotIonBeamProjections();
 
-		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 		mcmc->SetupDistribution();
 		mcmc->PlotTargetDistribution();
 	}
@@ -170,12 +169,10 @@ void ElectronBeam::ShowUI()
 		PlotProjections();
 		PlotDensitySlice();
 		
-		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 		ionBeam->SetupDistribution();
 		ionBeam->PlotDistribution();
 		ionBeam->PlotIonBeamProjections();
 
-		MCMC* mcmc = (MCMC*)Module::Get("MCMC");
 		mcmc->SetupDistribution();
 		mcmc->PlotTargetDistribution();
 	}

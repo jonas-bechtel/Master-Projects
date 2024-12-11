@@ -33,6 +33,8 @@ struct EnergyDistribution : public TH1D
 	void FillVectorsFromHist();
 	void RemoveEdgeZeros();
 	void FitAnalyticalToPeak();
+	void CalculatePsisFromBinning(TH1D* crossSection);
+	double CalculateTestRateCoefficient();
 
 	std::string String();
 	std::string Filename();
@@ -65,7 +67,7 @@ public:
 	int index = 0;
 
 	// fitting things done by the Cross Section class
-	double rateCoefficient = 0;
+	//double rateCoefficient = 0;
 	std::vector<double> psi;
 
 	// plot parameters

@@ -130,17 +130,16 @@ EnergyDistribution FileHandler::LoadEnergyDistribution(std::filesystem::path& fi
     return energyDist;
 }
 
-std::vector<mbrcData> FileHandler::LoadRateCoefficients(std::filesystem::path& filename)
+RateCoefficient FileHandler::LoadRateCoefficients(std::filesystem::path& filename)
 {
     std::ifstream file(filename);
-
-    std::vector<mbrcData> list;
+    RateCoefficient rc = RateCoefficient();
 
     // Check if the file was successfully opened
     if (!file.is_open())
     {
         std::cerr << "Error: Could not open the file " << filename << std::endl;
-        return list;
+        return rc;
     }
 
     std::string line;
@@ -149,10 +148,11 @@ std::vector<mbrcData> FileHandler::LoadRateCoefficients(std::filesystem::path& f
     while (std::getline(file, line))
     {
         std::vector<std::string> tokens = SplitLine(line, "\t");
-        list.emplace_back( std::stod(tokens[0]), std::stod(tokens[1]), std::stod(tokens[3]));
+        rc.detuningEnergies.push_back(std::stod(tokens[0]));
+        rc.value.push_back(std::stod(tokens[1]));
+        rc.error.push_back(std::stod(tokens[3]));
     }
-
-    return list;
+    return rc;
 }
 
 int FileHandler::GetMaxIndex(std::filesystem::path energiesFile)

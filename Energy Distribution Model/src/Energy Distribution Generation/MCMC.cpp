@@ -8,11 +8,11 @@
 MCMC::MCMC()
 	: EnergyDistributionModule("MCMC"), m_parameters(activeDist.mcmcParameter)
 {
+	mcmc = this;
 }
 
 void MCMC::SetupDistribution(std::filesystem::path file)
 {
-	IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
 	targetDist = ionBeam->MultiplyWithElectronDensities();
 
 	if (!targetDist)
@@ -79,9 +79,6 @@ void MCMC::ShowUI()
 	ImGui::SetNextItemWidth(200.0f);
 	if (RebinningFactorInput())
 	{
-		IonBeam* ionBeam = (IonBeam*)Module::Get("Ion Beam");
-		ElectronBeam* eBeam = (ElectronBeam*)Module::Get("Electron Beam");
-
 		ionBeam->PlotDistribution();
 		eBeam->PlotDistribution();
 		PlotTargetDistribution();

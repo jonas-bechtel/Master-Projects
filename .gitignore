@@ -13,6 +13,7 @@
 *.png
 
 *.toml
+*.txt
 
 # User-specific files
 *.rsuser
