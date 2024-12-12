@@ -148,7 +148,7 @@ struct ParameterValue
 struct Parameters
 {
 public:
-	std::string toString(bool excludeOptionals = true)
+	std::string toString(bool excludeOptionals = true) const
 	{
 		std::string result = "# " + m_name + "\n";
 		char* pointer = (char*)this;
@@ -263,7 +263,7 @@ public:
 
 private:
 	template <typename T, typename... Args>
-	std::string createLine(const std::string& format, const T& value1, const Args&... args)
+	std::string createLine(const std::string& format, const T& value1, const Args&... args) const
 	{
 		char buffer[100];
 		sprintf_s(buffer, format.c_str(), value1, args...);
@@ -285,7 +285,7 @@ private:
 		}
 		return nullptr;
 	}
-	virtual int GetSize() = 0;
+	virtual int GetSize() const = 0;
 
 protected:
 	std::string m_name = "";

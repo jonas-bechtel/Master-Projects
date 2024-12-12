@@ -22,7 +22,7 @@ struct EnergyDistribution : public TH1D
 	EnergyDistribution();
 	~EnergyDistribution();
 
-	EnergyDistribution(const EnergyDistribution& other) = delete;
+	EnergyDistribution(const EnergyDistribution& other) = delete;// { std::cout << "using illegal copy constructor" << std::endl; }// = delete;
 	EnergyDistribution& operator=(const EnergyDistribution& other) = delete;
 	EnergyDistribution(EnergyDistribution&& other);
 	EnergyDistribution& operator=(EnergyDistribution&& other);
@@ -36,11 +36,8 @@ struct EnergyDistribution : public TH1D
 	void CalculatePsisFromBinning(TH1D* crossSection);
 	double CalculateTestRateCoefficient();
 
-	std::string String();
-	std::string Filename();
-
-	static EnergyDistribution* FindByEd(double detuningEnergy);
-	static std::unordered_map<double, EnergyDistribution*> s_allDistributions;
+	std::string String() const;
+	std::string Filename() const;
 
 public:
 	// actual distribution data
@@ -62,12 +59,11 @@ public:
 	// additional labelling things
 	std::string label = "";
 	std::string tags = "";
-	std::filesystem::path folder = "Test";
-	std::filesystem::path subFolder = "";
+	//std::filesystem::path folder = "Test";
+	//std::filesystem::path subFolder = "";
 	int index = 0;
 
 	// fitting things done by the Cross Section class
-	//double rateCoefficient = 0;
 	std::vector<double> psi;
 
 	// plot parameters
@@ -75,3 +71,45 @@ public:
 	bool showNormalisedByWidth = true;
 };
 
+struct EnergyDistributionSet
+{
+	EnergyDistributionSet()
+	{
+		distributions.reserve(100);
+		//std::cout << "calling EnergyDistSet default constructor" << std::endl;
+	}
+	EnergyDistributionSet(const EnergyDistributionSet& other) = delete;
+	EnergyDistributionSet& operator=(const EnergyDistributionSet& other) = delete;
+
+	EnergyDistributionSet(EnergyDistributionSet&& other)
+	{
+		distributions = std::move(other.distributions);
+		EdToDistMap = std::move(other.EdToDistMap);
+		folder = std::move(other.folder);
+		subFolder = std::move(other.subFolder);
+
+		//std::cout << "calling EnergyDistSet move constructor" << std::endl;
+	}
+	EnergyDistributionSet& operator=(EnergyDistributionSet&& other)
+	{
+		distributions = std::move(other.distributions);
+		EdToDistMap = std::move(other.EdToDistMap);
+		folder = std::move(other.folder);
+		subFolder = std::move(other.subFolder);
+
+		//std::cout << "calling EnergyDistSet move assignment op" << std::endl;
+		return *this;
+	}
+
+	EnergyDistribution* FindByEd(double detuningEnergy);
+
+	void SetAllPlotted(bool plotted);
+	void SetAllShowNormalised(bool showNormalised);
+	
+public:
+	std::vector<EnergyDistribution> distributions;
+	std::unordered_map<double, EnergyDistribution*> EdToDistMap;
+
+	std::filesystem::path folder = "Test";
+	std::filesystem::path subFolder = "bla";
+};

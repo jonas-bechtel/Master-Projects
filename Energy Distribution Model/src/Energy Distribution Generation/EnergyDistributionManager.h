@@ -6,11 +6,11 @@
 #include "LabEnergies.h"
 #include "EnergyDistribution.h"
 
-class EnergyDistributionManager : public EnergyDistributionModule, public EnergyDistribtionListContainer
+class EnergyDistributionManager : public EnergyDistributionModule, public EnergyDistribtionSetsContainer
 {
 public:
 	EnergyDistributionManager();
-	std::vector<EnergyDistribution>& GetEnergyDistributions();
+	std::vector<EnergyDistributionSet>& GetEnergyDistributionSets();
 	void GenerateEnergyDistribution();
 	void GenerateEnergyDistributionsFromFile(std::filesystem::path file);
 
@@ -19,11 +19,14 @@ private:
 
 	void ShowUI() override;
 	void ShowSettings();
-	void ShowEnergyDistributionList();
+	void ShowTabsWithSets();
+	void ShowEnergyDistributionSet(int setIndex);
 	void ShowEnergyDistributionPlot();
 
-	void AddDistributionToList(EnergyDistribution&& distribution);
-	void RemoveDistributionFromList(int index);
+	void CreateNewSet();
+	void RemoveSet(int setIndex);
+	void AddDistributionToSet(EnergyDistribution&& distribution, int setIndex);
+	void RemoveDistributionFromSet(int index, int setIndex);
 
 	void SetupSecondaryPlots();
 	void PlotEnergyDistributions();
@@ -31,7 +34,7 @@ private:
 	void PlotLongkTDistribution();
 	void PlotLongVelAddition();
 
-	void ClearDistributionList();
+	void ClearDistributionsInSet(int setIndex);
 
 private:	
 	// graphs and plots
@@ -39,6 +42,8 @@ private:
 	TH1D* zWeightByEnergy = nullptr;
 	TH1D* long_ktDistribution = nullptr;
 	TH1D* long_VelAddition = nullptr;
+
+	int currentSetIndex = 0;
 
 	// currently loaded file
 	std::filesystem::path currentDescriptionFile = std::filesystem::path("data\\C60 (2)\\100x100x100_Ie11.3_Ucath44.2_RelTol0_sort_energies.asc");

@@ -24,8 +24,8 @@ public:
 	int GetMaxIndex(std::filesystem::path energiesFile);
 	std::array<float, 3> GetParamtersFromDescriptionFileAtIndex(const std::filesystem::path& descriptionFile, int index);
 
-	void SaveEnergyDistributionHistToFile(EnergyDistribution& energyDistribution);
-	void SaveEnergyDistributionSamplesToFile(EnergyDistribution& energyDistribution);
+	void SaveEnergyDistributionSetAsHist(EnergyDistributionSet& eDistSet);
+	void SaveEnergyDistributionSetAsSamples(EnergyDistributionSet& eDistSet);
 
 private:
 	std::string GetHeaderFromFile(std::ifstream& file) const;

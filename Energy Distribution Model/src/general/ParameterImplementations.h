@@ -12,7 +12,7 @@ struct MCMC_Parameters : public Parameters
 	ParameterValue<int> seed = ParameterValue((int)std::time(0), "seed", "%d");
 
 private:
-	int GetSize() override
+	int GetSize() const override
 	{
 		return sizeof(*this);
 	}
@@ -45,7 +45,7 @@ struct ElectronBeamParameters : public Parameters
 
 	
 private:
-	int GetSize() override
+	int GetSize() const override
 	{
 		return sizeof(*this);
 	}
@@ -60,7 +60,7 @@ struct LabEnergyParameters : public Parameters
 	ParameterValue<Path> energyFile = ParameterValue(Path(""), "energy file", "%s");
 
 private:
-	int GetSize() override
+	int GetSize() const override
 	{
 		return sizeof(*this);
 	}
@@ -80,7 +80,7 @@ struct IonBeamParameters : public Parameters
 	ParameterValue<float2> shape2 = ParameterValue(float2(1.39e-3f, 2.15e-3f), "shape 2 (x,y)", "%.4f, %.4f m");
 
 private:
-	int GetSize() override
+	int GetSize() const override
 	{
 		return sizeof(*this);
 	}
@@ -101,7 +101,7 @@ struct AnalyticalDistributionParameters : public Parameters
 	ParameterValue<double> scalingFactor = ParameterValue(0.0, "scaling factor", "%.3f");
 
 private:
-	int GetSize() override
+	int GetSize() const override
 	{
 		return sizeof(*this);
 	}
@@ -136,7 +136,7 @@ struct SimplificationParameter : public Parameters
 
 
 private:
-	int GetSize() override
+	int GetSize() const override
 	{
 		return sizeof(*this);
 	}

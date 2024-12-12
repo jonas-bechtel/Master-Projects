@@ -271,76 +271,79 @@ std::filesystem::path FileHandler::FindFileWithIndex(const std::filesystem::path
     return std::filesystem::path();
 }
 
-void FileHandler::SaveEnergyDistributionHistToFile(EnergyDistribution& energyDistribution)
+void FileHandler::SaveEnergyDistributionSetAsHist(EnergyDistributionSet& eDistSet)
 {
     // set the output filepath
-    std::filesystem::path file = outputFolder.string() /        // general output folder
-       // std::filesystem::path("histogram files") /              // folder for files with histogram of distribution
-        energyDistribution.folder.filename() /                  // folder of corresponfding desription file
-        energyDistribution.subFolder.filename() /               // subfolder with specific parameters
-        std::filesystem::path(energyDistribution.Filename() + ".asc");  // filename    
+    std::filesystem::path folder = outputFolder.string() /        // general output folder
+        eDistSet.folder.filename() /                  // folder of corresponfding desription file
+        eDistSet.subFolder.filename();              // subfolder with specific parameters
 
     // extract the directory 
-    std::filesystem::path dir = std::filesystem::path(file).parent_path();
+    //std::filesystem::path dir = std::filesystem::path(file).parent_path();
 
     // Create the directories if they don't exist
-    if (!std::filesystem::exists(dir)) {
-        std::filesystem::create_directories(dir);
+    if (!std::filesystem::exists(folder)) {
+        std::filesystem::create_directories(folder);
     }
-
-    std::ofstream outfile(file);
-    
-    if (!outfile.is_open()) {
-        std::cerr << "Error opening file" << std::endl;
-        return ;
-    }
-    outfile << energyDistribution.String();
-
-    outfile << "# bin center [eV]\tbin value\tbin value normalised by bin width\n";
-    for (int i = 0; i < energyDistribution.binCenters.size(); i++)
+    for (const EnergyDistribution& edist : eDistSet.distributions)
     {
-        outfile << energyDistribution.binCenters[i] << "\t";
-        outfile << energyDistribution.binValues[i]<< "\t";
-        outfile << energyDistribution.binValuesNormalised[i] << "\n";
+        std::filesystem::path file = folder / std::filesystem::path(edist.Filename() + ".asc");
+        std::ofstream outfile(file);
+
+        if (!outfile.is_open()) {
+            std::cerr << "Error opening file" << std::endl;
+            return;
+        }
+        outfile << edist.String();
+
+        outfile << "# bin center [eV]\tbin value\tbin value normalised by bin width\n";
+        for (int i = 0; i < edist.binCenters.size(); i++)
+        {
+            outfile << edist.binCenters[i] << "\t";
+            outfile << edist.binValues[i] << "\t";
+            outfile << edist.binValuesNormalised[i] << "\n";
+        }
+
+        outfile.close();
     }
-    
-    outfile.close();
 }
 
-void FileHandler::SaveEnergyDistributionSamplesToFile(EnergyDistribution& energyDistribution)
+void FileHandler::SaveEnergyDistributionSetAsSamples(EnergyDistributionSet& eDistSet)
 {
     // set the output filepath
-    std::filesystem::path file = outputFolder.string() /                    // general output folder
-        //std::filesystem::path("sample files") /                           // special folder for files with all samples in it
-        energyDistribution.folder.filename() /                             // folder of corresponfding desription file
-        energyDistribution.subFolder.filename() /                          // subfolder with specific parameters
-        std::filesystem::path(energyDistribution.Filename() + ".samples"); // filename
-         
+    std::filesystem::path folder = outputFolder.string() /                    // general output folder
+        eDistSet.folder.filename() /                             // folder of corresponfding desription file
+        eDistSet.subFolder.filename();                          // subfolder with specific parameters
 
     // extract the directory 
-    std::filesystem::path dir = std::filesystem::path(file).parent_path();
+    //std::filesystem::path dir = std::filesystem::path(folder).parent_path();
 
     // Create the directories if they don't exist
-    if (!std::filesystem::exists(dir)) {
-        std::filesystem::create_directories(dir);
-    }
-
-    std::ofstream outfile(file);
-
-    if (!outfile.is_open()) {
-        std::cerr << "Error opening file" << std::endl;
-        return;
-    }
-
-    outfile << energyDistribution.String();
-
-    outfile << "# sampled collision energy values\n";
-    for (double energy : energyDistribution.collisionEnergies)
+    if (!std::filesystem::exists(folder)) 
     {
-        outfile << energy << "\n";
+        std::filesystem::create_directories(folder);
     }
 
-    outfile.close();
+    for (const EnergyDistribution& edist : eDistSet.distributions)
+    {
+        std::filesystem::path file = folder / std::filesystem::path(edist.Filename() + ".samples");
+        std::ofstream outfile(file);
+
+        if (!outfile.is_open()) {
+            std::cerr << "Error opening file" << std::endl;
+            return;
+        }
+
+        outfile << edist.String();
+
+        outfile << "# sampled collision energy values\n";
+        for (double energy : edist.collisionEnergies)
+        {
+            outfile << energy << "\n";
+        }
+
+        outfile.close();
+    }
 }
 
 std::string FileHandler::GetHeaderFromFile(std::ifstream& file) const

@@ -15,7 +15,7 @@ IonBeam* EnergyDistributionModule::ionBeam = nullptr;
 LabEnergies* EnergyDistributionModule::labEnergies = nullptr;
 EnergyDistributionManager* EnergyDistributionModule::manager = nullptr;
 
-std::vector<EnergyDistribution> EnergyDistribtionListContainer::energyDistributionList;
+std::vector<EnergyDistributionSet> EnergyDistribtionSetsContainer::energyDistributionSets;
 
 std::vector<CrossSection> CrossSectionDeconvolutionModule::crossSectionList;
 std::vector<RateCoefficient> CrossSectionDeconvolutionModule::rateCoefficientList;

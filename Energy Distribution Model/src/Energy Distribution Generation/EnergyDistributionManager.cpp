@@ -14,19 +14,19 @@ EnergyDistributionManager::EnergyDistributionManager()
 	m_mainCanvas->Divide(3,2);
 	m_mainCanvas->SetWindowSize(1500, 800);
 
-	energyDistributionList.reserve(100);
+	CreateNewSet();
 }
 
-std::vector<EnergyDistribution>& EnergyDistributionManager::GetEnergyDistributions()
+std::vector<EnergyDistributionSet>& EnergyDistributionManager::GetEnergyDistributionSets()
 {
-	return energyDistributionList;
+	return energyDistributionSets;
 }
 
 void EnergyDistributionManager::ShowUI()
 {
 	ShowSettings();
 	ImGui::SameLine();
-	ShowEnergyDistributionList();
+	ShowTabsWithSets();
 	
 	//ImGui::Separator();
 	ShowEnergyDistributionPlot();
@@ -37,13 +37,13 @@ void EnergyDistributionManager::ShowSettings()
 	ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX | ImGuiChildFlags_ResizeY;
 	if (ImGui::BeginChild("##Settings", ImVec2(0.0f, 0.0f), flags))
 	{
-		if (ImGui::Button("Generate Single Energy Distribution"))
-		{
-			GenerateEnergyDistribution();
-
-			PlotEnergyDistributions();
-			PLotZweightByEnergy();
-		}
+		//if (ImGui::Button("Generate Single Energy Distribution"))
+		//{
+		//	GenerateEnergyDistribution();
+		//
+		//	PlotEnergyDistributions();
+		//	PLotZweightByEnergy();
+		//}
 
 		if (ImGui::Button("select description file"))
 		{
@@ -136,130 +136,152 @@ void EnergyDistributionManager::ShowSettings()
 		ImGui::EndDisabled();
 		ImGui::EndDisabled();
 
-		//ImGui::SeparatorText("analytical distribution");
-		//ImGui::PushID("analytical energy distribution");
-		//if (ImGui::Button("generate analytical distribution"))
-		//{
-		//	GenerateAnalyticalDistribution();
-		//}
-		//ImGui::SetNextItemWidth(200.0f);
-		//ImGui::InputFloat2("energy range", analyticalEnergyRange, "%.1e");
-		//ImGui::SameLine();
-		//ImGui::SetNextItemWidth(100.0f);
-		//ImGui::InputInt("number bins", &analyticalNumberBins);
-		//ImGui::SetNextItemWidth(100.0f);
-		//ImGui::InputDouble("detuning energy [eV]", analyticalParameter.detuningEnergy);
-		//ImGui::SetNextItemWidth(100.0f);
-		//ImGui::InputDouble("transverse kT [eV]", analyticalParameter.transverseTemperature);
-		//ImGui::SetNextItemWidth(100.0f);
-		//ImGui::InputDouble("longitudinal kT [eV]", analyticalParameter.longitudinalTemperature);
-		//ImGui::PopID();
-
 		ImGui::EndChild();
 	}
 }
 
-void EnergyDistributionManager::ShowEnergyDistributionList()
+void EnergyDistributionManager::ShowTabsWithSets()
 {
 	ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeY;
-	if (ImGui::BeginChild("##listbox", ImVec2(0, 0), flags))
+	if (ImGui::BeginChild("listbox", ImVec2(0, 0), flags))
 	{
-		ImGui::Text("loaded distributions");
-		if (ImGui::BeginListBox("##", ImVec2(-1, 250)))
+		ImGui::Text("energy distributions");
+		ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.7f, 0.15f, 0.15f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+		if (ImGui::BeginTabBar("##tab bar", ImGuiTabBarFlags_AutoSelectNewTabs))
 		{
-			for (int i = 0; i < energyDistributionList.size(); i++)
+			if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
 			{
-				ImGui::PushID(i);
-				EnergyDistribution& eDist = energyDistributionList[i];
-
-				std::string label = eDist.label;
-				if (!eDist.tags.empty())
-				{
-					label += "\n";
-					label += eDist.tags;
-				}
-
-				// Render each item as selectable
-				if (ImGui::Selectable(label.c_str(), eDist.plotted, ImGuiSelectableFlags_AllowItemOverlap))
-				{
-					eDist.plotted = !eDist.plotted;
-				}
-
-				if (ImGui::BeginItemTooltip())
-				{
-					ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-					ImGui::TextUnformatted(eDist.String().c_str());
-					ImGui::PopTextWrapPos();
-					ImGui::EndTooltip();
-				}
-
-				ImGui::SameLine();
-				ImGui::Checkbox("normalised", &eDist.showNormalisedByWidth);
-				
-				ImGui::SameLine();
-				if (ImGui::SmallButton("x"))
-				{
-					RemoveDistributionFromList(i);
-				}
-
-				ImGui::PopID();
+				CreateNewSet();
 			}
-			ImGui::EndListBox();
-		}
-		
-		if (ImGui::Button("load hists"))
-		{
-			std::vector<std::filesystem::path> filenames = FileHandler::GetInstance().SelectFiles("output\\");
-			if (!filenames.empty())
+			for (int setIndex = 0; setIndex < energyDistributionSets.size(); setIndex++)
 			{
-				for (auto& filename : filenames)
+				bool open = true;
+				std::string label = "set " + std::to_string(setIndex);
+				if (ImGui::BeginTabItem(label.c_str(), &open))
 				{
-					EnergyDistribution energyDist = FileHandler::GetInstance().LoadEnergyDistribution(filename, loadSamples);
-					AddDistributionToList(std::move(energyDist));
+					currentSetIndex = setIndex;
+					ShowEnergyDistributionSet(setIndex);
+					ImGui::EndTabItem();
+				}
+				if (!open)
+				{
+					RemoveSet(setIndex);
 				}
 			}
+			ImGui::EndTabBar();
 		}
-		ImGui::SameLine();
-		ImGui::Checkbox("load samples", &loadSamples);
+		ImGui::PopStyleColor(2);
 
-		if (ImGui::Button("clear list"))
-		{
-			ClearDistributionList();
-		}
-		ImGui::SameLine();
+		ImGui::SeparatorText("options affecting all sets");
 		if (ImGui::Button("clear plot"))
 		{
-			for (EnergyDistribution& eDist : energyDistributionList)
+			for (EnergyDistributionSet& set : energyDistributionSets)
 			{
-				eDist.plotted = false;
-			}
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("plot all"))
-		{
-			for (EnergyDistribution& eDist : energyDistributionList)
-			{
-				eDist.plotted = true;
-			}
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("normalise all"))
-		{
-			for (EnergyDistribution& eDist : energyDistributionList)
-			{
-				eDist.showNormalisedByWidth = true;
-			}
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("unnormalise all"))
-		{
-			for (EnergyDistribution& eDist : energyDistributionList)
-			{
-				eDist.showNormalisedByWidth = false;
+				set.SetAllPlotted(false);
 			}
 		}
 		ImGui::EndChild();
 	}
+}
+
+void EnergyDistributionManager::ShowEnergyDistributionSet(int setIndex)
+{
+	EnergyDistributionSet& set = energyDistributionSets.at(setIndex);
+	std::vector<EnergyDistribution>& energyDistributionList = set.distributions;
+
+	std::string listboxLabel = std::to_string(setIndex);
+	if (ImGui::BeginListBox(listboxLabel.c_str(), ImVec2(-1, 250)))
+	{
+		for (int i = 0; i < energyDistributionList.size(); i++)
+		{
+			ImGui::PushID(i);
+			EnergyDistribution& eDist = energyDistributionList[i];
+
+			std::string label = eDist.label;
+			if (!eDist.tags.empty())
+			{
+				label += "\n";
+				label += eDist.tags;
+			}
+
+			// Render each item as selectable
+			if (ImGui::Selectable(label.c_str(), eDist.plotted, ImGuiSelectableFlags_AllowItemOverlap))
+			{
+				eDist.plotted = !eDist.plotted;
+			}
+
+			if (ImGui::BeginItemTooltip())
+			{
+				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+				ImGui::TextUnformatted(eDist.String().c_str());
+				ImGui::PopTextWrapPos();
+				ImGui::EndTooltip();
+			}
+
+			ImGui::SameLine();
+			ImGui::Checkbox("normalised", &eDist.showNormalisedByWidth);
+				
+			ImGui::SameLine();
+			if (ImGui::SmallButton("x"))
+			{
+				RemoveDistributionFromSet(i, setIndex);
+			}
+
+			ImGui::PopID();
+		}
+		
+		ImGui::EndListBox();
+	}
+	if (ImGui::BeginPopupContextItem())
+	{
+		//ImGui::SameLine();
+		if (ImGui::Button("plot all"))
+		{
+			set.SetAllPlotted(true);
+		}
+		//ImGui::SameLine();
+		if (ImGui::Button("plot none"))
+		{
+			set.SetAllPlotted(false);
+		}
+		//ImGui::SameLine();
+		if (ImGui::Button("normalise all"))
+		{
+			set.SetAllShowNormalised(true);
+		}
+		//ImGui::SameLine();
+		if (ImGui::Button("unnormalise all"))
+		{
+			set.SetAllShowNormalised(false);
+		}
+		ImGui::EndPopup();
+	}
+
+	ImGui::Text("energy distrubtion set: %s/%s", set.folder.string().c_str(), set.subFolder.string().c_str());
+
+	if (ImGui::Button("save set"))
+	{
+		FileHandler::GetInstance().SaveEnergyDistributionSetAsHist(set);
+		FileHandler::GetInstance().SaveEnergyDistributionSetAsSamples(set);
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("load hists"))
+	{
+		std::vector<std::filesystem::path> filenames = FileHandler::GetInstance().SelectFiles("output\\");
+		if (!filenames.empty())
+		{
+			for (auto& filename : filenames)
+			{
+				EnergyDistribution energyDist = FileHandler::GetInstance().LoadEnergyDistribution(filename, loadSamples);
+				AddDistributionToSet(std::move(energyDist), setIndex);
+			}
+		}
+	}
+	ImGui::SameLine();
+	ImGui::Checkbox("load samples", &loadSamples);
+
+	
 }
 
 void EnergyDistributionManager::ShowEnergyDistributionPlot()
@@ -277,56 +299,90 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 		if (logX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
 		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
 		ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside);
+
 		int i = 0;
-		for (EnergyDistribution& eDist : energyDistributionList)
+		for (const EnergyDistributionSet& set : energyDistributionSets)
 		{
-			if (eDist.plotted)
+			for (const EnergyDistribution& eDist : set.distributions)
 			{
-				ImGui::PushID(i);
-				if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
-
-				if (eDist.showNormalisedByWidth)
+				if (eDist.plotted)
 				{
-					// Get the automatic color for this pair
-					ImVec4 color = ImPlot::GetColormapColor(i % ImPlot::GetColormapSize());
+					ImGui::PushID(i);
+					if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
 
-					// Plot the first line with the automatic color
-					ImPlot::PushStyleColor(ImPlotCol_Line, color);
-					ImPlot::PlotLine(eDist.label.c_str(), eDist.binCenters.data(), eDist.binValuesNormalised.data(), eDist.binValuesNormalised.size());
-					ImPlot::PopStyleColor();
-					color.x *= 2;
-					color.y *= 2;
-					color.z *= 2;
+					if (eDist.showNormalisedByWidth)
+					{
+						// Get the automatic color for this pair
+						ImVec4 color = ImPlot::GetColormapColor(i % ImPlot::GetColormapSize());
 
-					// Plot the second line with a lighter color and dashed
-					ImPlot::PushStyleColor(ImPlotCol_Line, color);
-					ImPlot::PlotLine("##", eDist.fitX.data(), eDist.fitY.data(), eDist.fitX.size(), ImPlotLineFlags_Segments);
-					ImPlot::PopStyleColor();
+						// Plot the first line with the automatic color
+						ImPlot::PushStyleColor(ImPlotCol_Line, color);
+						ImPlot::PlotLine(eDist.label.c_str(), eDist.binCenters.data(), eDist.binValuesNormalised.data(), eDist.binValuesNormalised.size());
+						ImPlot::PopStyleColor();
+						color.x *= 2;
+						color.y *= 2;
+						color.z *= 2;
+
+						// Plot the second line with a lighter color and dashed
+						ImPlot::PushStyleColor(ImPlotCol_Line, color);
+						ImPlot::PlotLine("##", eDist.fitX.data(), eDist.fitY.data(), eDist.fitX.size(), ImPlotLineFlags_Segments);
+						ImPlot::PopStyleColor();
+					}
+					else
+					{
+						ImPlot::PlotLine(eDist.label.c_str(), eDist.binCenters.data(), eDist.binValues.data(), eDist.binCenters.size());
+					}
 				}
-				else
-				{
-					ImPlot::PlotLine(eDist.label.c_str(), eDist.binCenters.data(), eDist.binValues.data(), eDist.binCenters.size());
-				}
+				i++;
 			}
-			i++;
 		}
 		ImPlot::EndPlot();
 	}
 }
 
-void EnergyDistributionManager::AddDistributionToList(EnergyDistribution&& distribution)
+void EnergyDistributionManager::CreateNewSet()
 {
-	// will call move Constructor
-	energyDistributionList.emplace_back(std::move(distribution));
-	EnergyDistribution& justMoved = energyDistributionList.back();
-	std::cout << "E_d: " << justMoved.eBeamParameter.detuningEnergy << std::endl;
-	EnergyDistribution::s_allDistributions[justMoved.eBeamParameter.detuningEnergy] = &justMoved;
+	energyDistributionSets.emplace_back();
 }
 
-void EnergyDistributionManager::RemoveDistributionFromList(int index)
+void EnergyDistributionManager::RemoveSet(int setIndex)
 {
-	//delete energyDistributionList[index];
-	energyDistributionList.erase(energyDistributionList.begin() + index);
+	ClearDistributionsInSet(setIndex);
+	energyDistributionSets.erase(energyDistributionSets.begin() + setIndex);
+}
+
+void EnergyDistributionManager::AddDistributionToSet(EnergyDistribution&& distribution, int setIndex)
+{
+	if (energyDistributionSets.empty())
+	{
+		CreateNewSet();
+		setIndex = 0;
+	}
+	EnergyDistributionSet& set = energyDistributionSets.at(setIndex);
+	std::vector<EnergyDistribution>& list = set.distributions;
+
+	// will call move Constructor
+	list.emplace_back(std::move(distribution));
+	EnergyDistribution& justMoved = list.back();
+	//std::cout << "E_d: " << justMoved.eBeamParameter.detuningEnergy << std::endl;
+	set.EdToDistMap[justMoved.eBeamParameter.detuningEnergy] = &justMoved;
+}
+
+void EnergyDistributionManager::RemoveDistributionFromSet(int index, int setIndex)
+{
+	EnergyDistributionSet& set = energyDistributionSets.at(setIndex);
+	std::vector<EnergyDistribution>& list = set.distributions;
+
+	// edist needs to be removed from map
+	for (auto it = set.EdToDistMap.begin(); it != set.EdToDistMap.end(); it++)
+	{
+		if (it->second == &list.at(index))
+		{
+			set.EdToDistMap.erase(it);
+			break;
+		}
+	}
+	list.erase(list.begin() + index);
 }
 
 void EnergyDistributionManager::GenerateEnergyDistribution()
@@ -418,18 +474,18 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 
 	std::cout << "Ed1: " << activeDist.eBeamParameter.detuningEnergy << "\n";
 
-	if (saveAsHist)
-	{
-		FileHandler::GetInstance().SaveEnergyDistributionHistToFile(activeDist);
-	}
-	
-	if (saveSamplesToFile)
-	{
-		FileHandler::GetInstance().SaveEnergyDistributionSamplesToFile(activeDist);
-	}
+	//if (saveAsHist)
+	//{
+	//	FileHandler::GetInstance().SaveEnergyDistributionSetAsHist(activeDist);
+	//}
+	//
+	//if (saveSamplesToFile)
+	//{
+	//	FileHandler::GetInstance().SaveEnergyDistributionSetAsSamples(activeDist);
+	//}
 
 	// store/move and save current distribution that has been worked on
-	AddDistributionToList(std::move(activeDist));
+	AddDistributionToSet(std::move(activeDist), currentSetIndex);
 
 	// create new distribution object that will be worked on now
 	//activeDist = new EnergyDistribution();
@@ -511,23 +567,28 @@ void EnergyDistributionManager::PlotEnergyDistributions()
 
 	// Create a legend
 	TLegend* legend = new TLegend(0.7, 0.7, 0.9, 0.9);
-
-	for (int i = 0; i < energyDistributionList.size(); i++)
+	int i = 0;
+	for (EnergyDistributionSet& set : energyDistributionSets)
 	{
-		//if (!energyDistributionList[i]) return;
-		
-		energyDistributionList[i].SetLineColor(colors[i % 5]);
-		legend->AddEntry(&energyDistributionList[i], energyDistributionList[i].label.c_str(), "l");
+		for (EnergyDistribution& eDist : set.distributions)
+		{
+			//if (!energyDistributionList[i]) return;
 
-		if (i == 0)
-		{
-			energyDistributionList[i].Draw("HIST");
-		}
-		else
-		{
-			energyDistributionList[i].Draw("HIST SAME");
+			eDist.SetLineColor(colors[i % 5]);
+			legend->AddEntry(&eDist, eDist.label.c_str(), "l");
+
+			if (i == 0)
+			{
+				eDist.Draw("HIST");
+			}
+			else
+			{
+				eDist.Draw("HIST SAME");
+			}
+			i++;
 		}
 	}
+	
 	legend->Draw();
 }
 
@@ -543,11 +604,13 @@ void EnergyDistributionManager::PLotZweightByEnergy()
 	zWeightByEnergy->Draw("Hist");
 }
 
-void EnergyDistributionManager::ClearDistributionList()
+void EnergyDistributionManager::ClearDistributionsInSet(int setIndex)
 {
-	for (int i = energyDistributionList.size() - 1; i >= 0; i--)
+	std::vector<EnergyDistribution>& list = energyDistributionSets.at(setIndex).distributions;
+
+	for (int i = list.size() - 1; i >= 0; i--)
 	{
-		RemoveDistributionFromList(i);
+		RemoveDistributionFromSet(i, setIndex);
 	}
 }
 

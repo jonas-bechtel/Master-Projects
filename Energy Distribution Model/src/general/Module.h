@@ -2,6 +2,7 @@
 
 #include "ParameterImplementations.h"
 
+struct EnergyDistributionSet;
 struct EnergyDistribution;
 class MCMC;
 class ElectronBeam;
@@ -38,10 +39,10 @@ protected:
 	TCanvas* m_secondCanvas;
 };
 
-class EnergyDistribtionListContainer
+class EnergyDistribtionSetsContainer
 {
 protected:
-	static std::vector<EnergyDistribution> energyDistributionList;
+	static std::vector<EnergyDistributionSet> energyDistributionSets;
 };
 
 class EnergyDistributionModule : public Window
@@ -74,7 +75,7 @@ protected:
 	static int s_rebinningFactors[3];
 };
 
-class CrossSectionDeconvolutionModule : public EnergyDistribtionListContainer, public Window
+class CrossSectionDeconvolutionModule : public EnergyDistribtionSetsContainer, public Window
 {
 public:
 	CrossSectionDeconvolutionModule(std::string name);

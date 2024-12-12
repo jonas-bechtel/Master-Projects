@@ -4,8 +4,6 @@
 #include "AnalyticalDistribution.h"
 #include "Constants.h"
 
-std::unordered_map<double, EnergyDistribution*> EnergyDistribution::s_allDistributions;
-
 EnergyDistribution::EnergyDistribution()
 	: TH1D()
 {
@@ -14,15 +12,7 @@ EnergyDistribution::EnergyDistribution()
 
 EnergyDistribution::~EnergyDistribution()
 {
-	// needs to be removed from hash map
-	for (auto it = s_allDistributions.begin(); it != s_allDistributions.end(); it++)
-	{
-		if (it->second == this) 
-		{
-			s_allDistributions.erase(it); 
-			break;
-		}
-	}
+	
 	//std::cout << "calling Energy Distribution destructor" << std::endl;
 }
 
@@ -47,8 +37,8 @@ EnergyDistribution::EnergyDistribution(EnergyDistribution&& other)
 
 	label = std::move(other.label);
 	tags = std::move(other.tags);
-	folder = std::move(other.folder);
-	subFolder = std::move(other.subFolder);
+	//folder = std::move(other.folder);
+	//subFolder = std::move(other.subFolder);
 	index = std::move(other.index);
 
 	psi = std::move(other.psi);
@@ -83,8 +73,8 @@ EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other)
 
 	label = std::move(other.label);
 	tags = std::move(other.tags);
-	folder = std::move(other.folder);
-	subFolder = std::move(other.subFolder);
+	//folder = std::move(other.folder);
+	//subFolder = std::move(other.subFolder);
 	index = std::move(other.index);
 
 	psi = std::move(other.psi);
@@ -102,7 +92,7 @@ EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other)
 void EnergyDistribution::ResetDefaultValues()
 {
 	//std::cout << "binvalues size: " << binValues.size() << std::endl;
-	folder = "Test";
+	//folder = "Test";
 	index = 0;
 	plotted = false;
 	showNormalisedByWidth = true;
@@ -112,9 +102,9 @@ void EnergyDistribution::SetupLabellingThings()
 {
 	if (!eBeamParameter.densityFile.get().empty() && !labEnergiesParameter.energyFile.get().empty())
 	{
-		folder = eBeamParameter.densityFile.get().parent_path().parent_path();
-		subFolder = Form("E_cool %.3feV I_e %.2eA", eBeamParameter.coolingEnergy.get(),
-			eBeamParameter.electronCurrent.get());
+		//folder = eBeamParameter.densityFile.get().parent_path().parent_path();
+		//subFolder = Form("E_cool %.3feV I_e %.2eA", eBeamParameter.coolingEnergy.get(),
+		//	eBeamParameter.electronCurrent.get());
 
 		index = std::stoi(eBeamParameter.densityFile.get().filename().string().substr(0, 4));
 	}
@@ -129,9 +119,9 @@ void EnergyDistribution::SetupLabellingThings()
 	label = Form("%d: U drift = %.2fV, E_d = %.4f", index, labEnergiesParameter.driftTubeVoltage.get(),
 		eBeamParameter.detuningEnergy.get());
 
-	std::string histDescription = folder.filename().string() + " " + std::to_string(index);
-	SetName(("Energy Distribution " + histDescription).c_str());
-	SetTitle(("Energy Distribution " + histDescription).c_str());
+	//std::string histDescription = folder.filename().string() + " " + std::to_string(index);
+	//SetName(("Energy Distribution " + histDescription).c_str());
+	//SetTitle(("Energy Distribution " + histDescription).c_str());
 }
 
 void EnergyDistribution::SetupBinning(const BinningSettings& binSettings)
@@ -405,24 +395,24 @@ double EnergyDistribution::CalculateTestRateCoefficient()
 	return rc;
 }
 
-std::string EnergyDistribution::String()
+std::string EnergyDistribution::String() const
 {
-	std::string string = Form("# folder: %s\n", (folder.filename().string() + subFolder.filename().string()).c_str()) +
+	std::string string = //Form("# folder: %s\n", (folder.filename().string() + subFolder.filename().string()).c_str()) +
 		eBeamParameter.toString() +
 		labEnergiesParameter.toString() +
 		ionBeamParameter.toString() +
 		mcmcParameter.toString() +
 		analyticalParameter.toString();
 
-	if (folder.filename().string() == "Test")
-	{
-		string += simplifyParams.toString();
-	}
+	//if (folder.filename().string() == "Test")
+	//{
+	//	string += simplifyParams.toString();
+	//}
 
 	return string;
 }
 
-std::string EnergyDistribution::Filename()
+std::string EnergyDistribution::Filename() const
 {
 	std::ostringstream indexSS;
 	std::ostringstream eCoolSS;
@@ -434,12 +424,28 @@ std::string EnergyDistribution::Filename()
 	return string;
 }
 
-EnergyDistribution* EnergyDistribution::FindByEd(double detuningEnergy)
+EnergyDistribution* EnergyDistributionSet::FindByEd(double detuningEnergy)
 {
-	if (s_allDistributions.find(detuningEnergy) == s_allDistributions.end())
+	if (EdToDistMap.find(detuningEnergy) == EdToDistMap.end())
 	{
 		std::cout << "no energy distribution with E_d = " << detuningEnergy << " was found\n";
 		return nullptr;
 	}
-	return s_allDistributions.at(detuningEnergy);
+	return EdToDistMap.at(detuningEnergy);
+}
+
+void EnergyDistributionSet::SetAllPlotted(bool plotted)
+{
+	for (EnergyDistribution& eDist : distributions)
+	{
+		eDist.plotted = plotted;
+	}
+}
+
+void EnergyDistributionSet::SetAllShowNormalised(bool showNormalised)
+{
+	for (EnergyDistribution& eDist : distributions)
+	{
+		eDist.showNormalisedByWidth = showNormalised;
+	}
 }
