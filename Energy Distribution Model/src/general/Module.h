@@ -13,8 +13,7 @@ class EnergyDistributionManager;
 struct CrossSection;
 struct RateCoefficient;
 struct PlasmaRateCoefficient;
-class RateCoefficientManager;
-class CrossSectionManager;
+class DeconvolutionManager;
 
 class Window
 {
@@ -43,6 +42,7 @@ class EnergyDistribtionSetsContainer
 {
 protected:
 	static std::vector<EnergyDistributionSet> energyDistributionSets;
+	static int currentSetIndex;
 };
 
 class EnergyDistributionModule : public Window
@@ -89,9 +89,12 @@ protected:
 	static std::vector<CrossSection> crossSectionList;
 	static std::vector<RateCoefficient> rateCoefficientList;
 	static std::vector<PlasmaRateCoefficient> plasmaRateCoefficientList;
+	static int currentCrossSectionIndex;
+	static int currentRateCoefficientIndex;
+	static int currentPlasmaRateCoefficientIndex;
 
 	// components working on the data
-	static CrossSectionManager* CSmanager;
-	static RateCoefficientManager* RCmanager;
+	//static CrossSectionManager* CSmanager;
+	static DeconvolutionManager* deconvolutionManager;
 };
 

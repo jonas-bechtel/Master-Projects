@@ -2,8 +2,7 @@
 
 #include "MCMC.h"
 #include "EnergyDistributionManager.h"
-#include "CrossSectionManager.h"
-#include "RateCoefficientManager.h"
+#include "DeconvolutionManager.h"
 
 class Application
 {
@@ -21,10 +20,9 @@ private:
 	IonBeam ionBeam;
 	MCMC mcmc;
 	LabEnergies labEnergies;
-	EnergyDistributionManager manager;
+	EnergyDistributionManager energyDistributionManager;
 
-	CrossSectionManager crossSectionManager;
-	RateCoefficientManager rateCoefficientManager;
+	DeconvolutionManager deconvolutionManager;
 
 };
 

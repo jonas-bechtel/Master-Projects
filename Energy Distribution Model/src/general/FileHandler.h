@@ -13,12 +13,14 @@ public:
 		return instance;
 	}
 	std::filesystem::path SelectFile(const std::filesystem::path& startPath = "data\\", const std::vector<const char*>& filterPatterns = { "*.asc" });
+	std::filesystem::path SelectFolder(const std::filesystem::path& startPath = "data\\");
 	std::vector<std::filesystem::path> SelectFiles(const std::filesystem::path& startPath = "data\\");
 	std::filesystem::path FindFileWithIndex(const std::filesystem::path& folder, int index);
 
 	TH3D* LoadMatrixFile(const std::filesystem::path& filename);
 	//EnergyDistribution* LoadEnergyDistributionSamples(const std::filesystem::path& filename);
 	EnergyDistribution LoadEnergyDistribution(std::filesystem::path& filename, bool loadSamples);
+	EnergyDistributionSet LoadEnergyDistributionSet(std::filesystem::path& folder);
 	RateCoefficient LoadRateCoefficients(std::filesystem::path& filename);
 
 	int GetMaxIndex(std::filesystem::path energiesFile);

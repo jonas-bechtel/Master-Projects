@@ -427,10 +427,6 @@ void CrossSectionManager::FitCrossSectionHistogram()
 
 void CrossSectionManager::SetupInitialGuess()
 {
-	//for (int i = 1; i <= crossSectionFit->GetNbinsX(); i++)
-	//{
-	//	initialGuess.push_back(2 / crossSectionFit->GetBinCenter(i));
-	//}
 	initialGuess.clear();
 
 	for (int i = 1; i <= crossSectionFit->GetNbinsX(); i++)

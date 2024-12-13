@@ -90,10 +90,7 @@
     <ClCompile Include="src\Cross Section Deconvolution\RateCoefficient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Cross Section Deconvolution\RateCoefficientManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Cross Section Deconvolution\CrossSectionManager.cpp">
+    <ClCompile Include="src\Cross Section Deconvolution\DeconvolutionManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.cpp">
@@ -185,7 +182,7 @@
     <ClInclude Include="src\Cross Section Deconvolution\RateCoefficient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Cross Section Deconvolution\RateCoefficientManager.h">
+    <ClInclude Include="src\Cross Section Deconvolution\DeconvolutionManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Cross Section Deconvolution\CrossSectionManager.h">

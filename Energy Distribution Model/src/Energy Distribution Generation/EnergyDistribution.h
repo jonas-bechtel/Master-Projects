@@ -101,15 +101,21 @@ struct EnergyDistributionSet
 		return *this;
 	}
 
+	std::string Label()
+	{
+		return (folder.string() + subFolder.string());
+	}
 	EnergyDistribution* FindByEd(double detuningEnergy);
 
 	void SetAllPlotted(bool plotted);
 	void SetAllShowNormalised(bool showNormalised);
+
+	void CalculatePsisFromBinning(TH1D* crossSection);
 	
 public:
 	std::vector<EnergyDistribution> distributions;
 	std::unordered_map<double, EnergyDistribution*> EdToDistMap;
 
 	std::filesystem::path folder = "Test";
-	std::filesystem::path subFolder = "bla";
+	std::filesystem::path subFolder = "1";
 };

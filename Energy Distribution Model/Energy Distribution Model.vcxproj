@@ -157,8 +157,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.cpp" />
-    <ClCompile Include="src\Cross Section Deconvolution\CrossSectionManager.cpp" />
-    <ClCompile Include="src\Cross Section Deconvolution\RateCoefficientManager.cpp" />
+    <ClCompile Include="src\Cross Section Deconvolution\DeconvolutionManager.cpp" />
     <ClCompile Include="src\Cross Section Deconvolution\RateCoefficient.cpp" />
     <ClCompile Include="src\Energy Distribution Generation\AnalyticalDistribution.cpp" />
     <ClCompile Include="src\Cross Section Deconvolution\CrossSection.cpp" />
@@ -248,7 +247,7 @@
   <ItemGroup>
     <ClInclude Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.h" />
     <ClInclude Include="src\Cross Section Deconvolution\CrossSectionManager.h" />
-    <ClInclude Include="src\Cross Section Deconvolution\RateCoefficientManager.h" />
+    <ClInclude Include="src\Cross Section Deconvolution\DeconvolutionManager.h" />
     <ClInclude Include="src\Cross Section Deconvolution\RateCoefficient.h" />
     <ClInclude Include="src\Energy Distribution Generation\AnalyticalDistribution.h" />
     <ClInclude Include="src\general\Parameter.h" />

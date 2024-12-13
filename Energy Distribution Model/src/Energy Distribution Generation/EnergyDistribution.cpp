@@ -449,3 +449,12 @@ void EnergyDistributionSet::SetAllShowNormalised(bool showNormalised)
 		eDist.showNormalisedByWidth = showNormalised;
 	}
 }
+
+void EnergyDistributionSet::CalculatePsisFromBinning(TH1D* crossSection)
+{
+	for (EnergyDistribution& eDist: distributions)
+	{
+		eDist.CalculatePsisFromBinning(crossSection);
+	}
+}
+

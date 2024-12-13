@@ -8,15 +8,20 @@ class CrossSectionManager : public CrossSectionDeconvolutionModule
 
 public:
 	CrossSectionManager();
+	int GetCurrentBinningOption();
+	std::string&& GetCurrentBinningString();
 
 private:
-	void ShowUI() override;
+	//void ShowUI() override;
+
+	RateCoefficient ConvolveCrossSection(CrossSection& cs, EnergyDistributionSet& set);
+	void ConvolveCrossSection(CrossSection& cs, EnergyDistributionSet& set, RateCoefficient& rc);
+
 
 	void test();
 
 	void SetupFitCrossSectionHist();
 	void CalculateRateCoefficients();
-	void CalculatePsis();
 
 	void SetupInitialGuess();
 	void FitCrossSectionHistogram();

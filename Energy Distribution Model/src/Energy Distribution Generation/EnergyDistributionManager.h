@@ -14,6 +14,7 @@ public:
 	void GenerateEnergyDistribution();
 	void GenerateEnergyDistributionsFromFile(std::filesystem::path file);
 
+	void ShowSetListWindow();
 private:
 	void SetupDistribution(std::filesystem::path = "") override {}
 
@@ -25,8 +26,9 @@ private:
 
 	void CreateNewSet();
 	void RemoveSet(int setIndex);
-	void AddDistributionToSet(EnergyDistribution&& distribution, int setIndex);
+	void AddDistributionToSet(EnergyDistribution& distribution, int setIndex);
 	void RemoveDistributionFromSet(int index, int setIndex);
+	void PrepareCurrentSet(std::filesystem::path folder, std::filesystem::path subfolder = "");
 
 	void SetupSecondaryPlots();
 	void PlotEnergyDistributions();
@@ -43,8 +45,6 @@ private:
 	TH1D* long_ktDistribution = nullptr;
 	TH1D* long_VelAddition = nullptr;
 
-	int currentSetIndex = 0;
-
 	// currently loaded file
 	std::filesystem::path currentDescriptionFile = std::filesystem::path("data\\C60 (2)\\100x100x100_Ie11.3_Ucath44.2_RelTol0_sort_energies.asc");
 	int maxIndex = 0;
@@ -55,8 +55,6 @@ private:
 	bool doAll = false;
 
 	// save all sampled values in a file to load it again
-	bool saveAsHist = false;
-	bool saveSamplesToFile = false;
 	bool loadSamples = true;
 
 	// binning related parameters

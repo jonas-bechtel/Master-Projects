@@ -16,12 +16,15 @@ LabEnergies* EnergyDistributionModule::labEnergies = nullptr;
 EnergyDistributionManager* EnergyDistributionModule::manager = nullptr;
 
 std::vector<EnergyDistributionSet> EnergyDistribtionSetsContainer::energyDistributionSets;
+int EnergyDistribtionSetsContainer::currentSetIndex = 0;
 
 std::vector<CrossSection> CrossSectionDeconvolutionModule::crossSectionList;
 std::vector<RateCoefficient> CrossSectionDeconvolutionModule::rateCoefficientList;
 std::vector<PlasmaRateCoefficient> CrossSectionDeconvolutionModule::plasmaRateCoefficientList;
-CrossSectionManager* CrossSectionDeconvolutionModule::CSmanager = nullptr;
-RateCoefficientManager* CrossSectionDeconvolutionModule::RCmanager = nullptr;
+int CrossSectionDeconvolutionModule::currentCrossSectionIndex = 0;
+int CrossSectionDeconvolutionModule::currentRateCoefficientIndex = 0;
+int CrossSectionDeconvolutionModule::currentPlasmaRateCoefficientIndex = 0;
+DeconvolutionManager* CrossSectionDeconvolutionModule::deconvolutionManager = nullptr;
 
 Window::Window(std::string name)
 	: m_name(name)

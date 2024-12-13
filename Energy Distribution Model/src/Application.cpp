@@ -242,7 +242,7 @@ void Application::ShowWindows()
         electronBeam.ShowWindow();
         ionBeam.ShowWindow();
         labEnergies.ShowWindow();
-        manager.ShowWindow();
+        energyDistributionManager.ShowWindow();
 
         //auto modules = Module::GetModuleMap();
         //for (auto& [name, module] : modules)
@@ -255,8 +255,10 @@ void Application::ShowWindows()
         ImGuiID dockspace_id = ImGui::GetID("cs deconvolution");
         ImGui::DockSpace(dockspace_id);
 
-        crossSectionManager.ShowWindow();
-        rateCoefficientManager.ShowWindow();
+        energyDistributionManager.ShowSetListWindow();
+        deconvolutionManager.ShowRateCoefficientListWindow();
+        deconvolutionManager.ShowCrossSectionListWindow();
+        deconvolutionManager.ShowWindow();
     }
     
 

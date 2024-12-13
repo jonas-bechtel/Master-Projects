@@ -4,7 +4,13 @@
 struct RateCoefficient
 {
 	RateCoefficient();
+	RateCoefficient(const RateCoefficient& other) = delete;
+	RateCoefficient& operator=(const RateCoefficient& other) = delete;
+	RateCoefficient(RateCoefficient&& other) = default;
+	RateCoefficient& operator=(RateCoefficient&& other) = default;
 
+	int GetIndexOfDetuningEnergy(double Ed);
+	
 
 public:
 	// main data
@@ -15,8 +21,10 @@ public:
 	std::vector<double> error;
 
 	// labelling things
-	std::string label = "";
+	std::string label = "mbrc";
 	std::filesystem::path energyDistriubtionSetFolder;
 	std::filesystem::path crossSectionFile;
+
+	bool input = true;
 };
 

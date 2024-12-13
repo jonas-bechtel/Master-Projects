@@ -130,6 +130,30 @@ EnergyDistribution FileHandler::LoadEnergyDistribution(std::filesystem::path& fi
     return energyDist;
 }
 
+EnergyDistributionSet FileHandler::LoadEnergyDistributionSet(std::filesystem::path& folder)
+{
+    EnergyDistributionSet set = EnergyDistributionSet();
+
+    if (!std::filesystem::exists(folder) || !std::filesystem::is_directory(folder)) 
+    {
+        std::cerr << "Invalid directory path!" << std::endl;
+        return set;
+    }
+
+    // Iterate through the directory
+    for (const auto& entry : std::filesystem::directory_iterator(folder)) 
+    {
+        if (entry.is_regular_file() && entry.path().extension() == ".asc")
+        {
+            std::filesystem::path file = entry.path();
+            set.distributions.emplace_back(std::move(LoadEnergyDistribution(file, true)));
+        }
+    }
+    set.folder = folder.parent_path().filename();
+    set.subFolder = folder.filename();
+    return set;
+}
+
 RateCoefficient FileHandler::LoadRateCoefficients(std::filesystem::path& filename)
 {
     std::ifstream file(filename);
@@ -151,6 +175,7 @@ RateCoefficient FileHandler::LoadRateCoefficients(std::filesystem::path& filenam
         rc.detuningEnergies.push_back(std::stod(tokens[0]));
         rc.value.push_back(std::stod(tokens[1]));
         rc.error.push_back(std::stod(tokens[3]));
+        rc.graph->AddPoint(std::stod(tokens[0]), std::stod(tokens[1]));
     }
     return rc;
 }
@@ -229,6 +254,20 @@ std::filesystem::path FileHandler::SelectFile(const std::filesystem::path& start
         return std::filesystem::path();
     }
     return std::filesystem::path(filePath);
+}
+
+std::filesystem::path FileHandler::SelectFolder(const std::filesystem::path& startPath)
+{
+    std::filesystem::path projectDir = std::filesystem::current_path();
+    std::filesystem::path fullStartPath = projectDir / startPath;
+
+    const char* folder = tinyfd_selectFolderDialog("Choose a folder", fullStartPath.string().c_str());
+
+    if (!folder)
+    {
+        return std::filesystem::path();
+    }
+    return std::filesystem::path(folder);
 }
 
 std::vector<std::filesystem::path> FileHandler::SelectFiles(const std::filesystem::path& startPath)

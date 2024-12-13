@@ -37,14 +37,6 @@ void EnergyDistributionManager::ShowSettings()
 	ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX | ImGuiChildFlags_ResizeY;
 	if (ImGui::BeginChild("##Settings", ImVec2(0.0f, 0.0f), flags))
 	{
-		//if (ImGui::Button("Generate Single Energy Distribution"))
-		//{
-		//	GenerateEnergyDistribution();
-		//
-		//	PlotEnergyDistributions();
-		//	PLotZweightByEnergy();
-		//}
-
 		if (ImGui::Button("select description file"))
 		{
 			currentDescriptionFile = FileHandler::GetInstance().SelectFile();
@@ -64,16 +56,6 @@ void EnergyDistributionManager::ShowSettings()
 			PlotLongVelAddition();
 		}
 		ImGui::EndDisabled();
-		ImGui::SameLine();
-		if (ImGui::Checkbox("save as hist", &saveAsHist))
-		{
-			if (!saveAsHist) saveSamplesToFile = false;
-		}
-		ImGui::SameLine();
-		if (ImGui::Checkbox("save samples", &saveSamplesToFile))
-		{
-			if (saveSamplesToFile) saveAsHist = true;
-		}
 
 		ImGui::SetNextItemWidth(80.0f);
 		ImGui::BeginDisabled(doAll);
@@ -98,6 +80,14 @@ void EnergyDistributionManager::ShowSettings()
 
 		ImGui::SeparatorText("input things");
 		ImGui::SeparatorText("output things");
+		EnergyDistributionSet& currentSet = energyDistributionSets.at(currentSetIndex);
+		char buf[64] = "";
+		strncpy_s(buf, currentSet.subFolder.string().c_str(), sizeof(buf) - 1);
+		ImGui::SetNextItemWidth(150.0f);
+		if (ImGui::InputText("set subfolder", buf, IM_ARRAYSIZE(buf)))
+		{
+			currentSet.subFolder = std::filesystem::path(buf);
+		}
 
 		ImGui::SeparatorText("Binning options");
 		ImGui::SetNextItemWidth(150.0f);
@@ -158,7 +148,7 @@ void EnergyDistributionManager::ShowTabsWithSets()
 			{
 				bool open = true;
 				std::string label = "set " + std::to_string(setIndex);
-				if (ImGui::BeginTabItem(label.c_str(), &open))
+				if (ImGui::BeginTabItem(label.c_str(), (energyDistributionSets.size() > 1 ? &open : (bool*)0)))
 				{
 					currentSetIndex = setIndex;
 					ShowEnergyDistributionSet(setIndex);
@@ -173,7 +163,7 @@ void EnergyDistributionManager::ShowTabsWithSets()
 		}
 		ImGui::PopStyleColor(2);
 
-		ImGui::SeparatorText("options affecting all sets");
+		ImGui::SeparatorText("general options");
 		if (ImGui::Button("clear plot"))
 		{
 			for (EnergyDistributionSet& set : energyDistributionSets)
@@ -181,6 +171,27 @@ void EnergyDistributionManager::ShowTabsWithSets()
 				set.SetAllPlotted(false);
 			}
 		}
+		ImGui::SameLine();
+		if (ImGui::Button("load hists"))
+		{
+			std::vector<std::filesystem::path> filenames = FileHandler::GetInstance().SelectFiles("output\\");
+			if (!filenames.empty())
+			{
+				for (auto& filename : filenames)
+				{
+					EnergyDistribution energyDist = FileHandler::GetInstance().LoadEnergyDistribution(filename, loadSamples);
+					std::filesystem::path subfolder = filename.parent_path().filename();
+					std::filesystem::path folder = filename.parent_path().parent_path().filename();
+					std::cout << folder << " " << subfolder << std::endl;
+
+					PrepareCurrentSet(folder, subfolder);
+					AddDistributionToSet(energyDist, currentSetIndex);
+				}
+			}
+		}
+		ImGui::SameLine();
+		ImGui::Checkbox("load samples", &loadSamples);
+
 		ImGui::EndChild();
 	}
 }
@@ -258,30 +269,13 @@ void EnergyDistributionManager::ShowEnergyDistributionSet(int setIndex)
 		ImGui::EndPopup();
 	}
 
-	ImGui::Text("energy distrubtion set: %s/%s", set.folder.string().c_str(), set.subFolder.string().c_str());
+	ImGui::Text("energy distrubtion set: %s/%s", set.folder.string().c_str(), set.subFolder.string().c_str());	
 
 	if (ImGui::Button("save set"))
 	{
 		FileHandler::GetInstance().SaveEnergyDistributionSetAsHist(set);
 		FileHandler::GetInstance().SaveEnergyDistributionSetAsSamples(set);
 	}
-	ImGui::SameLine();
-	if (ImGui::Button("load hists"))
-	{
-		std::vector<std::filesystem::path> filenames = FileHandler::GetInstance().SelectFiles("output\\");
-		if (!filenames.empty())
-		{
-			for (auto& filename : filenames)
-			{
-				EnergyDistribution energyDist = FileHandler::GetInstance().LoadEnergyDistribution(filename, loadSamples);
-				AddDistributionToSet(std::move(energyDist), setIndex);
-			}
-		}
-	}
-	ImGui::SameLine();
-	ImGui::Checkbox("load samples", &loadSamples);
-
-	
 }
 
 void EnergyDistributionManager::ShowEnergyDistributionPlot()
@@ -343,15 +337,17 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 void EnergyDistributionManager::CreateNewSet()
 {
 	energyDistributionSets.emplace_back();
+	currentSetIndex = energyDistributionSets.size() - 1;
 }
 
 void EnergyDistributionManager::RemoveSet(int setIndex)
 {
 	ClearDistributionsInSet(setIndex);
 	energyDistributionSets.erase(energyDistributionSets.begin() + setIndex);
+	currentSetIndex = std::min(currentSetIndex, (int)energyDistributionSets.size() - 1);
 }
 
-void EnergyDistributionManager::AddDistributionToSet(EnergyDistribution&& distribution, int setIndex)
+void EnergyDistributionManager::AddDistributionToSet(EnergyDistribution& distribution, int setIndex)
 {
 	if (energyDistributionSets.empty())
 	{
@@ -385,12 +381,24 @@ void EnergyDistributionManager::RemoveDistributionFromSet(int index, int setInde
 	list.erase(list.begin() + index);
 }
 
+void EnergyDistributionManager::PrepareCurrentSet(std::filesystem::path folder, std::filesystem::path subfolder)
+{
+	EnergyDistributionSet& currentSet = energyDistributionSets.at(currentSetIndex);
+	if (currentSet.distributions.empty())
+	{
+		currentSet.folder = folder;
+		if(!subfolder.empty()) currentSet.subFolder = subfolder;
+	}
+	else if (currentSet.folder != folder || (currentSet.subFolder != subfolder && !subfolder.empty()))
+	{
+		CreateNewSet();
+		energyDistributionSets.at(currentSetIndex).folder = folder;
+		if (!subfolder.empty()) energyDistributionSets.at(currentSetIndex).subFolder = subfolder;
+	}
+}
+
 void EnergyDistributionManager::GenerateEnergyDistribution()
 {
-	// final setup of current distribution
-	activeDist.SetupLabellingThings();
-	activeDist.SetupBinning(binSettings);
-
 	// sample positions from electron density multiplied with ion density given from outside
 	std::vector<Point3D> positionSamples = mcmc->GetSamples();
 	activeDist.collisionEnergies.reserve(positionSamples.size());
@@ -472,29 +480,15 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 	activeDist.RemoveEdgeZeros();
 	activeDist.FitAnalyticalToPeak();
 
-	std::cout << "Ed1: " << activeDist.eBeamParameter.detuningEnergy << "\n";
-
-	//if (saveAsHist)
-	//{
-	//	FileHandler::GetInstance().SaveEnergyDistributionSetAsHist(activeDist);
-	//}
-	//
-	//if (saveSamplesToFile)
-	//{
-	//	FileHandler::GetInstance().SaveEnergyDistributionSetAsSamples(activeDist);
-	//}
-
-	// store/move and save current distribution that has been worked on
-	AddDistributionToSet(std::move(activeDist), currentSetIndex);
-
-	// create new distribution object that will be worked on now
-	//activeDist = new EnergyDistribution();
+	//std::cout << "Ed1: " << activeDist.eBeamParameter.detuningEnergy << "\n";
 }
 
 void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesystem::path file)
 {
 	// get all necessary modules
 	FileHandler fileHandler = FileHandler::GetInstance();
+	std::filesystem::path folder = file.parent_path().filename();
+	std::cout << folder << std::endl;
 
 	int end = endIndex;
 	int start = startIndex;
@@ -506,7 +500,7 @@ void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesys
 
 	for (int index = start; index <= end; index++)
 	{
-		// get 3 parameters: U drift tube, electron current, center E lab
+		// get 3 parameters: U drift tube, electron current, center E lab if index is in file
 		std::array<float, 3> additionalParameter = fileHandler.GetParamtersFromDescriptionFileAtIndex(file, index);
 
 		// if they are not found the index is not in the file
@@ -535,8 +529,60 @@ void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesys
 		// 2. sample from this distribution
 		mcmc->GenerateSamples();
 		
+		// final setup of current distribution
+		activeDist.SetupLabellingThings();
+		activeDist.SetupBinning(binSettings);
+
 		// 3. generate energy distribution
-		GenerateEnergyDistribution();		
+		GenerateEnergyDistribution();
+
+		// store/move and save current distribution that has been worked on
+		PrepareCurrentSet(folder);
+		AddDistributionToSet(activeDist, currentSetIndex);
+	}
+}
+
+void EnergyDistributionManager::ShowSetListWindow()
+{
+	if (ImGui::Begin("energy distribution sets"))
+	{
+		if (ImGui::BeginListBox("##setlist", ImVec2(-1, 200)))
+		{
+			for (int i = 0; i < energyDistributionSets.size(); i++)
+			{
+				EnergyDistributionSet& set = energyDistributionSets.at(i);
+				std::string label = (set.folder / set.subFolder).string();
+
+				ImGui::PushID(i);
+				bool selected = i == currentSetIndex;
+				if (ImGui::Selectable(label.c_str(), selected, ImGuiSelectableFlags_AllowItemOverlap))
+				{
+					currentSetIndex = i;
+				}
+				ImGui::PopID();
+
+			}
+			ImGui::EndListBox();
+		}
+		if (ImGui::Button("load energy distribution set"))
+		{
+			std::filesystem::path folder = FileHandler::GetInstance().SelectFolder("output\\");
+			if (!folder.empty())
+			{
+				EnergyDistributionSet set = FileHandler::GetInstance().LoadEnergyDistributionSet(folder);
+				if (set.distributions.empty())
+				{
+					std::cout << "there was no energy distribution in that folder" << std::endl;
+				}
+				else
+				{
+					energyDistributionSets.emplace_back(std::move(set));
+					currentSetIndex = energyDistributionSets.size() - 1;
+				}
+			}
+		}
+
+		ImGui::End();
 	}
 }
 
