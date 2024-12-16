@@ -11,7 +11,6 @@ struct RateCoefficient
 
 	int GetIndexOfDetuningEnergy(double Ed);
 	
-
 public:
 	// main data
 	TGraph* graph = new TGraph();
@@ -22,9 +21,10 @@ public:
 
 	// labelling things
 	std::string label = "mbrc";
+	std::filesystem::path file;
 	std::filesystem::path energyDistriubtionSetFolder;
 	std::filesystem::path crossSectionFile;
 
-	bool input = true;
+	bool measured = true;
 };
 

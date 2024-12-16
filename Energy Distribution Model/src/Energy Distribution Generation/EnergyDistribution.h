@@ -59,8 +59,6 @@ public:
 	// additional labelling things
 	std::string label = "";
 	std::string tags = "";
-	//std::filesystem::path folder = "Test";
-	//std::filesystem::path subFolder = "";
 	int index = 0;
 
 	// fitting things done by the Cross Section class
@@ -103,7 +101,7 @@ struct EnergyDistributionSet
 
 	std::string Label()
 	{
-		return (folder.string() + subFolder.string());
+		return (folder / subFolder).string();
 	}
 	EnergyDistribution* FindByEd(double detuningEnergy);
 

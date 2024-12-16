@@ -4,8 +4,10 @@
 #include "FileHandler.h"
 #include "CrossSectionManager.h"
 
+#include "Eigen/SVD"
+
 DeconvolutionManager::DeconvolutionManager()
-	: CrossSectionDeconvolutionModule("rate coefficient")
+	: CrossSectionDeconvolutionModule("Deconvolution")
 {
 	deconvolutionManager = this;
 }
@@ -26,6 +28,11 @@ void DeconvolutionManager::ShowRateCoefficientListWindow()
 				{
 					currentRateCoefficientIndex = i;
 				}
+				ImGui::SameLine();
+				if (ImGui::SmallButton("x"))
+				{
+					RemoveRateCoefficient(i);
+				}
 				ImGui::PopID();
 
 			}
@@ -37,7 +44,23 @@ void DeconvolutionManager::ShowRateCoefficientListWindow()
 			if (!file.empty())
 			{
 				RateCoefficient rc = FileHandler::GetInstance().LoadRateCoefficients(file);
-				rc.input = true;
+				rc.measured = true;
+				rc.file = file.filename();
+				rc.label = file.filename().string();
+				AddRateCoefficientToList(rc);
+
+				PlotRateCoefficient();
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("load fitted rc"))
+		{
+			std::filesystem::path file = FileHandler::GetInstance().SelectFile("Output\\Rate Coefficients\\", { "*.dat" });
+			if (!file.empty())
+			{
+				RateCoefficient rc = FileHandler::GetInstance().LoadRateCoefficients(file);
+				rc.measured = false;
+				rc.file = file.filename();
 				rc.label = file.filename().string();
 				AddRateCoefficientToList(rc);
 
@@ -65,10 +88,26 @@ void DeconvolutionManager::ShowCrossSectionListWindow()
 				{
 					currentCrossSectionIndex = i;
 				}
+				ImGui::SameLine();
+				if (ImGui::SmallButton("x"))
+				{
+					RemoveCrossSection(i);
+				}
 				ImGui::PopID();
 
 			}
 			ImGui::EndListBox();
+		}
+		if (ImGui::Button("load fitted cs"))
+		{
+			std::filesystem::path file = FileHandler::GetInstance().SelectFile("Output\\Cross Sections\\", { "*.dat" });
+			if (!file.empty())
+			{
+				CrossSection cs = FileHandler::GetInstance().LoadCrossSection(file);
+				cs.file = file.filename();
+				cs.label = file.filename().string();
+				AddCrossSectionToList(cs);
+			}
 		}
 		ImGui::End();
 	}
@@ -76,23 +115,90 @@ void DeconvolutionManager::ShowCrossSectionListWindow()
 
 void DeconvolutionManager::ShowUI()
 {
-	ImGui::SeparatorText("rate coefficient fitting inputs");
-	ImGui::Text("energy distribution set: %s", energyDistributionSets.at(currentSetIndex).Label().c_str());
-	ImGui::Text("target rate coefficient: %s", 
-		rateCoefficientList.empty() ? "" : rateCoefficientList.at(currentRateCoefficientIndex).label.c_str());
-	ImGui::Text("cross section binning: %s", binningOptions[currentSettings.scheme]);
-	if (ImGui::Button("Deconvolve Cross Section"))
+	ShowSettings();
+	ShowPlots();
+}
+
+void DeconvolutionManager::ShowSettings()
+{
+	ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX | ImGuiChildFlags_ResizeY;
+	if (ImGui::BeginChild("DeconvolveSettings", ImVec2(100.0f, 0.0f), flags))
 	{
-		EnergyDistributionSet& currentSet = energyDistributionSets.at(currentSetIndex);
-		RateCoefficient& currentRC = rateCoefficientList.at(currentRateCoefficientIndex);
-		CrossSection cs = Deconvolve(currentRC, currentSet);
-		std::cout << "cs energy size: " << cs.energies.size() << std::endl;
+		ImGui::Text("energy distribution set: "); ImGui::SameLine();
+		ImGui::TextColored(inputColor, "%s",
+			energyDistributionSets.empty() ? "" : energyDistributionSets.at(currentSetIndex).Label().c_str());
 
-		RateCoefficient rc = Convolve(cs, currentSet);
-		AddCrossSectionToList(cs);
-		AddRateCoefficientToList(rc);
+		ImGui::Text("target rate coefficient: "); ImGui::SameLine();
+		ImGui::TextColored(inputColor, "%s",
+			rateCoefficientList.empty() ? "" : rateCoefficientList.at(currentRateCoefficientIndex).label.c_str());
+
+		ImGui::Button("binning options");
+		SetupBinningOptionsPopup();
+		ImGui::OpenPopupOnItemClick("binning options", ImGuiPopupFlags_MouseButtonLeft);
+		ImGui::SameLine();
+		ImGui::Button("fitting options");
+		SetupFitOptionsPopup();
+		ImGui::OpenPopupOnItemClick("fit options", ImGuiPopupFlags_MouseButtonLeft);
+
+		ImGui::SetNextItemWidth(150.0f);
+		ImGui::InputText("output CS name", CSnameInput, sizeof(CSnameInput));
+
+		if (ImGui::Button("Deconvolve Cross Section"))
+		{
+			EnergyDistributionSet& currentSet = energyDistributionSets.at(currentSetIndex);
+			RateCoefficient& currentRC = rateCoefficientList.at(currentRateCoefficientIndex);
+
+			if (!crossSectionList.empty() && crossSectionList.at(currentCrossSectionIndex).label == CSnameInput)
+			{
+				CrossSection& currentCS = crossSectionList.at(currentCrossSectionIndex);
+				DeconvolveInPlace(currentRC, currentSet, currentCS);
+			}
+			else
+			{
+				CrossSection cs = Deconvolve(currentRC, currentSet);
+				AddCrossSectionToList(cs);
+			}
+		}
+		
+		ImGui::EndChild();
 	}
+	ImGui::SameLine();
+	if (ImGui::BeginChild("ConvolveSettings", ImVec2(100.0f, 0.0f), flags))
+	{
+		ImGui::Text("energy distribution set: "); ImGui::SameLine();
+		ImGui::TextColored(inputColor, "%s", 
+			energyDistributionSets.empty() ? "" : energyDistributionSets.at(currentSetIndex).Label().c_str());
 
+		ImGui::Text("cross section: "); ImGui::SameLine();
+		ImGui::TextColored(inputColor, "%s",
+			crossSectionList.empty() ? "" : crossSectionList.at(currentCrossSectionIndex).label.c_str());
+
+		ImGui::SetNextItemWidth(150.0f);
+		ImGui::InputText("output RC name", RCnameInput, sizeof(RCnameInput));
+
+		if (ImGui::Button("Convolve Rate Coefficient"))
+		{
+			EnergyDistributionSet& currentSet = energyDistributionSets.at(currentSetIndex);
+			CrossSection& currentCS = crossSectionList.at(currentCrossSectionIndex);
+			
+			if (!rateCoefficientList.empty() && rateCoefficientList.at(currentRateCoefficientIndex).label == RCnameInput)
+			{
+				RateCoefficient& currentRC = rateCoefficientList.at(currentRateCoefficientIndex);
+				ConvolveInPlace(currentCS, currentSet, currentRC);
+			}
+			else
+			{
+				RateCoefficient rc = Convolve(currentCS, currentSet);
+				AddRateCoefficientToList(rc);
+			}
+			
+		}
+		ImGui::EndChild();
+	}
+}
+
+void DeconvolutionManager::ShowPlots()
+{
 	if (ImPlot::BeginPlot("rate coefficient"))
 	{
 		ImPlot::SetupAxis(ImAxis_X1, "detuning energy [eV]");
@@ -100,20 +206,24 @@ void DeconvolutionManager::ShowUI()
 		if (logX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
 		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
 		ImPlot::SetupLegend(ImPlotLocation_NorthEast);
-
+		int i = 0;
 		for (const RateCoefficient& rc : rateCoefficientList)
 		{
-			ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
-			ImPlot::PlotErrorBars("##errors", rc.detuningEnergies.data(), rc.value.data(), rc.error.data(), rc.error.size());
+			ImGui::PushID(i++);
+			if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
 			ImPlot::PlotLine(rc.label.c_str(), rc.detuningEnergies.data(), rc.value.data(), rc.value.size());
+			ImPlot::PlotErrorBars(rc.label.c_str(), rc.detuningEnergies.data(), rc.value.data(), rc.error.data(), rc.error.size());
+			ImGui::PopID();
 		}
-		
+
 		ImPlot::EndPlot();
 	}
 
 	ImGui::Checkbox("log X", &logX);
 	ImGui::SameLine();
 	ImGui::Checkbox("log Y", &logY);
+	ImGui::SameLine();
+	ImGui::Checkbox("show markers", &showMarkers);
 
 	if (ImPlot::BeginPlot("cross section"))
 	{
@@ -122,20 +232,72 @@ void DeconvolutionManager::ShowUI()
 		if (logX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
 		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
 		ImPlot::SetupLegend(ImPlotLocation_NorthEast);
-
+		int i = 0;
 		for (const CrossSection& cs : crossSectionList)
 		{
-			//ImGui::PushID();
-			ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
-			ImPlot::PlotErrorBars("##errors", cs.energies.data(), cs.values.data(), cs.errors.data(), cs.errors.size());
+			ImGui::PushID(i++);
+			if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
 			ImPlot::PlotLine(cs.label.c_str(), cs.energies.data(), cs.values.data(), cs.values.size());
-			ImPlot::PlotLine((cs.label + "init").c_str(), cs.energies.data(), cs.initialGuess.data(), cs.initialGuess.size());
-			//ImGui::PopID();
+			ImPlot::PlotErrorBars(cs.label.c_str(), cs.energies.data(), cs.values.data(), cs.errors.data(), cs.errors.size());
+
+			ImPlot::PlotLine((cs.label + " init").c_str(), cs.energies.data(), cs.initialGuess.data(), cs.initialGuess.size());
+			ImGui::PopID();
 		}
 
 		ImPlot::EndPlot();
 	}
 }
+
+void DeconvolutionManager::SetupFitOptionsPopup()
+{
+	if (ImGui::BeginPopupContextItem("fit options"))
+	{
+		if (ImGui::Checkbox("ROOT fitting", &ROOT_fit))
+		{
+			SVD_fit = !ROOT_fit;
+		}
+		ImGui::SameLine();
+		ImGui::Checkbox("limit to positive parameters", &limitROOTparameterRange);
+		if(ImGui::Checkbox("SVD fitting", &SVD_fit))
+		{
+			ROOT_fit = !SVD_fit;
+		}
+		ImGui::EndPopup();
+	}
+
+}
+
+void DeconvolutionManager::SetupBinningOptionsPopup()
+{
+	if (ImGui::BeginPopupContextItem("binning options"))
+	{
+		ImGui::Combo("binning options", (int*)&currentSettings.scheme, binningOptions, IM_ARRAYSIZE(binningOptions));
+
+		if (currentSettings.scheme == FactorBinning || currentSettings.scheme == PaperFactorMix)
+		{
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(100.0f);
+			ImGui::InputInt("number bins", &currentSettings.numberBins);
+		}
+		if (currentSettings.scheme == FactorBinning)
+		{
+			//ImGui::SameLine();
+			//ImGui::Checkbox("limit bin size", &limitBinSize);
+			//ImGui::SameLine();
+			//ImGui::BeginDisabled(!limitBinSize);
+			//ImGui::SetNextItemWidth(100.0f);
+			//ImGui::InputDouble("min bin size", &minBinSize, 0.0, 0.0, "%.1e");
+			//ImGui::EndDisabled();
+		}
+		if (currentSettings.scheme == PaperBinning)
+		{
+			//ImGui::SameLine();
+			//ImGui::InputDouble("factor", &binFactor);
+		}
+		ImGui::EndPopup();
+	}
+}
+
 CrossSection DeconvolutionManager::Deconvolve(const RateCoefficient& rc, EnergyDistributionSet& set)
 {
 	if (rc.value.size() != set.distributions.size())
@@ -144,6 +306,10 @@ CrossSection DeconvolutionManager::Deconvolve(const RateCoefficient& rc, EnergyD
 			rc.value.size() << " != " << set.distributions.size() << std::endl;
 	}
 	CrossSection cs = CrossSection();
+	cs.energyDistriubtionSetFolder = set.folder / set.subFolder;
+	cs.mergedBeamRateCoefficientFile = rc.file;
+	cs.label = CSnameInput;
+	cs.file = cs.label + ".dat";
 
 	cs.SetupBinning(currentSettings);
 
@@ -156,21 +322,74 @@ CrossSection DeconvolutionManager::Deconvolve(const RateCoefficient& rc, EnergyD
 
 void DeconvolutionManager::DeconvolveInPlace(const RateCoefficient& rc, const EnergyDistributionSet& set, CrossSection& cs)
 {
+	if (ROOT_fit)
+	{
+		double* parameter = DeconvolveWithROOT(rc, set, cs);
+		cs.SetValues(parameter);
+	}
+	if (SVD_fit)
+	{
+		double* parameter = DeconvolveWithSVD(rc, set, cs);
+		cs.SetValues(parameter);
+	}
+
+	FileHandler::GetInstance().SaveCrossSection(cs);
+}
+
+double* DeconvolutionManager::DeconvolveWithSVD(const RateCoefficient& rc, const EnergyDistributionSet& set, const CrossSection& cs)
+{
+	int n = set.distributions.size();
+	int p = cs.hist->GetNbinsX();
+
+	Eigen::MatrixXd PsiMatrix(n, p);
+	Eigen::VectorXd alphaVector(n);
+
+	for (int i = 0; i < n; i++)
+	{
+		for (int j = 0; j < p; j++)
+		{
+			// fill matrix and vector with 0 if p > n
+			PsiMatrix(i, j) = set.distributions[i].psi[j];
+		}
+		alphaVector[i] = rc.value[i];
+	}
+
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd(PsiMatrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
+
+	// Solve using the pseudoinverse (x = A^+ * b), where A^+ is the Moore-Penrose pseudoinverse
+	Eigen::VectorXd result = svd.solve(alphaVector);
+
+	return result.data();
+}
+
+double* DeconvolutionManager::DeconvolveWithROOT(const RateCoefficient& rc, const EnergyDistributionSet& set, const CrossSection& cs)
+{
 	TF1* fitFunction = new TF1("fit function", this, &DeconvolutionManager::ConvolveFit, 0, 100, cs.hist->GetNbinsX());
 
+	//ROOT::Math::MinimizerOptions::SetDefaultMinimizer("GSL");
+
 	fitFunction->SetParameters(cs.values.data());
+	if (limitROOTparameterRange)
+	{
+		for (int i = 0; i < cs.hist->GetNbinsX(); i++)
+		{
+			fitFunction->SetParLimits(i, 0, 1e30);
+		}
+	}
 
 	rc.graph->Fit(fitFunction, "RN");
 
-	double* parameter = fitFunction->GetParameters();
-	cs.SetValues(parameter);
+	return fitFunction->GetParameters();
 }
 
-RateCoefficient DeconvolutionManager::Convolve(CrossSection& cs, EnergyDistributionSet& set)
+RateCoefficient DeconvolutionManager::Convolve(const CrossSection& cs, EnergyDistributionSet& set)
 {
 	RateCoefficient rc = RateCoefficient();
-	rc.label = "bla";
-	rc.input = false;
+	rc.energyDistriubtionSetFolder = set.folder / set.subFolder;
+	rc.crossSectionFile = cs.file;
+	rc.measured = false;
+	rc.label = RCnameInput;
+	rc.file = rc.label + ".dat";
 
 	for (const EnergyDistribution& eDist : set.distributions)
 	{
@@ -184,19 +403,32 @@ RateCoefficient DeconvolutionManager::Convolve(CrossSection& cs, EnergyDistribut
 void DeconvolutionManager::ConvolveInPlace(const CrossSection& cs, const EnergyDistributionSet& set, RateCoefficient& rc)
 {
 	rc.value.clear();
+	rc.error.clear();
 	for (const EnergyDistribution& eDist : set.distributions)
 	{
 		rc.value.push_back(0);
+		rc.error.push_back(0);
 		for (int i = 0; i < eDist.psi.size(); i++)
 		{
 			rc.value.back() += eDist.psi[i] * cs.values[i];
 		}
 	}
+	rc.graph->Clear();
+	for (int i = 0; i < rc.detuningEnergies.size(); i++)
+	{
+		rc.graph->AddPoint(rc.detuningEnergies.at(i), rc.value.at(i));
+	}
+
+	FileHandler::GetInstance().SaveRateCoefficients(rc);
 }
 
 double DeconvolutionManager::ConvolveFit(double* x, double* params)
 {
-	if (!x) std::cout << "x is nullptr\n";
+	if (!x)
+	{
+		std::cout << "x is nullptr\n";
+		return 0.0;
+	}
 
 	EnergyDistributionSet& set = energyDistributionSets.at(currentSetIndex);
 	RateCoefficient& rc = rateCoefficientList.at(currentRateCoefficientIndex);
@@ -207,7 +439,11 @@ double DeconvolutionManager::ConvolveFit(double* x, double* params)
 	// find correct distribution
 	//std::cout << "Ed: " << detuningEnergy << "\n";
 	int index = rc.GetIndexOfDetuningEnergy(detuningEnergy);
-	if (index) return 0.0;
+	if (index < 0)
+	{
+		std::cout << "did not find index of detuning energy " << detuningEnergy << std::endl;
+		return 0.0;
+	}
 
 	EnergyDistribution& distribution = set.distributions.at(index);
 	
@@ -225,22 +461,25 @@ double DeconvolutionManager::ConvolveFit(double* x, double* params)
 void DeconvolutionManager::AddRateCoefficientToList(RateCoefficient& rc)
 {
 	rateCoefficientList.emplace_back(std::move(rc));
+	currentRateCoefficientIndex = rateCoefficientList.size() - 1;
 }
 
 void DeconvolutionManager::RemoveRateCoefficient(int index)
 {
 	rateCoefficientList.erase(rateCoefficientList.begin() + index);
+	currentRateCoefficientIndex = std::min(currentRateCoefficientIndex, (int)rateCoefficientList.size() - 1);
 }
 
 void DeconvolutionManager::AddCrossSectionToList(CrossSection& cs)
 {
-	std::cout << "cs energy size: " << cs.energies.size() << std::endl;
 	crossSectionList.emplace_back(std::move(cs));
+	currentCrossSectionIndex = crossSectionList.size() - 1;
 }
 
 void DeconvolutionManager::RemoveCrossSection(int index)
 {
 	crossSectionList.erase(crossSectionList.begin() + index);
+	currentCrossSectionIndex = std::min(currentCrossSectionIndex, (int)crossSectionList.size() - 1);
 }
 
 void DeconvolutionManager::PlotRateCoefficient()

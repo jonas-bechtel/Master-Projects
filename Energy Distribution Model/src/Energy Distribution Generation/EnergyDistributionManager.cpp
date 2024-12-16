@@ -14,7 +14,7 @@ EnergyDistributionManager::EnergyDistributionManager()
 	m_mainCanvas->Divide(3,2);
 	m_mainCanvas->SetWindowSize(1500, 800);
 
-	CreateNewSet();
+	//CreateNewSet();
 }
 
 std::vector<EnergyDistributionSet>& EnergyDistributionManager::GetEnergyDistributionSets()
@@ -80,13 +80,16 @@ void EnergyDistributionManager::ShowSettings()
 
 		ImGui::SeparatorText("input things");
 		ImGui::SeparatorText("output things");
-		EnergyDistributionSet& currentSet = energyDistributionSets.at(currentSetIndex);
-		char buf[64] = "";
-		strncpy_s(buf, currentSet.subFolder.string().c_str(), sizeof(buf) - 1);
-		ImGui::SetNextItemWidth(150.0f);
-		if (ImGui::InputText("set subfolder", buf, IM_ARRAYSIZE(buf)))
+		if(!energyDistributionSets.empty())
 		{
-			currentSet.subFolder = std::filesystem::path(buf);
+			EnergyDistributionSet& currentSet = energyDistributionSets.at(currentSetIndex);
+			char buf[64] = "";
+			strncpy_s(buf, currentSet.subFolder.string().c_str(), sizeof(buf) - 1);
+			ImGui::SetNextItemWidth(150.0f);
+			if (ImGui::InputText("set subfolder", buf, IM_ARRAYSIZE(buf)))
+			{
+				currentSet.subFolder = std::filesystem::path(buf);
+			}
 		}
 
 		ImGui::SeparatorText("Binning options");
@@ -148,7 +151,7 @@ void EnergyDistributionManager::ShowTabsWithSets()
 			{
 				bool open = true;
 				std::string label = "set " + std::to_string(setIndex);
-				if (ImGui::BeginTabItem(label.c_str(), (energyDistributionSets.size() > 1 ? &open : (bool*)0)))
+				if (ImGui::BeginTabItem(label.c_str(), &open))
 				{
 					currentSetIndex = setIndex;
 					ShowEnergyDistributionSet(setIndex);
@@ -383,6 +386,10 @@ void EnergyDistributionManager::RemoveDistributionFromSet(int index, int setInde
 
 void EnergyDistributionManager::PrepareCurrentSet(std::filesystem::path folder, std::filesystem::path subfolder)
 {
+	if (energyDistributionSets.empty())
+	{
+		CreateNewSet();
+	}
 	EnergyDistributionSet& currentSet = energyDistributionSets.at(currentSetIndex);
 	if (currentSet.distributions.empty())
 	{
@@ -559,6 +566,11 @@ void EnergyDistributionManager::ShowSetListWindow()
 				{
 					currentSetIndex = i;
 				}
+				ImGui::SameLine();
+				if (ImGui::SmallButton("x"))
+				{
+					RemoveSet(i);
+				}
 				ImGui::PopID();
 
 			}
@@ -566,7 +578,7 @@ void EnergyDistributionManager::ShowSetListWindow()
 		}
 		if (ImGui::Button("load energy distribution set"))
 		{
-			std::filesystem::path folder = FileHandler::GetInstance().SelectFolder("output\\");
+			std::filesystem::path folder = FileHandler::GetInstance().SelectFolder("output\\Energy Distribution Sets\\");
 			if (!folder.empty())
 			{
 				EnergyDistributionSet set = FileHandler::GetInstance().LoadEnergyDistributionSet(folder);

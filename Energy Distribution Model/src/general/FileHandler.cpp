@@ -5,6 +5,7 @@
 #include "tinyfiledialogs.h"
 
 #include "RateCoefficient.h"
+#include "CrossSection.h"
 
 
 TH3D* FileHandler::LoadMatrixFile(const std::filesystem::path& filename)
@@ -50,29 +51,6 @@ TH3D* FileHandler::LoadMatrixFile(const std::filesystem::path& filename)
                                     filename.filename() << "\n";
     return dataMatrix;
 }
-
-//EnergyDistribution* FileHandler::LoadEnergyDistributionSamples(const std::filesystem::path& filename)
-//{
-//    std::ifstream file(filename);
-//
-//    // Check if the file was successfully opened
-//    if (!file.is_open())
-//    {
-//        std::cerr << "Error: Could not open the file " << filename << std::endl;
-//        return nullptr;
-//    }
-//
-//    std::string header = GetHeaderFromFile(file);
-//    EnergyDistribution* energyDist = CreateEnergyDistFromHeader(header);
-//
-//    std::string line;
-//    while (std::getline(file, line))
-//    {
-//        energyDist->collisionEnergies.push_back(std::stod(line));
-//    }
-//
-//    return energyDist;
-//}
 
 EnergyDistribution FileHandler::LoadEnergyDistribution(std::filesystem::path& filename, bool loadSamples)
 {
@@ -178,6 +156,31 @@ RateCoefficient FileHandler::LoadRateCoefficients(std::filesystem::path& filenam
         rc.graph->AddPoint(std::stod(tokens[0]), std::stod(tokens[1]));
     }
     return rc;
+}
+
+CrossSection FileHandler::LoadCrossSection(std::filesystem::path& filename)
+{
+    std::ifstream file(filename);
+    CrossSection cs = CrossSection();
+
+    // Check if the file was successfully opened
+    if (!file.is_open())
+    {
+        std::cerr << "Error: Could not open the file " << filename << std::endl;
+        return cs;
+    }
+
+    std::string line;
+    // skip first line
+    std::getline(file, line);
+    while (std::getline(file, line))
+    {
+        std::vector<std::string> tokens = SplitLine(line, "\t");
+        cs.energies.push_back(std::stod(tokens[0]));
+        cs.values.push_back(std::stod(tokens[1]));
+        cs.errors.push_back(std::stod(tokens[2]));
+    }
+    return cs;
 }
 
 int FileHandler::GetMaxIndex(std::filesystem::path energiesFile)
@@ -314,6 +317,7 @@ void FileHandler::SaveEnergyDistributionSetAsHist(EnergyDistributionSet& eDistSe
 {
     // set the output filepath
     std::filesystem::path folder = outputFolder.string() /        // general output folder
+        std::filesystem::path("Energy Distribution Sets") /
         eDistSet.folder.filename() /                  // folder of corresponfding desription file
         eDistSet.subFolder.filename();              // subfolder with specific parameters
 
@@ -321,7 +325,8 @@ void FileHandler::SaveEnergyDistributionSetAsHist(EnergyDistributionSet& eDistSe
     //std::filesystem::path dir = std::filesystem::path(file).parent_path();
 
     // Create the directories if they don't exist
-    if (!std::filesystem::exists(folder)) {
+    if (!std::filesystem::exists(folder)) 
+    {
         std::filesystem::create_directories(folder);
     }
     for (const EnergyDistribution& edist : eDistSet.distributions)
@@ -351,6 +356,7 @@ void FileHandler::SaveEnergyDistributionSetAsSamples(EnergyDistributionSet& eDis
 {
     // set the output filepath
     std::filesystem::path folder = outputFolder.string() /                    // general output folder
+        std::filesystem::path("Energy Distribution Sets") /
         eDistSet.folder.filename() /                             // folder of corresponfding desription file
         eDistSet.subFolder.filename();                          // subfolder with specific parameters
 
@@ -368,7 +374,8 @@ void FileHandler::SaveEnergyDistributionSetAsSamples(EnergyDistributionSet& eDis
         std::filesystem::path file = folder / std::filesystem::path(edist.Filename() + ".samples");
         std::ofstream outfile(file);
 
-        if (!outfile.is_open()) {
+        if (!outfile.is_open())
+        {
             std::cerr << "Error opening file" << std::endl;
             return;
         }
@@ -383,6 +390,68 @@ void FileHandler::SaveEnergyDistributionSetAsSamples(EnergyDistributionSet& eDis
 
         outfile.close();
     }
+}
+
+void FileHandler::SaveRateCoefficients(RateCoefficient& rc)
+{
+    // set the output filepath
+    std::filesystem::path file = outputFolder.string() /                    // general output folder
+        std::filesystem::path("Rate Coefficients") /
+        rc.file;
+       
+    // Create the directories if they don't exist
+    if (!std::filesystem::exists(file.parent_path()))
+    {
+        std::filesystem::create_directories(file.parent_path());
+    }
+
+    std::ofstream outfile(file);
+
+    if (!outfile.is_open())
+    {
+        std::cerr << "Error opening file" << std::endl;
+        return;
+    }
+
+    outfile << "# Ed [eV]\tRelative rate\terror\tstatistical error\n";
+
+    for (int i = 0; i < rc.detuningEnergies.size(); i++)
+    {
+        outfile << rc.detuningEnergies[i] << "\t" << rc.value[i] << "\t" << 0.0 << "\t" << rc.error[i] << "\n";
+    }
+
+    outfile.close();
+}
+
+void FileHandler::SaveCrossSection(CrossSection& cs)
+{
+    // set the output filepath
+    std::filesystem::path file = outputFolder.string() /                    // general output folder
+        std::filesystem::path("Cross Sections") /
+        cs.file;
+
+    // Create the directories if they don't exist
+    if (!std::filesystem::exists(file.parent_path()))
+    {
+        std::filesystem::create_directories(file.parent_path());
+    }
+
+    std::ofstream outfile(file);
+
+    if (!outfile.is_open())
+    {
+        std::cerr << "Error opening file" << std::endl;
+        return;
+    }
+
+    outfile << "# Energy [eV]\tCross Section Value\terror\n";
+
+    for (int i = 0; i < cs.energies.size(); i++)
+    {
+        outfile << cs.energies[i] << "\t" << cs.values[i]  << "\t" << cs.errors[i] << "\n";
+    }
+
+    outfile.close();
 }
 
 std::string FileHandler::GetHeaderFromFile(std::ifstream& file) const

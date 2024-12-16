@@ -11,11 +11,13 @@ int RateCoefficient::GetIndexOfDetuningEnergy(double Ed)
     {
         if (detuningEnergies.at(i) == Ed)
         {
+            //std::cout << detuningEnergies.at(i) << " == " << Ed << std::endl;
             return i;
         }
     }
-    return 0;
+    return -1;
 }
+
 
 
 

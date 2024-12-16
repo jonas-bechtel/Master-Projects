@@ -8,6 +8,7 @@ enum CrossSectionBinningScheme { PaperBinning, FactorBinning, PaperFactorMix, Pa
 struct CrossSectionBinningSettings
 {
 	int numberBins = 100;
+
 	CrossSectionBinningScheme scheme = CrossSectionBinningScheme::PaperFactorMix;
 };
 
@@ -35,6 +36,7 @@ public:
 
 	// labelling things
 	std::string label = "cs";
+	std::filesystem::path file;
 	std::filesystem::path energyDistriubtionSetFolder;
 	std::filesystem::path mergedBeamRateCoefficientFile;
 };

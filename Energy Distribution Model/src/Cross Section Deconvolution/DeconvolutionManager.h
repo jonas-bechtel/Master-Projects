@@ -5,7 +5,7 @@
 
 class DeconvolutionManager : public CrossSectionDeconvolutionModule
 {
-	enum Binning { PaperBinning, ConstantBinning, FactorBinning, PaperFactorMix, Paper_FWHM };
+	//enum Binning { PaperBinning, ConstantBinning, FactorBinning, PaperFactorMix, Paper_FWHM };
 
 public:
 	DeconvolutionManager();
@@ -15,11 +15,17 @@ public:
 
 private:
 	void ShowUI() override;
+	void ShowSettings();
+	void ShowPlots();
+	void SetupFitOptionsPopup();
+	void SetupBinningOptionsPopup();
 
 	CrossSection Deconvolve(const RateCoefficient& rc, EnergyDistributionSet& set);
 	void DeconvolveInPlace(const RateCoefficient& rc, const EnergyDistributionSet& set, CrossSection& cs);
+	double* DeconvolveWithSVD(const RateCoefficient& rc, const EnergyDistributionSet& set, const CrossSection& cs);
+	double* DeconvolveWithROOT(const RateCoefficient& rc, const EnergyDistributionSet& set, const CrossSection& cs);
 
-	RateCoefficient Convolve(CrossSection& cs, EnergyDistributionSet& set);
+	RateCoefficient Convolve(const CrossSection& cs, EnergyDistributionSet& set);
 	void ConvolveInPlace(const CrossSection& cs, const EnergyDistributionSet& set, RateCoefficient& rc);
 
 	double ConvolveFit(double* x, double* param);
@@ -37,8 +43,19 @@ private:
 	const char* binningOptions[4] = { "paper binning", "factor binning", "paper/factor mix", "paper/FWHM" };
 	CrossSectionBinningSettings currentSettings;
 
+	// fit options
+	bool ROOT_fit = true;
+	bool SVD_fit = false;
+	bool limitROOTparameterRange = false;
+
 	// plot parameters
 	bool logX = true;
 	bool logY = true;
+	bool showMarkers = false;
+
+	ImVec4 inputColor = ImVec4(0.6, 0.2, 0.1, 1.0);
+
+	char CSnameInput[64] = "cross section name";
+	char RCnameInput[64] = "rate coefficient name";
 };
 

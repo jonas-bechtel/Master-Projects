@@ -87,11 +87,6 @@ void CrossSection::SetupBinning(CrossSectionBinningSettings binSettings)
 		}
 	}
 
-	if (binSettings.scheme == Paper_FWHM)
-	{
-
-	}
-
 	//for (double edge : binEdges)
 	//{
 	//	std::cout << edge << "\n";
@@ -109,6 +104,8 @@ void CrossSection::SetupInitialGuess(const RateCoefficient& rc)
 {
 	values.clear();
 	values.reserve(hist->GetNbinsX());
+	errors.clear();
+	errors.resize(hist->GetNbinsX());
 
 	for (int i = 1; i <= hist->GetNbinsX(); i++)
 	{
