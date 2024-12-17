@@ -32,7 +32,8 @@ struct EnergyDistribution : public TH1D
 	void SetupBinning(const BinningSettings& binSettings);
 	void FillVectorsFromHist();
 	void RemoveEdgeZeros();
-	void FitAnalyticalToPeak();
+	void CalculateFWHM();
+	void FitAnalyticalToPeak(bool fixKT_trans = true, bool fixDetuningEnergy = true);
 	void CalculatePsisFromBinning(TH1D* crossSection);
 	double CalculateTestRateCoefficient();
 
@@ -53,7 +54,7 @@ public:
 	ElectronBeamParameters eBeamParameter;
 	IonBeamParameters ionBeamParameter;
 	LabEnergyParameters labEnergiesParameter;
-	AnalyticalDistributionParameters analyticalParameter;
+	OutputParameters outputParameter;
 	SimplificationParameter simplifyParams;
 
 	// additional labelling things

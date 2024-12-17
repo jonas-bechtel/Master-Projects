@@ -252,16 +252,14 @@ void DeconvolutionManager::SetupFitOptionsPopup()
 {
 	if (ImGui::BeginPopupContextItem("fit options"))
 	{
-		if (ImGui::Checkbox("ROOT fitting", &ROOT_fit))
-		{
-			SVD_fit = !ROOT_fit;
-		}
+		ImGui::Checkbox("ROOT fitting", &ROOT_fit);
 		ImGui::SameLine();
 		ImGui::Checkbox("limit to positive parameters", &limitROOTparameterRange);
-		if(ImGui::Checkbox("SVD fitting", &SVD_fit))
-		{
-			ROOT_fit = !SVD_fit;
-		}
+		ImGui::Checkbox("SVD fitting", &SVD_fit);
+		ImGui::Checkbox("GD fitting", &GD_fit);
+		ImGui::InputInt("iterations", &iterations);
+		ImGui::InputDouble("learning rate", &learningRate);
+		
 		ImGui::EndPopup();
 	}
 
@@ -291,8 +289,9 @@ void DeconvolutionManager::SetupBinningOptionsPopup()
 		}
 		if (currentSettings.scheme == PaperBinning)
 		{
-			//ImGui::SameLine();
-			//ImGui::InputDouble("factor", &binFactor);
+			ImGui::SameLine();
+			ImGui::InputInt("max ration", &currentSettings.maxRatio);
+			//ImGui::InputInt("factor", &binFactor);
 		}
 		ImGui::EndPopup();
 	}
@@ -311,7 +310,7 @@ CrossSection DeconvolutionManager::Deconvolve(const RateCoefficient& rc, EnergyD
 	cs.label = CSnameInput;
 	cs.file = cs.label + ".dat";
 
-	cs.SetupBinning(currentSettings);
+	cs.SetupBinning(currentSettings, rc);
 
 	set.CalculatePsisFromBinning(cs.hist);
 	cs.SetupInitialGuess(rc);
@@ -327,9 +326,14 @@ void DeconvolutionManager::DeconvolveInPlace(const RateCoefficient& rc, const En
 		double* parameter = DeconvolveWithROOT(rc, set, cs);
 		cs.SetValues(parameter);
 	}
-	if (SVD_fit)
+	else if (SVD_fit)
 	{
 		double* parameter = DeconvolveWithSVD(rc, set, cs);
+		cs.SetValues(parameter);
+	}
+	else if (GD_fit)
+	{
+		double* parameter = DeconvolveWithGradientDescent(rc, set, cs);
 		cs.SetValues(parameter);
 	}
 
@@ -380,6 +384,44 @@ double* DeconvolutionManager::DeconvolveWithROOT(const RateCoefficient& rc, cons
 	rc.graph->Fit(fitFunction, "RN");
 
 	return fitFunction->GetParameters();
+}
+
+double* DeconvolutionManager::DeconvolveWithGradientDescent(const RateCoefficient& rc, const EnergyDistributionSet& set, const CrossSection& cs)
+{
+	int n = set.distributions.size();
+	int p = cs.hist->GetNbinsX();
+
+	Eigen::MatrixXd PsiMatrix(n, p);
+	Eigen::VectorXd alphaVector(n);
+
+	for (int i = 0; i < n; i++)
+	{
+		for (int j = 0; j < p; j++)
+		{
+			PsiMatrix(i, j) = set.distributions[i].psi[j];
+		}
+		alphaVector[i] = rc.value[i];
+	}
+
+	Eigen::VectorXd x = Eigen::VectorXd::Map(cs.values.data(), cs.values.size());
+
+	for (int iter = 0; iter < iterations; iter++)
+	{
+		// Compute the residual: r = A*x - b
+		Eigen::VectorXd r = PsiMatrix * x - alphaVector;
+		
+		// Compute the gradient: grad = A^T * r
+		Eigen::VectorXd grad = PsiMatrix.transpose() * r;
+		//std::cout << "gradient: " << grad << std::endl;
+		//std::cout << "gradient modified: " << grad.cwiseMin(0.001 / learningRate).cwiseMax(-0.001 / learningRate) << std::endl;
+
+		// Update x using gradient descent step
+		x = x - learningRate * grad.cwiseMin(0.0001 / learningRate).cwiseMax(-0.0001 / learningRate);
+		//std::cout << "new x: " << x << std::endl;
+		x = x.cwiseAbs();
+	}
+
+	return x.data();
 }
 
 RateCoefficient DeconvolutionManager::Convolve(const CrossSection& cs, EnergyDistributionSet& set)

@@ -8,8 +8,9 @@ enum CrossSectionBinningScheme { PaperBinning, FactorBinning, PaperFactorMix, Pa
 struct CrossSectionBinningSettings
 {
 	int numberBins = 100;
+	int maxRatio = 10;
 
-	CrossSectionBinningScheme scheme = CrossSectionBinningScheme::PaperFactorMix;
+	CrossSectionBinningScheme scheme = CrossSectionBinningScheme::PaperBinning;
 };
 
 
@@ -22,7 +23,7 @@ struct CrossSection
 	CrossSection& operator=(CrossSection&& other) = default;
 
 	void SetValues(double* newValues);
-	void SetupBinning(CrossSectionBinningSettings binSettings);
+	void SetupBinning(CrossSectionBinningSettings binSettings, const RateCoefficient& rc);
 	void SetupInitialGuess(const RateCoefficient& rc);
 
 public:

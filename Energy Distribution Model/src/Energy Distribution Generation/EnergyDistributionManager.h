@@ -59,6 +59,10 @@ private:
 
 	// binning related parameters
 	BinningSettings binSettings;
+
+	// fit options
+	bool fixKT_trans = true;
+	bool fixDetuningEnergy = false;
 	
 	// plot parameters
 	bool logX = true;

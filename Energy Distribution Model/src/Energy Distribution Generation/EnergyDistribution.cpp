@@ -32,7 +32,7 @@ EnergyDistribution::EnergyDistribution(EnergyDistribution&& other)
 	eBeamParameter = other.eBeamParameter;
 	ionBeamParameter = other.ionBeamParameter;
 	labEnergiesParameter = other.labEnergiesParameter;
-	analyticalParameter = other.analyticalParameter;
+	outputParameter = other.outputParameter;
 	simplifyParams = other.simplifyParams;
 
 	label = std::move(other.label);
@@ -68,7 +68,7 @@ EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other)
 	eBeamParameter = other.eBeamParameter;
 	ionBeamParameter = other.ionBeamParameter;
 	labEnergiesParameter = other.labEnergiesParameter;
-	analyticalParameter = other.analyticalParameter;
+	outputParameter = other.outputParameter;
 	simplifyParams = other.simplifyParams;
 
 	label = std::move(other.label);
@@ -151,6 +151,8 @@ void EnergyDistribution::SetupBinning(const BinningSettings& binSettings)
 	double normalFactor = TMath::Power((max / min), (1.0 / numberNormalBins));
 	double peakFactor1 = TMath::Power(((firstPeak + estimatedPeakWidth1) / std::max(firstPeak - estimatedPeakWidth1, min)), (1.0 / numberPeakBins));
 	double peakFactor2 = TMath::Power(((secondPeak + estimatedPeakWidth2) / std::max(secondPeak - estimatedPeakWidth2, min)), (2.0 / numberPeakBins));
+	peakFactor1 = std::min(peakFactor1, normalFactor);
+	peakFactor2 = std::min(peakFactor2, normalFactor);
 
 	//std::cout << "peak factor 1: " << peakFactor1 << std::endl;
 	//std::cout << "peak factor 2: " << peakFactor2 << std::endl;
@@ -286,7 +288,47 @@ void EnergyDistribution::RemoveEdgeZeros()
 	}
 }
 
-void EnergyDistribution::FitAnalyticalToPeak()
+void EnergyDistribution::CalculateFWHM()
+{
+	auto maxValueIt = std::max_element(binValuesNormalised.begin(), binValuesNormalised.end());
+	int index = std::distance(binValuesNormalised.begin(), maxValueIt);
+	double maxValue = *maxValueIt;
+	double energyOfMaxValue = binCenters.at(index);
+	std::cout << "maxvalue: " << maxValue << " index: " << index << std::endl;
+	if (std::abs(energyOfMaxValue - eBeamParameter.detuningEnergy) > 1)
+	{
+		std::cout << "maximum value position and detuning energy do not match: " << energyOfMaxValue << " != " << eBeamParameter.detuningEnergy << std::endl;
+	}
+
+	double energyRight;
+	for (double energy = energyOfMaxValue; true; energy += 0.0001)
+	{
+		if (Interpolate(energy) < maxValue / 2)
+		{
+			energyRight = energy;
+			break;
+		}
+	}
+	double energyLeft;
+	for (double energy = energyOfMaxValue; true; energy -= 0.0001)
+	{
+		if (energy < 0)
+		{
+			std::cout << "could not calculate FWHM, value did not go below half maximum" << std::endl;
+			outputParameter.FWHM = 0;
+			return;
+		}
+		if (Interpolate(energy) < maxValue / 2)
+		{
+			energyLeft = energy;
+			break;
+		}
+	}
+
+	outputParameter.FWHM = energyRight - energyLeft;
+}
+
+void EnergyDistribution::FitAnalyticalToPeak(bool fixKT_trans, bool fixDetuningEnergy)
 {
 	double detuningEnergy = eBeamParameter.detuningEnergy;
 	double kt_trans = eBeamParameter.transverse_kT;
@@ -303,8 +345,8 @@ void EnergyDistribution::FitAnalyticalToPeak()
 
 	TF1* fitFunction = new TF1("fit function", AnalyticalEnergyDistributionFit, energyMin, energyMax, nParameter);
 	fitFunction->SetParameters(initialGuess);
-	//fitFunction->FixParameter(1, detuningEnergy);
-	fitFunction->FixParameter(2, kt_trans);
+	if (fixDetuningEnergy) fitFunction->FixParameter(1, detuningEnergy);
+	if (fixKT_trans) fitFunction->FixParameter(2, kt_trans);
 
 	TFitResultPtr result = Fit(fitFunction, "QRN0");
 	double maxValue = fitFunction->GetMaximum();
@@ -313,12 +355,12 @@ void EnergyDistribution::FitAnalyticalToPeak()
 	double xRight = fitFunction->GetX(maxValue / 2, energyOfMax, 1000);
 
 	double* fitParameter = fitFunction->GetParameters();
-	analyticalParameter.detuningEnergy = fitParameter[1];
-	//analyticalParameter.transverseTemperature = fitParameter[2];
-	analyticalParameter.longitudinalTemperature = fitParameter[3];
-	analyticalParameter.FWHM = xRight - xLeft;
-	analyticalParameter.effectiveLength = fitParameter[0] * CSR::overlapLength;
-	analyticalParameter.scalingFactor = fitParameter[0];
+	outputParameter.fitDetuningEnergy = fitParameter[1];
+	outputParameter.fitTransverseTemperature = fitParameter[2];
+	outputParameter.fitLongitudinalTemperature = fitParameter[3];
+	outputParameter.fitFWHM = xRight - xLeft;
+	outputParameter.fitScalingFactor = fitParameter[0];
+	outputParameter.effectiveLength = fitParameter[0] * CSR::overlapLength;
 
 	// Fill distribution Fit data with these parameters
 	double energyStep = 0.002;// (energyMax - energyMin) / 200;
@@ -402,7 +444,7 @@ std::string EnergyDistribution::String() const
 		labEnergiesParameter.toString() +
 		ionBeamParameter.toString() +
 		mcmcParameter.toString() +
-		analyticalParameter.toString();
+		outputParameter.toString();
 
 	//if (folder.filename().string() == "Test")
 	//{

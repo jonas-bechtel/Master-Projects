@@ -18,10 +18,10 @@ void CrossSection::SetValues(double* newValues)
 	}
 }
 
-void CrossSection::SetupBinning(CrossSectionBinningSettings binSettings)
+void CrossSection::SetupBinning(CrossSectionBinningSettings binSettings, const RateCoefficient& rc)
 {
 	std::vector<double> binEdges;
-	double maxEnergy = 100;  //just a gues, not fixed
+	double maxEnergy = 100;  //just a guess, not fixed
 	double minEnergy = 0;    //energyDistributionList.back().eBeamParameter.detuningEnergy / 10;
 
 	// binning like in the paper 
@@ -38,18 +38,30 @@ void CrossSection::SetupBinning(CrossSectionBinningSettings binSettings)
 		for (int i = 1; binEdges[i] < kT_trans; i++)
 		{
 			binEdges.push_back(binFactor * 2 * binEdges.back());
-			//std::cout << binEdges.back() << "\n";
 		}
-		while (binEdges[binEdges.size() - 1] < maxEnergy)
+		while (binEdges.back() < maxEnergy)
 		{
-			double previousEdge = binEdges[binEdges.size() - 1];
+			double previousEdge = binEdges.back();
 			double delta_E = sqrt(pow((kT_trans * log(2)), 2) + 16 * log(2) * kT_long * previousEdge);
 			binEdges.push_back(previousEdge + binFactor * delta_E);
 
-			//std::cout << "delta E " << delta_E << "\n";
-			//std::cout << binEdges[binEdges.size()] << "\n";
-			//std::cout << (binEdges[binEdges.size()] < maxEnergy) << "\n";
+			std::cout << "delta E " << delta_E << ", last edge:	" << previousEdge << ", ratio: " << previousEdge /delta_E << "\n";
+			if (previousEdge / delta_E > binSettings.maxRatio) break;
 		}
+		double lastEdgeSoFar = binEdges.back();
+
+		// add edges so rc points are in bin center
+		for (int i = rc.detuningEnergies.size() - 1; i > 0; i--)
+		{
+			if (rc.detuningEnergies.at(i) < lastEdgeSoFar) continue;
+			
+			double Ed_i = rc.detuningEnergies.at(i);
+			double Ed_after_i = rc.detuningEnergies.at(i - 1);
+			std::cout << "Ed[i] = " << Ed_i << " Ed[i + 1] = " << Ed_after_i << " i = " << i << std::endl;
+			binEdges.push_back((Ed_i + Ed_after_i) / 2);
+		}
+		// add one last edge
+		binEdges.push_back(binEdges.back() + 2 * (rc.detuningEnergies.front() - binEdges.back()));
 	}
 	// bin width increses by a constant factor
 	if (binSettings.scheme == FactorBinning)

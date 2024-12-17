@@ -600,7 +600,7 @@ EnergyDistribution FileHandler::CreateEnergyDistFromHeader(std::string& header)
     energyDist.ionBeamParameter.fromString(header);
     energyDist.labEnergiesParameter.fromString(header);
     energyDist.mcmcParameter.fromString(header);
-    energyDist.analyticalParameter.fromString(header);
+    energyDist.outputParameter.fromString(header);
     energyDist.simplifyParams.fromString(header);
               
     energyDist.SetupLabellingThings();

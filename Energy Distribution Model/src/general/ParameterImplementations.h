@@ -86,19 +86,21 @@ private:
 	}
 };
 
-struct AnalyticalDistributionParameters : public Parameters
+struct OutputParameters : public Parameters
 {
-	AnalyticalDistributionParameters()
+	OutputParameters()
 	{
 		setName("analytical/fit distribution parameters");
 	}
 
-	ParameterValue<double> detuningEnergy = ParameterValue(1.0, "detuning energy", "%.3f eV");
-	ParameterValue<double> longitudinalTemperature = ParameterValue(0.0005, "longitudinal kT", "%.2e eV");
-	//ParameterValue<double> transverseTemperature = ParameterValue(0.002, "transverse kT", "%.2e eV");
-	ParameterValue<double> FWHM = ParameterValue(0.0, "FWHM", "%.3f eV");
+	ParameterValue<double> fitDetuningEnergy = ParameterValue(1.0, "fit detuning energy", "%.6e eV");
+	ParameterValue<double> fitLongitudinalTemperature = ParameterValue(0.0005, "fit longitudinal kT", "%.2e eV");
+	ParameterValue<double> fitTransverseTemperature = ParameterValue(0.002, "fit transverse kT", "%.2e eV");
+	ParameterValue<double> fitFWHM = ParameterValue(0.0, "fit FWHM", "%.4f eV");
+	ParameterValue<double> fitScalingFactor = ParameterValue(0.0, "fit scaling factor", "%.3f");
 	ParameterValue<double> effectiveLength = ParameterValue(0.0, "effective length", "%.3f m");
-	ParameterValue<double> scalingFactor = ParameterValue(0.0, "scaling factor", "%.3f");
+
+	ParameterValue<double> FWHM = ParameterValue(0.0, "FWHM", "%.4f eV");
 
 private:
 	int GetSize() const override

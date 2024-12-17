@@ -129,6 +129,10 @@ void EnergyDistributionManager::ShowSettings()
 		ImGui::EndDisabled();
 		ImGui::EndDisabled();
 
+		ImGui::SeparatorText("Peak fitting options");
+		ImGui::Checkbox("fix kT trans", &fixKT_trans);
+		ImGui::Checkbox("fix detuning energy", &fixDetuningEnergy);
+
 		ImGui::EndChild();
 	}
 }
@@ -485,7 +489,8 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 
 	activeDist.FillVectorsFromHist();
 	activeDist.RemoveEdgeZeros();
-	activeDist.FitAnalyticalToPeak();
+	activeDist.CalculateFWHM();
+	activeDist.FitAnalyticalToPeak(fixKT_trans, fixDetuningEnergy);
 
 	//std::cout << "Ed1: " << activeDist.eBeamParameter.detuningEnergy << "\n";
 }

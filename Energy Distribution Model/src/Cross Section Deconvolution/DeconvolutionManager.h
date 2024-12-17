@@ -24,6 +24,7 @@ private:
 	void DeconvolveInPlace(const RateCoefficient& rc, const EnergyDistributionSet& set, CrossSection& cs);
 	double* DeconvolveWithSVD(const RateCoefficient& rc, const EnergyDistributionSet& set, const CrossSection& cs);
 	double* DeconvolveWithROOT(const RateCoefficient& rc, const EnergyDistributionSet& set, const CrossSection& cs);
+	double* DeconvolveWithGradientDescent(const RateCoefficient& rc, const EnergyDistributionSet& set, const CrossSection& cs);
 
 	RateCoefficient Convolve(const CrossSection& cs, EnergyDistributionSet& set);
 	void ConvolveInPlace(const CrossSection& cs, const EnergyDistributionSet& set, RateCoefficient& rc);
@@ -47,6 +48,9 @@ private:
 	bool ROOT_fit = true;
 	bool SVD_fit = false;
 	bool limitROOTparameterRange = false;
+	bool GD_fit = false;
+	int iterations = 100000;
+	double learningRate = 1;
 
 	// plot parameters
 	bool logX = true;
