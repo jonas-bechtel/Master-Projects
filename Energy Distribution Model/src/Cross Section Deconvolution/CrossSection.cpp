@@ -10,11 +10,19 @@ CrossSection::CrossSection()
 
 }
 
-void CrossSection::SetValues(double* newValues)
+void CrossSection::SetValues(double* newValues, bool square)
 {
 	for (int i = 0; i < values.size(); i++)
 	{
-		values[i] = newValues[i];
+		if (square)
+		{
+			values[i] = newValues[i] * newValues[i];
+		}
+		else
+		{
+			values[i] = newValues[i];
+		}
+		
 	}
 }
 
@@ -112,7 +120,7 @@ void CrossSection::SetupBinning(CrossSectionBinningSettings binSettings, const R
 	hist = new TH1D("cross section fit", "cross section fit", binEdges.size() - 1, binEdges.data());
 }
 
-void CrossSection::SetupInitialGuess(const RateCoefficient& rc)
+void CrossSection::SetupInitialGuess(const RateCoefficient& rc, bool squareRoot)
 {
 	values.clear();
 	values.reserve(hist->GetNbinsX());
@@ -124,7 +132,15 @@ void CrossSection::SetupInitialGuess(const RateCoefficient& rc)
 		double energy = hist->GetBinCenter(i);
 		double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
 		double alpha = rc.graph->Eval(energy);
-		values.push_back(alpha / velocity);
+		if (squareRoot)
+		{
+			values.push_back(sqrt(alpha / velocity));
+		}
+		else
+		{
+			values.push_back(alpha / velocity);
+		}
+		
 		initialGuess.push_back(alpha / velocity);
 		energies.push_back(energy);
 	}

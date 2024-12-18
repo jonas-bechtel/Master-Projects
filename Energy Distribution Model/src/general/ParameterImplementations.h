@@ -29,7 +29,7 @@ struct ElectronBeamParameters : public Parameters
 
 	ParameterValue<double> transverse_kT = ParameterValue(2.0e-3, "transverse kT", "%.2e eV");
 	ParameterValue<double> longitudinal_kT_estimate = ParameterValue(0.0, "estimated longitudinal kT", "%.2e eV");
-	ParameterValue<double> coolingEnergy = ParameterValue(0.15, "cooling energy", "%.3f eV");
+	ParameterValue<double> coolingEnergy = ParameterValue(0.15263, "cooling energy", "%.6e eV");
 	ParameterValue<double> cathodeRadius = ParameterValue(0.0012955, "cathode radius", "%.3e m");
 	ParameterValue<double> expansionFactor = ParameterValue(30.0, "expansion factor", "%.1f");
 
@@ -55,7 +55,7 @@ struct LabEnergyParameters : public Parameters
 {
 	LabEnergyParameters() { setName("lab energy parameters"); }
 
-	ParameterValue<double> centerLabEnergy = ParameterValue(0.0, "lab energy in center", "%.3e eV");
+	ParameterValue<double> centerLabEnergy = ParameterValue(0.0, "lab energy in center", "%e eV");
 	ParameterValue<double> driftTubeVoltage = ParameterValue(0.0, "drift tube voltage", "%e V");
 	ParameterValue<Path> energyFile = ParameterValue(Path(""), "energy file", "%s");
 

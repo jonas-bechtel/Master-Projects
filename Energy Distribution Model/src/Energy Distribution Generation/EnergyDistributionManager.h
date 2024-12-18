@@ -46,7 +46,7 @@ private:
 	TH1D* long_VelAddition = nullptr;
 
 	// currently loaded file
-	std::filesystem::path currentDescriptionFile = std::filesystem::path("data\\C60 (2)\\100x100x100_Ie11.3_Ucath44.2_RelTol0_sort_energies.asc");
+	std::filesystem::path currentDescriptionFile = std::filesystem::path("data\\dataset1\\100x100x100_Ie0.95_Ucath44.2_RelTol0_mbrc1_energies.asc");
 	int maxIndex = 0;
 
 	// start/end index in description file to generate distribution for
@@ -63,11 +63,13 @@ private:
 	// fit options
 	bool fixKT_trans = true;
 	bool fixDetuningEnergy = false;
+	bool showLimitedFit = true;
 	
 	// plot parameters
 	bool logX = true;
 	bool logY = true;
 	bool showMarkers = false;
+	bool showFits = true;
 
 	// random number generation things
 	std::mersenne_twister_engine<std::uint_fast64_t,

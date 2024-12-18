@@ -132,6 +132,7 @@ void EnergyDistributionManager::ShowSettings()
 		ImGui::SeparatorText("Peak fitting options");
 		ImGui::Checkbox("fix kT trans", &fixKT_trans);
 		ImGui::Checkbox("fix detuning energy", &fixDetuningEnergy);
+		ImGui::Checkbox("show limited fit range", &showLimitedFit);
 
 		ImGui::EndChild();
 	}
@@ -292,6 +293,8 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 	ImGui::Checkbox("log Y", &logY);
 	ImGui::SameLine();
 	ImGui::Checkbox("show markers", &showMarkers);
+	ImGui::SameLine();
+	ImGui::Checkbox("show fit", &showFits);
 
 	if (ImPlot::BeginPlot("collision Energy distribution"))
 	{
@@ -320,14 +323,18 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 						ImPlot::PushStyleColor(ImPlotCol_Line, color);
 						ImPlot::PlotLine(eDist.label.c_str(), eDist.binCenters.data(), eDist.binValuesNormalised.data(), eDist.binValuesNormalised.size());
 						ImPlot::PopStyleColor();
-						color.x *= 2;
-						color.y *= 2;
-						color.z *= 2;
+						
+						if (showFits)
+						{
+							color.x *= 2;
+							color.y *= 2;
+							color.z *= 2;
 
-						// Plot the second line with a lighter color and dashed
-						ImPlot::PushStyleColor(ImPlotCol_Line, color);
-						ImPlot::PlotLine("##", eDist.fitX.data(), eDist.fitY.data(), eDist.fitX.size(), ImPlotLineFlags_Segments);
-						ImPlot::PopStyleColor();
+							// Plot the second line with a lighter color and dashed
+							ImPlot::PushStyleColor(ImPlotCol_Line, color);
+							ImPlot::PlotLine("##", eDist.fitX.data(), eDist.fitY.data(), eDist.fitX.size(), ImPlotLineFlags_Segments);
+							ImPlot::PopStyleColor();
+						}
 					}
 					else
 					{
@@ -490,7 +497,7 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 	activeDist.FillVectorsFromHist();
 	activeDist.RemoveEdgeZeros();
 	activeDist.CalculateFWHM();
-	activeDist.FitAnalyticalToPeak(fixKT_trans, fixDetuningEnergy);
+	activeDist.FitAnalyticalToPeak(fixKT_trans, fixDetuningEnergy, showLimitedFit);
 
 	//std::cout << "Ed1: " << activeDist.eBeamParameter.detuningEnergy << "\n";
 }

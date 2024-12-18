@@ -22,9 +22,9 @@ struct CrossSection
 	CrossSection(CrossSection&& other) = default;
 	CrossSection& operator=(CrossSection&& other) = default;
 
-	void SetValues(double* newValues);
+	void SetValues(double* newValues, bool square = false);
 	void SetupBinning(CrossSectionBinningSettings binSettings, const RateCoefficient& rc);
-	void SetupInitialGuess(const RateCoefficient& rc);
+	void SetupInitialGuess(const RateCoefficient& rc, bool squareRoot = false);
 
 public:
 	// main data

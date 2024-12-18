@@ -12,7 +12,7 @@ EnergyDistribution::EnergyDistribution()
 
 EnergyDistribution::~EnergyDistribution()
 {
-	
+	Delete();
 	//std::cout << "calling Energy Distribution destructor" << std::endl;
 }
 
@@ -161,6 +161,7 @@ void EnergyDistribution::SetupBinning(const BinningSettings& binSettings)
 	//std::cout << "estimate peak positions: " << firstPeak << ", " << secondPeak << std::endl;
 	//std::cout << "estimate peak widths: " << estimatedPeakWidth1 << ", " << estimatedPeakWidth2 << std::endl;
 	binEdges.reserve(numberBins);
+	binEdges.push_back(0);
 	binEdges.push_back(min);
 
 	while(binEdges.back() < max)
@@ -179,7 +180,8 @@ void EnergyDistribution::SetupBinning(const BinningSettings& binSettings)
 			if (std::abs(propsedNextEdge - firstPeak) < estimatedPeakWidth1 || (lastEdge - firstPeak) / (propsedNextEdge - firstPeak) < 0)
 			{
 				// put one edge at the start of the peak
-				binEdges.push_back(std::max(firstPeak - estimatedPeakWidth1, min));
+				if(firstPeak - estimatedPeakWidth1 > min)
+					binEdges.push_back(firstPeak - estimatedPeakWidth1);
 				//std::cout << "found first peak\n";
 				// and then add more bins until the end of the peak
 				while (binEdges.back() < firstPeak + estimatedPeakWidth1)
@@ -236,6 +238,7 @@ void EnergyDistribution::FillVectorsFromHist()
 	{
 		binCenters.push_back(GetBinCenter(i));
 		binValues.push_back(GetBinContent(i));
+		//std::cout << GetBinCenter(i) << " : " << GetBinContent(i) << " : " << GetBinWidth(i) << std::endl;
 	}
 
 	// normalise the distribution to the width and to one
@@ -244,6 +247,7 @@ void EnergyDistribution::FillVectorsFromHist()
 	for (int i = 1; i <= GetNbinsX(); i++)
 	{
 		SetBinContent(i, GetBinContent(i) / (GetBinWidth(i) * numberEntries));
+		//std::cout << GetBinCenter(i) << " : " << GetBinContent(i) << std::endl;
 	}
 
 	// write normalised values to the vector
@@ -328,16 +332,17 @@ void EnergyDistribution::CalculateFWHM()
 	outputParameter.FWHM = energyRight - energyLeft;
 }
 
-void EnergyDistribution::FitAnalyticalToPeak(bool fixKT_trans, bool fixDetuningEnergy)
+void EnergyDistribution::FitAnalyticalToPeak(bool fixKT_trans, bool fixDetuningEnergy, bool showLimitedFit)
 {
 	double detuningEnergy = eBeamParameter.detuningEnergy;
 	double kt_trans = eBeamParameter.transverse_kT;
 	double kT_long = eBeamParameter.longitudinal_kT_estimate;
 
-	double peakWidthGuess = sqrt(pow((kt_trans * log(2)), 2) + 16 * log(2) * kT_long * detuningEnergy);
-	double energyMin = eBeamParameter.detuningEnergy - 1 * peakWidthGuess;
-	double energyMax = eBeamParameter.detuningEnergy + 1 * peakWidthGuess;
+	double peakWidthGuess = std::max(0.01, sqrt(pow((kt_trans * log(2)), 2) + 16 * log(2) * kT_long * detuningEnergy));
+	double energyMin = std::max(0.0, eBeamParameter.detuningEnergy - 1 * peakWidthGuess);
+	double energyMax = std::max(0.01, eBeamParameter.detuningEnergy + 1 * peakWidthGuess);
 	const int nParameter = 4;
+	std::cout << "peakWidthGuess: " << peakWidthGuess << ", energyMin: " << energyMin << ", energyMax: " << energyMax << std::endl;
 
 	//std::cout << "min: " << energyMin << " max: " << energyMax << std::endl;	
 	// first parameter is a scaling factor
@@ -363,25 +368,40 @@ void EnergyDistribution::FitAnalyticalToPeak(bool fixKT_trans, bool fixDetuningE
 	outputParameter.effectiveLength = fitParameter[0] * CSR::overlapLength;
 
 	// Fill distribution Fit data with these parameters
-	double energyStep = 0.002;// (energyMax - energyMin) / 200;
-	int i = 0;
-	while (true)
+	if (showLimitedFit)
 	{
-		double energy = 0 + i * energyStep;
-		double value = AnalyticalEnergyDistributionFit(&energy, fitParameter);
-		if (value > 1e-1)
+		double energyStep = (energyMax - energyMin) / 200;
+		int i = 0;
+		while (i < 1e5	)
 		{
+			double energy = energyMin + i * energyStep;
+			double value = AnalyticalEnergyDistributionFit(&energy, fitParameter);
+			if (value > 1e-1)
+			{
+				
+				fitX.push_back(energy);
+				fitY.push_back(value);
+			}
+			else if (fitX.size() > 0)
+			{
+				break;
+			}
+			// emergency stop
+			if (energy > 100) break;
+
+			i++;
+		}
+	}
+	else
+	{
+		double energyStep = (energyMax - energyMin) / 20000;
+
+		for (double energy = energyMin; energy <= energyMax; energy += energyStep)
+		{
+			double value = AnalyticalEnergyDistributionFit(&energy, fitParameter);
 			fitX.push_back(energy);
 			fitY.push_back(value);
 		}
-		else if (fitX.size() > 0)
-		{
-			break;
-		}
-		// emergency stop
-		if (energy > 100) break;
-
-		i++;
 	}
 
 	std::cout << "fit array size: " << fitX.size() << std::endl;

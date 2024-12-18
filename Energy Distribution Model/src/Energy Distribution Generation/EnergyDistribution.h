@@ -4,7 +4,7 @@
 
 struct BinningSettings
 {
-	float energyRange[2] = { 1e-7, 100 };
+	float energyRange[2] = { 1e-6, 100 };
 
 	bool constantBinSize = false;
 	double normalStepSize = 0.5;
@@ -33,7 +33,7 @@ struct EnergyDistribution : public TH1D
 	void FillVectorsFromHist();
 	void RemoveEdgeZeros();
 	void CalculateFWHM();
-	void FitAnalyticalToPeak(bool fixKT_trans = true, bool fixDetuningEnergy = true);
+	void FitAnalyticalToPeak(bool fixKT_trans = true, bool fixDetuningEnergy = true, bool showLimitedFit = true);
 	void CalculatePsisFromBinning(TH1D* crossSection);
 	double CalculateTestRateCoefficient();
 

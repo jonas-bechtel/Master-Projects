@@ -313,7 +313,7 @@ CrossSection DeconvolutionManager::Deconvolve(const RateCoefficient& rc, EnergyD
 	cs.SetupBinning(currentSettings, rc);
 
 	set.CalculatePsisFromBinning(cs.hist);
-	cs.SetupInitialGuess(rc);
+	cs.SetupInitialGuess(rc, ROOT_fit);
 	DeconvolveInPlace(rc, set, cs);
 
 	return cs;
@@ -324,7 +324,7 @@ void DeconvolutionManager::DeconvolveInPlace(const RateCoefficient& rc, const En
 	if (ROOT_fit)
 	{
 		double* parameter = DeconvolveWithROOT(rc, set, cs);
-		cs.SetValues(parameter);
+		cs.SetValues(parameter, true);
 	}
 	else if (SVD_fit)
 	{
@@ -494,7 +494,7 @@ double DeconvolutionManager::ConvolveFit(double* x, double* params)
 		//std::cout << i << " ";
 		//std::cout << distribution.GetPsis()[i] << " ";
 		//std::cout << params[i] << "\n";
-		sum += distribution.psi[i] * params[i];
+		sum += distribution.psi[i] * params[i] * params[i];
 	}
 	//std::cout << "sum " << sum << "\n";
 	return sum;
