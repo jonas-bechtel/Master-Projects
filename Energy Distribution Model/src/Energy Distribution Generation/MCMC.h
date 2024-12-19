@@ -8,7 +8,6 @@ class MCMC : public EnergyDistributionModule
 public:
 	MCMC();
 	void SetupDistribution(std::filesystem::path file = "") override;
-	//void SetTargetDistribution(TH3D* targetDist);
 	std::vector<Point3D>& GetSamples();
 	void SetParameter(MCMC_Parameters params);
 	void GenerateSamples();
@@ -48,6 +47,7 @@ private:
 	float acceptanceRate = 0.0;
 	bool changeSeed = true;
 	bool automaticProposalStd = true;
+	bool useInterpolation = false;
 
 	bool generateAsync = true;
 	int numThreads = std::thread::hardware_concurrency();

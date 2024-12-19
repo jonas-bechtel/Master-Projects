@@ -258,6 +258,7 @@ void Application::ShowWindows()
         energyDistributionManager.ShowSetListWindow();
         deconvolutionManager.ShowRateCoefficientListWindow();
         deconvolutionManager.ShowCrossSectionListWindow();
+        deconvolutionManager.ShowPlasmaRateListWindow();
         deconvolutionManager.ShowWindow();
     }
     

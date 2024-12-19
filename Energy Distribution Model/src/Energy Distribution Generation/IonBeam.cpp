@@ -95,7 +95,7 @@ void IonBeam::ShowUI()
 	bool somethingChanged = false;
 	ImGui::Checkbox("use single gaussian", activeDist.simplifyParams.singleGaussianIonBeam);
 	ImGui::BeginDisabled(!activeDist.simplifyParams.singleGaussianIonBeam);
-	somethingChanged |= ImGui::InputDouble("ion beam radius / sigma in [m]", activeDist.simplifyParams.ionBeamRadius, 0.001f, 0.001f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+	somethingChanged |= ImGui::InputDouble("ion beam radius / sigma in [m]", activeDist.simplifyParams.ionBeamRadius, 0.0f, 0.0f, "%.6f", ImGuiInputTextFlags_EnterReturnsTrue);
 	ImGui::EndDisabled();
 
 	ImGui::Separator();

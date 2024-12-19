@@ -2,11 +2,12 @@
 
 struct PlasmaRateCoefficient
 {
-	std::vector<double> temperature;
-	std::vector<double> value;
-	std::vector<double> error;
+	std::vector<double> temperatures;
+	std::vector<double> values;
+	std::vector<double> errors;
 
 	std::string label = "";
+	std::filesystem::path file = "";
 	std::filesystem::path crossSectionFile;
 };
 

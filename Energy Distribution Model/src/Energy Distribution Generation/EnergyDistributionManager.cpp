@@ -565,7 +565,7 @@ void EnergyDistributionManager::ShowSetListWindow()
 {
 	if (ImGui::Begin("energy distribution sets"))
 	{
-		if (ImGui::BeginListBox("##setlist", ImVec2(-1, 200)))
+		if (ImGui::BeginListBox("##setlist", ImVec2(-1, 150)))
 		{
 			for (int i = 0; i < energyDistributionSets.size(); i++)
 			{

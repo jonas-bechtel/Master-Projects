@@ -1,10 +1,12 @@
 #include "pch.h"
 #include "DeconvolutionManager.h"
 #include "RateCoefficient.h"
+#include "PlasmaRateCoefficient.h"
 #include "FileHandler.h"
 #include "CrossSectionManager.h"
 
 #include "Eigen/SVD"
+#include <Constants.h>
 
 DeconvolutionManager::DeconvolutionManager()
 	: CrossSectionDeconvolutionModule("Deconvolution")
@@ -16,7 +18,7 @@ void DeconvolutionManager::ShowRateCoefficientListWindow()
 {
 	if (ImGui::Begin("merged beam rate coefficients"))
 	{
-		if (ImGui::BeginListBox("##mbrclist", ImVec2(-1, 200)))
+		if (ImGui::BeginListBox("##mbrclist", ImVec2(-1, 150)))
 		{
 			for (int i = 0; i < rateCoefficientList.size(); i++)
 			{
@@ -76,7 +78,7 @@ void DeconvolutionManager::ShowCrossSectionListWindow()
 {
 	if (ImGui::Begin("cross sections"))
 	{
-		if (ImGui::BeginListBox("##cslist", ImVec2(-1, 200)))
+		if (ImGui::BeginListBox("##cslist", ImVec2(-1, 150)))
 		{
 			for (int i = 0; i < crossSectionList.size(); i++)
 			{
@@ -87,6 +89,13 @@ void DeconvolutionManager::ShowCrossSectionListWindow()
 				if (ImGui::Selectable(cs.label.c_str(), selected, ImGuiSelectableFlags_AllowItemOverlap))
 				{
 					currentCrossSectionIndex = i;
+				}
+				ImGui::SameLine();
+				if (ImGui::SmallButton("-> plasma rate"))
+				{
+					PlasmaRateCoefficient prc = ConvolveIntoPlasmaRate(cs);
+					prc.label = "plasma from " + cs.label;
+					AddPlasmaRateToList(prc);
 				}
 				ImGui::SameLine();
 				if (ImGui::SmallButton("x"))
@@ -107,6 +116,50 @@ void DeconvolutionManager::ShowCrossSectionListWindow()
 				cs.file = file.filename();
 				cs.label = file.filename().string();
 				AddCrossSectionToList(cs);
+
+				PlotCrossSections();
+			}
+		}
+		ImGui::End();
+	}
+}
+
+void DeconvolutionManager::ShowPlasmaRateListWindow()
+{
+	if (ImGui::Begin("plasma rate coefficients"))
+	{
+		if (ImGui::BeginListBox("##plasmaRatelist", ImVec2(-1, 150)))
+		{
+			for (int i = 0; i < plasmaRateCoefficientList.size(); i++)
+			{
+				PlasmaRateCoefficient& prc = plasmaRateCoefficientList.at(i);
+
+				ImGui::PushID(i);
+				bool selected = i == currentPlasmaRateCoefficientIndex;
+				if (ImGui::Selectable(prc.label.c_str(), selected, ImGuiSelectableFlags_AllowItemOverlap))
+				{
+					currentPlasmaRateCoefficientIndex = i;
+				}
+				
+				ImGui::SameLine();
+				if (ImGui::SmallButton("x"))
+				{
+					RemovePlasmaRate(i);
+				}
+				ImGui::PopID();
+
+			}
+			ImGui::EndListBox();
+		}
+		if (ImGui::Button("load fitted plasma rate"))
+		{
+			std::filesystem::path file = FileHandler::GetInstance().SelectFile("Output\\Plasma Rate Coefficient\\", { "*.dat" });
+			if (!file.empty())
+			{
+				PlasmaRateCoefficient prc = FileHandler::GetInstance().LoadPlasmaRate(file);
+				prc.file = file.filename();
+				prc.label = file.filename().string();
+				AddPlasmaRateToList(prc);
 			}
 		}
 		ImGui::End();
@@ -158,10 +211,13 @@ void DeconvolutionManager::ShowSettings()
 				CrossSection cs = Deconvolve(currentRC, currentSet);
 				AddCrossSectionToList(cs);
 			}
+
+			PlotCrossSections();
 		}
 		
-		ImGui::EndChild();
+		
 	}
+	ImGui::EndChild();
 	ImGui::SameLine();
 	if (ImGui::BeginChild("ConvolveSettings", ImVec2(100.0f, 0.0f), flags))
 	{
@@ -193,8 +249,9 @@ void DeconvolutionManager::ShowSettings()
 			}
 			
 		}
-		ImGui::EndChild();
+		
 	}
+	ImGui::EndChild();
 }
 
 void DeconvolutionManager::ShowPlots()
@@ -241,6 +298,26 @@ void DeconvolutionManager::ShowPlots()
 			ImPlot::PlotErrorBars(cs.label.c_str(), cs.energies.data(), cs.values.data(), cs.errors.data(), cs.errors.size());
 
 			ImPlot::PlotLine((cs.label + " init").c_str(), cs.energies.data(), cs.initialGuess.data(), cs.initialGuess.size());
+			ImGui::PopID();
+		}
+
+		ImPlot::EndPlot();
+	}
+
+	if (ImPlot::BeginPlot("plasma rates"))
+	{
+		ImPlot::SetupAxis(ImAxis_X1, "Temperature [K]");
+		ImPlot::SetupAxis(ImAxis_Y1, "plasma rate");
+		if (logX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
+		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+		ImPlot::SetupLegend(ImPlotLocation_NorthEast);
+		int i = 0;
+		for (const PlasmaRateCoefficient& prc : plasmaRateCoefficientList)
+		{
+			ImGui::PushID(i++);
+			if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
+			ImPlot::PlotLine(prc.label.c_str(), prc.temperatures.data(), prc.values.data(), prc.values.size());
+			ImPlot::PlotErrorBars(prc.label.c_str(), prc.temperatures.data(), prc.values.data(), prc.errors.data(), prc.errors.size());
 			ImGui::PopID();
 		}
 
@@ -500,6 +577,50 @@ double DeconvolutionManager::ConvolveFit(double* x, double* params)
 	return sum;
 }
 
+double DeconvolutionManager::MaxwellBoltzmannDistribution(double energy, double temperature)
+{
+	double kB_T = ((TMath::K() / TMath::Qe()) * temperature);
+	//std::cout << "kB: " << TMath::K() << " T: " << temperature << " kB T : " << kB_T << std::endl;
+	//std::cout << "root: " << sqrt(energy / M_PI) << " pow: " << pow(1.0 / kB_T, 1.5) << " exp : " << exp(-energy / kB_T) << std::endl;
+	return 2.0 * sqrt(energy / M_PI) * pow(1.0 / kB_T, 1.5) * exp(- energy / kB_T);
+}
+
+PlasmaRateCoefficient DeconvolutionManager::ConvolveIntoPlasmaRate(const CrossSection& cs)
+{
+	PlasmaRateCoefficient prc = PlasmaRateCoefficient();
+	int numberValue = 1000;
+	double T_start = 1;
+	double T_end = 1000;
+	double step = (T_end - T_start) / numberValue;
+
+	prc.temperatures.clear();
+	prc.values.clear();
+	prc.temperatures.reserve(numberValue);
+	prc.values.reserve(numberValue);
+
+	for (double T = 1; T <= T_end; T += step)
+	{
+		prc.temperatures.push_back(T);
+		prc.values.push_back(0);
+		for (int i = 1; i <= cs.hist->GetNbinsX(); i++)
+		{
+			double energy = cs.hist->GetBinCenter(i);
+			//std::cout << "energy: " << energy << std::endl;
+			double csValue = cs.hist->GetBinContent(i) * cs.hist->GetBinWidth(i);
+			//std::cout << "csValue: " << csValue << std::endl;
+			double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
+			//std::cout << "velocity: " << velocity << std::endl;
+			double f_pl = MaxwellBoltzmannDistribution(energy, T);
+			//std::cout << "f_pl: " << f_pl << std::endl;
+			prc.values.back() += csValue * velocity * f_pl;
+			
+		}
+		//std::cout << prc.temperatures.back() << ", " << prc.values.back() << std::endl;
+	}
+	
+	return prc;
+}
+
 void DeconvolutionManager::AddRateCoefficientToList(RateCoefficient& rc)
 {
 	rateCoefficientList.emplace_back(std::move(rc));
@@ -522,6 +643,18 @@ void DeconvolutionManager::RemoveCrossSection(int index)
 {
 	crossSectionList.erase(crossSectionList.begin() + index);
 	currentCrossSectionIndex = std::min(currentCrossSectionIndex, (int)crossSectionList.size() - 1);
+}
+
+void DeconvolutionManager::AddPlasmaRateToList(PlasmaRateCoefficient& prc)
+{
+	plasmaRateCoefficientList.emplace_back(std::move(prc));
+	currentPlasmaRateCoefficientIndex = plasmaRateCoefficientList.size() - 1;
+}
+
+void DeconvolutionManager::RemovePlasmaRate(int index)
+{
+	plasmaRateCoefficientList.erase(plasmaRateCoefficientList.begin() + index);
+	currentPlasmaRateCoefficientIndex = std::min(currentPlasmaRateCoefficientIndex, (int)plasmaRateCoefficientList.size() - 1);
 }
 
 void DeconvolutionManager::PlotRateCoefficient()
@@ -559,4 +692,39 @@ void DeconvolutionManager::PlotRateCoefficient()
 	}
 	legend->Draw();
 }
+
+void DeconvolutionManager::PlotCrossSections()
+{
+	m_mainCanvas->cd(2);
+
+	int colors[5] = { kRed, kBlue, kGreen, kOrange, kMagenta };
+
+	gPad->SetLogy();
+	gPad->SetLogx();
+
+	// Create a legend
+	TLegend* legend = new TLegend(0.7, 0.7, 0.9, 0.9);
+
+	for (int i = 0; i < crossSectionList.size(); i++)
+	{
+		crossSectionList[i].hist->SetLineColor(colors[i % 5]);
+		crossSectionList[i].hist->SetMarkerStyle(21);
+
+		crossSectionList[i].hist->GetXaxis()->SetTitle("E_d [eV]");
+		crossSectionList[i].hist->GetYaxis()->SetTitle("alpha [m^3/s]");
+
+		legend->AddEntry(crossSectionList[i].hist, crossSectionList[i].label.c_str(), "l");
+
+		if (i == 0)
+		{
+			crossSectionList[i].hist->Draw("Hist");
+		}
+		else
+		{
+			crossSectionList[i].hist->Draw("Hist SAME");
+		}
+	}
+	legend->Draw();
+}
+
 

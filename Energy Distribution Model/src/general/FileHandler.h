@@ -22,6 +22,7 @@ public:
 	EnergyDistributionSet LoadEnergyDistributionSet(std::filesystem::path& folder);
 	RateCoefficient LoadRateCoefficients(std::filesystem::path& filename);
 	CrossSection LoadCrossSection(std::filesystem::path& filename);
+	PlasmaRateCoefficient LoadPlasmaRate(std::filesystem::path& filename);
 
 	int GetMaxIndex(std::filesystem::path energiesFile);
 	std::array<float, 3> GetParamtersFromDescriptionFileAtIndex(const std::filesystem::path& descriptionFile, int index);
@@ -30,6 +31,7 @@ public:
 	void SaveEnergyDistributionSetAsSamples(EnergyDistributionSet& eDistSet);
 	void SaveRateCoefficients(RateCoefficient& rc);
 	void SaveCrossSection(CrossSection& cs);
+	void SavePlasmaRate(PlasmaRateCoefficient& prc);
 
 private:
 	std::string GetHeaderFromFile(std::ifstream& file) const;

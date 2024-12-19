@@ -16,10 +16,12 @@ void CrossSection::SetValues(double* newValues, bool square)
 	{
 		if (square)
 		{
+			hist->SetBinContent(i + 1, newValues[i] * newValues[i]);
 			values[i] = newValues[i] * newValues[i];
 		}
 		else
 		{
+			hist->SetBinContent(i + 1, newValues[i]);
 			values[i] = newValues[i];
 		}
 		

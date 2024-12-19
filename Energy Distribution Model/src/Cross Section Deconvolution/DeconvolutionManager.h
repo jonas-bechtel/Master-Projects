@@ -12,6 +12,7 @@ public:
 
 	void ShowRateCoefficientListWindow();
 	void ShowCrossSectionListWindow();
+	void ShowPlasmaRateListWindow();
 
 private:
 	void ShowUI() override;
@@ -31,13 +32,20 @@ private:
 
 	double ConvolveFit(double* x, double* param);
 
+	double MaxwellBoltzmannDistribution(double energy, double temperature);
+	PlasmaRateCoefficient ConvolveIntoPlasmaRate(const CrossSection& cs);
+
 	void AddRateCoefficientToList(RateCoefficient& rc);
 	void RemoveRateCoefficient(int index);
 
 	void AddCrossSectionToList(CrossSection& cs);
 	void RemoveCrossSection(int index);
 
+	void AddPlasmaRateToList(PlasmaRateCoefficient& prc);
+	void RemovePlasmaRate(int index);
+
 	void PlotRateCoefficient();
+	void PlotCrossSections();
 
 private:
 

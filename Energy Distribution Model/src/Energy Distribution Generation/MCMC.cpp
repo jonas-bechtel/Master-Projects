@@ -94,6 +94,8 @@ void MCMC::ShowUI()
 	}
 	ImGui::SameLine();
 	ImGui::Checkbox("async", &generateAsync);
+	ImGui::SameLine();
+	ImGui::Checkbox("interpolate", &useInterpolation);
 
 	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 	ImGui::LabelText("", "Took %.1f ms total. Interpolation took %.1f ms", totalTime, interpolationTime);
@@ -314,7 +316,15 @@ bool MCMC::GenerateSingleSample(Point3D& current, double& currentValue, std::mer
 
 	// compute probabilities
 	auto t_int_start = std::chrono::high_resolution_clock::now();
-	double p_new = targetDist->Interpolate(x_modified, y_modified, z_modified);
+	double p_new;
+	if (useInterpolation)
+	{
+		p_new = targetDist->Interpolate(x_modified, y_modified, z_modified);
+	}
+	else
+	{
+		p_new = targetDist->GetBinContent(targetDist->FindBin(x_modified, y_modified, z_modified));
+	}
 
 	auto t_int_end = std::chrono::high_resolution_clock::now();
 	interpolationTime += std::chrono::duration<double, std::milli>(t_int_end - t_int_start).count();

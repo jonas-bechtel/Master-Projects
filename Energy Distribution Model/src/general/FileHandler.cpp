@@ -6,6 +6,7 @@
 
 #include "RateCoefficient.h"
 #include "CrossSection.h"
+#include "PlasmaRateCoefficient.h"
 
 
 TH3D* FileHandler::LoadMatrixFile(const std::filesystem::path& filename)
@@ -180,7 +181,43 @@ CrossSection FileHandler::LoadCrossSection(std::filesystem::path& filename)
         cs.values.push_back(std::stod(tokens[1]));
         cs.errors.push_back(std::stod(tokens[2]));
     }
+
+    std::vector<double> binEdges = CalculateBinEdges(cs.energies);
+
+    cs.hist = new TH1D("cross section fit", "cross section fit", binEdges.size() - 1, binEdges.data());
+
+    for (int i = 1; i <= cs.hist->GetNbinsX(); i++)
+    {
+        cs.hist->SetBinContent(i, cs.values.at(i - 1));
+        cs.hist->SetBinError(i, cs.errors.at(i - 1));
+    }
     return cs;
+}
+
+PlasmaRateCoefficient FileHandler::LoadPlasmaRate(std::filesystem::path& filename)
+{
+    std::ifstream file(filename);
+    PlasmaRateCoefficient prc = PlasmaRateCoefficient();
+
+    // Check if the file was successfully opened
+    if (!file.is_open())
+    {
+        std::cerr << "Error: Could not open the file " << filename << std::endl;
+        return prc;
+    }
+
+    std::string line;
+    // skip first line
+    std::getline(file, line);
+    while (std::getline(file, line))
+    {
+        std::vector<std::string> tokens = SplitLine(line, "\t");
+        prc.temperatures.push_back(std::stod(tokens[0]));
+        prc.values.push_back(std::stod(tokens[1]));
+        prc.errors.push_back(std::stod(tokens[2]));
+    }
+
+    return prc;
 }
 
 int FileHandler::GetMaxIndex(std::filesystem::path energiesFile)
@@ -443,12 +480,44 @@ void FileHandler::SaveCrossSection(CrossSection& cs)
         std::cerr << "Error opening file" << std::endl;
         return;
     }
+    outfile << std::setprecision(std::numeric_limits<double>::digits10 + 1) << std::fixed;
 
     outfile << "# Energy [eV]\tCross Section Value\terror\n";
 
     for (int i = 0; i < cs.energies.size(); i++)
     {
         outfile << cs.energies[i] << "\t" << cs.values[i]  << "\t" << cs.errors[i] << "\n";
+    }
+
+    outfile.close();
+}
+
+void FileHandler::SavePlasmaRate(PlasmaRateCoefficient& prc)
+{
+    // set the output filepath
+    std::filesystem::path file = outputFolder.string() /                    // general output folder
+        std::filesystem::path("Plasma Rate Coefficients") /
+        prc.file;
+
+    // Create the directories if they don't exist
+    if (!std::filesystem::exists(file.parent_path()))
+    {
+        std::filesystem::create_directories(file.parent_path());
+    }
+
+    std::ofstream outfile(file);
+
+    if (!outfile.is_open())
+    {
+        std::cerr << "Error opening file" << std::endl;
+        return;
+    }
+
+    outfile << "# Temperature [K]\tPlasma rate coefficient\terror\n";
+
+    for (int i = 0; i < prc.temperatures.size(); i++)
+    {
+        outfile << prc.temperatures[i] << "\t" << prc.values[i] << "\t" << prc.errors[i] << "\n";
     }
 
     outfile.close();
@@ -575,11 +644,11 @@ std::vector<double> FileHandler::CalculateBinEdges(const std::vector<double>& bi
     binEdges.reserve(nBins + 1);
 
     // Compute first edge by extrapolation
-    double firstEdge = binCenters[0] - (binCenters[1] - binCenters[0]) / 2.0;
+    double firstEdge = std::max(0.0, binCenters[0] - (binCenters[1] - binCenters[0]) / 2.0);
     binEdges.push_back(firstEdge);
 
     // Compute middle edges as averages of adjacent bin centers
-    for (int i = 0; i < nBins - 1; ++i) 
+    for (int i = 0; i < nBins - 1; i++) 
     {
         double edge = (binCenters[i] + binCenters[i + 1]) / 2.0;
         binEdges.push_back(edge);

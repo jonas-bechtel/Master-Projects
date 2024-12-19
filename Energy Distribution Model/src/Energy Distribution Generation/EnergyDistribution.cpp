@@ -116,6 +116,7 @@ void EnergyDistribution::SetupLabellingThings()
 	if (simplifyParams.uniformLabEnergies) tags += "uniform energy, ";
 	if (simplifyParams.sliceLabEnergies) tags += Form("energy sliced %.3f, ", simplifyParams.sliceToFill.get());
 	if (simplifyParams.cutOutZValues) tags += Form("z samples %.3f - %.3f, ", simplifyParams.cutOutRange.get().x, simplifyParams.cutOutRange.get().y);
+	if (simplifyParams.singleGaussianIonBeam) tags += "single ion gaus, ";
 	label = Form("%d: U drift = %.2fV, E_d = %.4f", index, labEnergiesParameter.driftTubeVoltage.get(),
 		eBeamParameter.detuningEnergy.get());
 
