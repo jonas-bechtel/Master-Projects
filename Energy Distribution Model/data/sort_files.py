@@ -37,7 +37,7 @@ def organize_files_by_filename(source_dir, target_dirs_and_strings):
                 break  # Stop checking other strings once a match is found
 
 # Example usage
-source_directory = "dataset1//0.2547"
+source_directory = "0.95"
 target_directories_and_strings = [
     (source_directory + "//lab-energies", "Ek.asc"),
     (source_directory + "//e-densities", "ne.asc"),

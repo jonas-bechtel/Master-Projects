@@ -23,10 +23,11 @@ private:
 	void ShowTabsWithSets();
 	void ShowEnergyDistributionSet(int setIndex);
 	void ShowEnergyDistributionPlot();
+	void ShowSetInformationWindow();
 
 	void CreateNewSet();
 	void RemoveSet(int setIndex);
-	void AddDistributionToSet(EnergyDistribution& distribution, int setIndex);
+	void AddDistributionToSet(EnergyDistribution&& distribution, int setIndex);
 	void RemoveDistributionFromSet(int index, int setIndex);
 	void PrepareCurrentSet(std::filesystem::path folder, std::filesystem::path subfolder = "");
 
@@ -56,6 +57,11 @@ private:
 
 	// save all sampled values in a file to load it again
 	bool loadSamples = true;
+
+	// set information window things
+	bool showSetInformation = false;
+	bool infoPlotsLogX = false;
+	bool infoPlotsLogY = false;
 
 	// binning related parameters
 	BinningSettings binSettings;

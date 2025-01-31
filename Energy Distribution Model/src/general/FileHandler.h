@@ -29,6 +29,7 @@ public:
 
 	void SaveEnergyDistributionSetAsHist(EnergyDistributionSet& eDistSet);
 	void SaveEnergyDistributionSetAsSamples(EnergyDistributionSet& eDistSet);
+	void SaveEnergyDistributionSetInfo(const EnergyDistributionSet& eDistSet);
 	void SaveRateCoefficients(RateCoefficient& rc);
 	void SaveCrossSection(CrossSection& cs);
 	void SavePlasmaRate(PlasmaRateCoefficient& prc);
@@ -37,7 +38,7 @@ private:
 	std::string GetHeaderFromFile(std::ifstream& file) const;
 	std::vector<std::string> SplitLine(std::string& string, const std::string& delimiter) const;
 	TH3D* CreateTH3DfromHeader(std::ifstream& file) const;
-	std::vector<double> CalculateBinEdges(const std::vector<double>& binCenters) const;
+	std::vector<double> CalculateBinEdges(const std::vector<double>& binCenters, bool uniformDistances = true) const;
 	EnergyDistribution CreateEnergyDistFromHeader(std::string& header);
 
 private:

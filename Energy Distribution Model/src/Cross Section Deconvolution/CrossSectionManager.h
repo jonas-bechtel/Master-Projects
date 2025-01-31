@@ -29,7 +29,7 @@ private:
 	void FitWithEigenSVD();
 	void FitWithEigenGD();
 	void FitWithTorch();
-	torch::Tensor custom_loss(const torch::Tensor& x, const torch::Tensor& A, const torch::Tensor& b);
+	//torch::Tensor custom_loss(const torch::Tensor& x, const torch::Tensor& A, const torch::Tensor& b);
 	double FitFunction(double* x, double* params);
 
 	void FillFitPlots(double* crossSectionParamater);

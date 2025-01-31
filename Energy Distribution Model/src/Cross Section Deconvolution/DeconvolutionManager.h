@@ -21,6 +21,8 @@ private:
 	void SetupFitOptionsPopup();
 	void SetupBinningOptionsPopup();
 
+	void CreateOneOverECrossSection();
+
 	CrossSection Deconvolve(const RateCoefficient& rc, EnergyDistributionSet& set);
 	void DeconvolveInPlace(const RateCoefficient& rc, const EnergyDistributionSet& set, CrossSection& cs);
 	double* DeconvolveWithSVD(const RateCoefficient& rc, const EnergyDistributionSet& set, const CrossSection& cs);
@@ -69,5 +71,8 @@ private:
 
 	char CSnameInput[64] = "cross section name";
 	char RCnameInput[64] = "rate coefficient name";
+
+	// scale for 1/E cs
+	int scale = 1;
 };
 

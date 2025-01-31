@@ -120,6 +120,15 @@ void DeconvolutionManager::ShowCrossSectionListWindow()
 				PlotCrossSections();
 			}
 		}
+		ImGui::SameLine();
+		if (ImGui::Button("create 1/E cs"))
+		{
+			CreateOneOverECrossSection();
+			PlotCrossSections();
+		}
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50.0f);
+		ImGui::InputInt("scale", &scale, 0, 0);
 		ImGui::End();
 	}
 }
@@ -374,6 +383,14 @@ void DeconvolutionManager::SetupBinningOptionsPopup()
 	}
 }
 
+void DeconvolutionManager::CreateOneOverECrossSection()
+{
+	CrossSection cs = CrossSection();
+	cs.label = scale + std::string("/E cs");
+	cs.FillWithOneOverE(scale);
+	AddCrossSectionToList(cs);
+}
+
 CrossSection DeconvolutionManager::Deconvolve(const RateCoefficient& rc, EnergyDistributionSet& set)
 {
 	if (rc.value.size() != set.distributions.size())
@@ -510,6 +527,8 @@ RateCoefficient DeconvolutionManager::Convolve(const CrossSection& cs, EnergyDis
 	rc.label = RCnameInput;
 	rc.file = rc.label + ".dat";
 
+	set.CalculatePsisFromBinning(cs.hist);
+
 	for (const EnergyDistribution& eDist : set.distributions)
 	{
 		rc.detuningEnergies.push_back(eDist.eBeamParameter.detuningEnergy.get());
@@ -564,6 +583,11 @@ double DeconvolutionManager::ConvolveFit(double* x, double* params)
 		return 0.0;
 	}
 
+	if (index >= set.distributions.size())
+	{
+		//std::cout << "no set for detuning energy " << detuningEnergy << std::endl;
+		return 0.0;
+	}
 	EnergyDistribution& distribution = set.distributions.at(index);
 	
 	for (int i = 0; i < distribution.psi.size(); i++)
@@ -582,15 +606,15 @@ double DeconvolutionManager::MaxwellBoltzmannDistribution(double energy, double 
 	double kB_T = ((TMath::K() / TMath::Qe()) * temperature);
 	//std::cout << "kB: " << TMath::K() << " T: " << temperature << " kB T : " << kB_T << std::endl;
 	//std::cout << "root: " << sqrt(energy / M_PI) << " pow: " << pow(1.0 / kB_T, 1.5) << " exp : " << exp(-energy / kB_T) << std::endl;
-	return 2.0 * sqrt(energy / M_PI) * pow(1.0 / kB_T, 1.5) * exp(- energy / kB_T);
+	return 2.0 * sqrt(energy / TMath::Pi()) * pow(1.0 / kB_T, 1.5) * exp(- energy / kB_T);
 }
 
 PlasmaRateCoefficient DeconvolutionManager::ConvolveIntoPlasmaRate(const CrossSection& cs)
 {
 	PlasmaRateCoefficient prc = PlasmaRateCoefficient();
-	int numberValue = 1000;
+	int numberValue = 10000;
 	double T_start = 1;
-	double T_end = 1000;
+	double T_end = 5000;
 	double step = (T_end - T_start) / numberValue;
 
 	prc.temperatures.clear();

@@ -30,6 +30,8 @@ void EnergyDistributionManager::ShowUI()
 	
 	//ImGui::Separator();
 	ShowEnergyDistributionPlot();
+
+	ShowSetInformationWindow();
 }
 
 void EnergyDistributionManager::ShowSettings()
@@ -193,12 +195,14 @@ void EnergyDistributionManager::ShowTabsWithSets()
 					std::cout << folder << " " << subfolder << std::endl;
 
 					PrepareCurrentSet(folder, subfolder);
-					AddDistributionToSet(energyDist, currentSetIndex);
+					AddDistributionToSet(std::move(energyDist), currentSetIndex);
 				}
 			}
 		}
 		ImGui::SameLine();
 		ImGui::Checkbox("load samples", &loadSamples);
+		ImGui::SameLine();
+		ImGui::Checkbox("show set information", &showSetInformation);
 
 		ImGui::EndChild();
 	}
@@ -283,6 +287,7 @@ void EnergyDistributionManager::ShowEnergyDistributionSet(int setIndex)
 	{
 		FileHandler::GetInstance().SaveEnergyDistributionSetAsHist(set);
 		FileHandler::GetInstance().SaveEnergyDistributionSetAsSamples(set);
+		FileHandler::GetInstance().SaveEnergyDistributionSetInfo(set);
 	}
 }
 
@@ -299,7 +304,7 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 	if (ImPlot::BeginPlot("collision Energy distribution"))
 	{
 		ImPlot::SetupAxis(ImAxis_X1, "collision energy [eV]");
-		ImPlot::SetupAxis(ImAxis_Y1, "f(E)", ImPlotAxisFlags_AutoFit);
+		ImPlot::SetupAxis(ImAxis_Y1, "f(E)", ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit);
 		if (logX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
 		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
 		ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside);
@@ -348,6 +353,129 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 	}
 }
 
+void EnergyDistributionManager::ShowSetInformationWindow()
+{
+	if (showSetInformation && ImGui::Begin("Set Information", &showSetInformation))
+	{
+		ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX;
+		if (ImGui::BeginChild("Selection", ImVec2(100, -1), flags))
+		{
+			int i = 0;
+			for (EnergyDistributionSet& set : energyDistributionSets)
+			{
+				ImGui::PushID(i++);
+				ImGui::Checkbox(set.Label().c_str(), &set.plotInfo);
+				ImGui::PopID();
+			}
+			ImGui::Checkbox("Log X", &infoPlotsLogX);
+			ImGui::Checkbox("Log Y", &infoPlotsLogY);
+			ImGui::EndChild();
+		}
+		ImGui::SameLine();
+		if (ImGui::BeginChild("info plots", ImVec2(100, -1), flags))
+		{
+			if (ImPlot::BeginSubplots("set info", 2, 3, ImVec2(-1,-1), ImPlotSubplotFlags_NoTitle))
+			{
+				std::string lineNames[6] = { "fit E_d", "fit kT_long", "fit kT_trans", "fit scaling factor","fit FWHM", "FWHM" };
+				for (int i = 0; i < 6; i++)
+				{
+					std::string plotName = std::string("##") + std::to_string(i);
+					if (ImPlot::BeginPlot(plotName.c_str()))
+					{
+						ImPlot::SetupAxis(ImAxis_X1, "detuning energy [eV]");
+						ImPlot::SetupAxis(ImAxis_Y1, lineNames[i].c_str());
+						if (infoPlotsLogX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
+						if (infoPlotsLogY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+
+						int j = 0;
+						for (const EnergyDistributionSet& set : energyDistributionSets)
+						{
+							if (!set.plotInfo) continue;
+
+							std::string lineName = lineNames[i] + "##" + std::to_string(j);
+							std::vector<double> yData = *((std::vector<double>*)&set.info + (i + 3));
+							ImPlot::PlotLine(lineName.c_str(), set.info.detuningEnergy.data(), yData.data(), set.info.detuningEnergy.size());
+							j++;
+						}
+						ImPlot::EndPlot();
+					}
+				}
+
+				//if (ImPlot::BeginPlot("##1"))
+				//{
+				//	int i = 0;
+				//	for (const EnergyDistributionSet& set : energyDistributionSets)
+				//	{
+				//		if (!set.plotInfo) continue;
+				//		ImPlot::PlotLine((std::string("fit E_d ##") + i), set.info.detuningEnergy.data(), set.info.fitDetuningEnergy.data(), set.info.detuningEnergy.size());
+				//		i++;
+				//	}
+				//	ImPlot::EndPlot();
+				//}
+				//if (ImPlot::BeginPlot("##2"))
+				//{
+				//	int i = 0;
+				//	for (const EnergyDistributionSet& set : energyDistributionSets)
+				//	{
+				//		if (!set.plotInfo) continue;
+				//		ImPlot::PlotLine((std::string("fit kT_long ##") + i), set.info.detuningEnergy.data(), set.info.fitLongitudinalTemperature.data(), set.info.detuningEnergy.size());
+				//		i++;
+				//	}					
+				//	ImPlot::EndPlot();
+				//}
+				//if (ImPlot::BeginPlot("##3"))
+				//{
+				//	int i = 0;
+				//	for (const EnergyDistributionSet& set : energyDistributionSets)
+				//	{
+				//		if (!set.plotInfo) continue;
+				//		ImPlot::PlotLine((std::string("fit kT_trans ##") + i), set.info.detuningEnergy.data(), set.info.fitTransverseTemperature.data(), set.info.detuningEnergy.size());
+				//		i++;
+				//	}
+				//	ImPlot::EndPlot();
+				//}
+				//if (ImPlot::BeginPlot("##4"))
+				//{
+				//	int i = 0;
+				//	for (const EnergyDistributionSet& set : energyDistributionSets)
+				//	{
+				//		if (!set.plotInfo) continue;
+				//		ImPlot::PlotLine((std::string("fit scaling factor ##") + i), set.info.detuningEnergy.data(), set.info.fitScalingFactor.data(), set.info.detuningEnergy.size());
+				//		i++;
+				//	}
+				//	ImPlot::EndPlot();
+				//}
+				//if (ImPlot::BeginPlot("##5"))
+				//{
+				//	int i = 0;
+				//	for (const EnergyDistributionSet& set : energyDistributionSets)
+				//	{
+				//		if (!set.plotInfo) continue;
+				//		ImPlot::PlotLine((std::string("fit FWHM ##") + i), set.info.detuningEnergy.data(), set.info.fitFWHM.data(), set.info.detuningEnergy.size());
+				//		i++;
+				//	}
+				//	ImPlot::EndPlot();
+				//}
+				//if (ImPlot::BeginPlot("##6"))
+				//{
+				//	int i = 0;
+				//	for (const EnergyDistributionSet& set : energyDistributionSets)
+				//	{
+				//		if (!set.plotInfo) continue;
+				//		ImPlot::PlotLine((std::string("FWHM ##") + i), set.info.detuningEnergy.data(), set.info.FWHM.data(), set.info.detuningEnergy.size());
+				//		i++;
+				//	}
+				//	ImPlot::EndPlot();
+				//}
+				ImPlot::EndSubplots();
+			}
+			ImGui::EndChild();
+		}
+		
+		ImGui::End();
+	}
+}
+
 void EnergyDistributionManager::CreateNewSet()
 {
 	energyDistributionSets.emplace_back();
@@ -361,7 +489,7 @@ void EnergyDistributionManager::RemoveSet(int setIndex)
 	currentSetIndex = std::min(currentSetIndex, (int)energyDistributionSets.size() - 1);
 }
 
-void EnergyDistributionManager::AddDistributionToSet(EnergyDistribution& distribution, int setIndex)
+void EnergyDistributionManager::AddDistributionToSet(EnergyDistribution&& distribution, int setIndex)
 {
 	if (energyDistributionSets.empty())
 	{
@@ -369,13 +497,7 @@ void EnergyDistributionManager::AddDistributionToSet(EnergyDistribution& distrib
 		setIndex = 0;
 	}
 	EnergyDistributionSet& set = energyDistributionSets.at(setIndex);
-	std::vector<EnergyDistribution>& list = set.distributions;
-
-	// will call move Constructor
-	list.emplace_back(std::move(distribution));
-	EnergyDistribution& justMoved = list.back();
-	//std::cout << "E_d: " << justMoved.eBeamParameter.detuningEnergy << std::endl;
-	set.EdToDistMap[justMoved.eBeamParameter.detuningEnergy] = &justMoved;
+	set.AddDistribution(std::move(distribution));
 }
 
 void EnergyDistributionManager::RemoveDistributionFromSet(int index, int setIndex)
@@ -557,7 +679,7 @@ void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesys
 
 		// store/move and save current distribution that has been worked on
 		PrepareCurrentSet(folder);
-		AddDistributionToSet(activeDist, currentSetIndex);
+		AddDistributionToSet(std::move(activeDist), currentSetIndex);
 	}
 }
 

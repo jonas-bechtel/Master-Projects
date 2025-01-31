@@ -1308,13 +1308,17 @@ void Demo_SubplotItemSharing() {
     static int cols = 3;
     static int id[] = {0,1,2,3,4,5};
     static int curj = -1;
-    if (ImPlot::BeginSubplots("##ItemSharing", rows, cols, ImVec2(-1,400), flags)) {
+    if (ImPlot::BeginSubplots("##ItemSharing", rows, cols, ImVec2(-1,400), flags))
+    {
         ImPlot::SetupLegend(ImPlotLocation_South, ImPlotLegendFlags_Sort|ImPlotLegendFlags_Horizontal);
-        for (int i = 0; i < rows*cols; ++i) {
-            if (ImPlot::BeginPlot("")) {
+        for (int i = 0; i < rows*cols; ++i)
+        {
+            if (ImPlot::BeginPlot("")) 
+            {
                 float fc = 0.01f;
                 ImPlot::PlotLineG("common",SinewaveGetter,&fc,1000);
-                for (int j = 0; j < 6; ++j) {
+                for (int j = 0; j < 6; ++j) 
+                {
                     if (id[j] == i) {
                         char label[8];
                         float fj = 0.01f * (j+2);

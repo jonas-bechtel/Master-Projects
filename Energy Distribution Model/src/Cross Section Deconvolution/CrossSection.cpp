@@ -30,9 +30,10 @@ void CrossSection::SetValues(double* newValues, bool square)
 
 void CrossSection::SetupBinning(CrossSectionBinningSettings binSettings, const RateCoefficient& rc)
 {
+	// first edge needs to be 0
 	std::vector<double> binEdges;
+	double minEnergy = 0;    
 	double maxEnergy = 100;  //just a guess, not fixed
-	double minEnergy = 0;    //energyDistributionList.back().eBeamParameter.detuningEnergy / 10;
 
 	// binning like in the paper 
 	if (binSettings.scheme == PaperBinning)
@@ -55,7 +56,7 @@ void CrossSection::SetupBinning(CrossSectionBinningSettings binSettings, const R
 			double delta_E = sqrt(pow((kT_trans * log(2)), 2) + 16 * log(2) * kT_long * previousEdge);
 			binEdges.push_back(previousEdge + binFactor * delta_E);
 
-			std::cout << "delta E " << delta_E << ", last edge:	" << previousEdge << ", ratio: " << previousEdge /delta_E << "\n";
+			//std::cout << "delta E " << delta_E << ", last edge:	" << previousEdge << ", ratio: " << previousEdge /delta_E << "\n";
 			if (previousEdge / delta_E > binSettings.maxRatio) break;
 		}
 		double lastEdgeSoFar = binEdges.back();
@@ -67,7 +68,7 @@ void CrossSection::SetupBinning(CrossSectionBinningSettings binSettings, const R
 			
 			double Ed_i = rc.detuningEnergies.at(i);
 			double Ed_after_i = rc.detuningEnergies.at(i - 1);
-			std::cout << "Ed[i] = " << Ed_i << " Ed[i + 1] = " << Ed_after_i << " i = " << i << std::endl;
+			//std::cout << "Ed[i] = " << Ed_i << " Ed[i + 1] = " << Ed_after_i << " i = " << i << std::endl;
 			binEdges.push_back((Ed_i + Ed_after_i) / 2);
 		}
 		// add one last edge
@@ -145,5 +146,40 @@ void CrossSection::SetupInitialGuess(const RateCoefficient& rc, bool squareRoot)
 		
 		initialGuess.push_back(alpha / velocity);
 		energies.push_back(energy);
+	}
+}
+
+void CrossSection::FillWithOneOverE(int scale)
+{
+	// setup binning
+	std::vector<double> binEdges;
+	double minEnergy = 1e-4;
+	double maxEnergy = 100;
+	int numberBins = 1000;
+
+	double factor = TMath::Power((maxEnergy / minEnergy), (1.0 / numberBins));
+
+	binEdges.reserve(numberBins + 2);
+
+	binEdges.push_back(0);
+	binEdges.push_back(minEnergy);
+	for (int i = 0; i < numberBins; i++)
+	{
+		binEdges.push_back(binEdges.back() * factor);
+	}
+	hist = new TH1D("cross section 1/E", "cross section 1/E", binEdges.size() - 1, binEdges.data());
+
+	// fill hist and lists
+	values.reserve(hist->GetNbinsX());
+	energies.reserve(hist->GetNbinsX());
+
+	for (int i = 1; i <= hist->GetNbinsX(); i++)
+	{
+		double energy = hist->GetBinCenter(i);
+		double value = scale / energy;
+		
+		energies.push_back(energy);
+		values.push_back(value);
+		hist->SetBinContent(i, value);
 	}
 }

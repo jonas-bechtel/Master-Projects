@@ -25,6 +25,7 @@ struct CrossSection
 	void SetValues(double* newValues, bool square = false);
 	void SetupBinning(CrossSectionBinningSettings binSettings, const RateCoefficient& rc);
 	void SetupInitialGuess(const RateCoefficient& rc, bool squareRoot = false);
+	void FillWithOneOverE(int scale = 1);
 
 public:
 	// main data

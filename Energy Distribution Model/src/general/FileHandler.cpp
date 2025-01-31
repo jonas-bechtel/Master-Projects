@@ -125,7 +125,8 @@ EnergyDistributionSet FileHandler::LoadEnergyDistributionSet(std::filesystem::pa
         if (entry.is_regular_file() && entry.path().extension() == ".asc")
         {
             std::filesystem::path file = entry.path();
-            set.distributions.emplace_back(std::move(LoadEnergyDistribution(file, true)));
+            set.AddDistribution(LoadEnergyDistribution(file, true));
+            //set.distributions.emplace_back(std::move(LoadEnergyDistribution(file, true)));
         }
     }
     set.folder = folder.parent_path().filename();
@@ -182,7 +183,7 @@ CrossSection FileHandler::LoadCrossSection(std::filesystem::path& filename)
         cs.errors.push_back(std::stod(tokens[2]));
     }
 
-    std::vector<double> binEdges = CalculateBinEdges(cs.energies);
+    std::vector<double> binEdges = CalculateBinEdges(cs.energies, false);
 
     cs.hist = new TH1D("cross section fit", "cross section fit", binEdges.size() - 1, binEdges.data());
 
@@ -397,9 +398,6 @@ void FileHandler::SaveEnergyDistributionSetAsSamples(EnergyDistributionSet& eDis
         eDistSet.folder.filename() /                             // folder of corresponfding desription file
         eDistSet.subFolder.filename();                          // subfolder with specific parameters
 
-    // extract the directory 
-    //std::filesystem::path dir = std::filesystem::path(folder).parent_path();
-
     // Create the directories if they don't exist
     if (!std::filesystem::exists(folder)) 
     {
@@ -427,6 +425,42 @@ void FileHandler::SaveEnergyDistributionSetAsSamples(EnergyDistributionSet& eDis
 
         outfile.close();
     }
+}
+
+void FileHandler::SaveEnergyDistributionSetInfo(const EnergyDistributionSet& eDistSet)
+{
+    // set the output filepath
+    std::filesystem::path folder = outputFolder.string() /                    // general output folder
+        std::filesystem::path("Energy Distribution Sets") /
+        eDistSet.folder.filename() /                             // folder of corresponfding desription file
+        eDistSet.subFolder.filename();                          // subfolder with specific parameters
+
+    // Create the directories if they don't exist
+    if (!std::filesystem::exists(folder))
+    {
+        std::filesystem::create_directories(folder);
+    }
+
+    std::filesystem::path file = folder / std::filesystem::path("Info.txt");
+    std::ofstream outfile(file);
+
+    if (!outfile.is_open())
+    {
+        std::cerr << "Error opening file" << std::endl;
+        return;
+    }
+
+    outfile << "# index\tE_lab\tE_d\tfit E_d\tfit kT_long\tfit kT_trans\tfit scaling factor\tfit FWHM\tFWHM\n";
+
+    const SetInformation& info = eDistSet.info;
+    for (int i = 0; i < info.detuningEnergy.size(); i++)
+    {
+        outfile << info.indeces[i] << "\t" << info.centerLabEnergy[i] << "\t" << info.detuningEnergy[i] << "\t" << info.fitDetuningEnergy[i] << "\t" <<
+            info.fitLongitudinalTemperature[i] << "\t" << info.fitTransverseTemperature[i] << "\t" << info.fitScalingFactor[i] << "\t" <<
+            info.fitFWHM[i] << "\t" << info.FWHM[i] << "\n";
+    }
+
+    outfile.close();
 }
 
 void FileHandler::SaveRateCoefficients(RateCoefficient& rc)
@@ -632,7 +666,7 @@ TH3D* FileHandler::CreateTH3DfromHeader(std::ifstream& file) const
     return dataMatrix;
 }
 
-std::vector<double> FileHandler::CalculateBinEdges(const std::vector<double>& binCenters) const
+std::vector<double> FileHandler::CalculateBinEdges(const std::vector<double>& binCenters, bool uniformDistances) const
 {
     std::vector<double> binEdges;
     if (binCenters.empty())
@@ -643,20 +677,38 @@ std::vector<double> FileHandler::CalculateBinEdges(const std::vector<double>& bi
     int nBins = binCenters.size();
     binEdges.reserve(nBins + 1);
 
-    // Compute first edge by extrapolation
-    double firstEdge = std::max(0.0, binCenters[0] - (binCenters[1] - binCenters[0]) / 2.0);
-    binEdges.push_back(firstEdge);
-
-    // Compute middle edges as averages of adjacent bin centers
-    for (int i = 0; i < nBins - 1; i++) 
+    if (uniformDistances)
     {
-        double edge = (binCenters[i] + binCenters[i + 1]) / 2.0;
-        binEdges.push_back(edge);
-    }
+        double firstEdge =  binCenters[0] - (binCenters[1] - binCenters[0]) / 2.0;
+        binEdges.push_back(firstEdge);
 
-    // Compute last edge by extrapolation
-    double lastEdge = binCenters[nBins - 1] + (binCenters[nBins - 1] - binCenters[nBins - 2]) / 2.0;
-    binEdges.push_back(lastEdge);
+        // Compute middle edges as averages of adjacent bin centers
+        for (int i = 0; i < nBins - 1; i++)
+        {
+            double edge = (binCenters[i] + binCenters[i + 1]) / 2.0;
+            binEdges.push_back(edge);
+        }
+
+        // Compute last edge by extrapolation
+        double lastEdge = binCenters[nBins - 1] + (binCenters[nBins - 1] - binCenters[nBins - 2]) / 2.0;
+        binEdges.push_back(lastEdge);
+    }
+    else
+    {
+        // first edge is assumed to be 0
+        binEdges.push_back(0);
+
+        for (int i = 0; i < nBins; i++)
+        {
+            double edge = binEdges.back() + 2 * (binCenters[i] - binEdges.back());
+            binEdges.push_back(edge);
+        }
+    }
+   
+    //for (const auto edge : binEdges)
+    //{
+    //    std::cout << "edge: " << edge << std::endl;
+    //}
 
     return binEdges;
 }

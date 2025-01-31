@@ -70,6 +70,35 @@ public:
 	bool showNormalisedByWidth = true;
 };
 
+struct SetInformation
+{
+	std::vector<int> indeces;
+	std::vector<double> centerLabEnergy;
+	std::vector<double> detuningEnergy;
+	std::vector<double> fitDetuningEnergy;
+	std::vector<double> fitLongitudinalTemperature;
+	std::vector<double> fitTransverseTemperature;
+	std::vector<double> fitScalingFactor;
+	std::vector<double> fitFWHM;
+	std::vector<double> FWHM;
+	//std::vector<double> effectiveLength;
+
+	void AddDistributionValues(const EnergyDistribution& dist)
+	{
+		indeces.push_back(dist.index);
+		centerLabEnergy.push_back(dist.labEnergiesParameter.centerLabEnergy.get());
+		detuningEnergy.push_back(dist.eBeamParameter.detuningEnergy.get());
+
+		fitDetuningEnergy.push_back(dist.outputParameter.fitDetuningEnergy.get());
+		fitLongitudinalTemperature.push_back(dist.outputParameter.fitLongitudinalTemperature.get());
+		fitTransverseTemperature.push_back(dist.outputParameter.fitTransverseTemperature.get());
+		fitFWHM.push_back(dist.outputParameter.fitFWHM.get());
+		fitScalingFactor.push_back(dist.outputParameter.fitScalingFactor.get());
+		//effectiveLength.push_back(dist.outputParameter.effectiveLength.get());
+		FWHM.push_back(dist.outputParameter.FWHM.get());
+	}
+};
+
 struct EnergyDistributionSet
 {
 	EnergyDistributionSet()
@@ -84,6 +113,7 @@ struct EnergyDistributionSet
 	{
 		distributions = std::move(other.distributions);
 		EdToDistMap = std::move(other.EdToDistMap);
+		info = std::move(other.info);
 		folder = std::move(other.folder);
 		subFolder = std::move(other.subFolder);
 
@@ -93,6 +123,7 @@ struct EnergyDistributionSet
 	{
 		distributions = std::move(other.distributions);
 		EdToDistMap = std::move(other.EdToDistMap);
+		info = std::move(other.info);
 		folder = std::move(other.folder);
 		subFolder = std::move(other.subFolder);
 
@@ -100,6 +131,7 @@ struct EnergyDistributionSet
 		return *this;
 	}
 
+	void AddDistribution(EnergyDistribution&& distribution);
 	std::string Label()
 	{
 		return (folder / subFolder).string();
@@ -114,7 +146,11 @@ struct EnergyDistributionSet
 public:
 	std::vector<EnergyDistribution> distributions;
 	std::unordered_map<double, EnergyDistribution*> EdToDistMap;
+	SetInformation info;
 
 	std::filesystem::path folder = "Test";
-	std::filesystem::path subFolder = "1";
+	std::filesystem::path subFolder = "subfolder";
+
+	bool plotInfo = false;
 };
+

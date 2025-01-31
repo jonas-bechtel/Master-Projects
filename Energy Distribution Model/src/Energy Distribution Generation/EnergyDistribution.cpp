@@ -487,6 +487,17 @@ std::string EnergyDistribution::Filename() const
 	return string;
 }
 
+void EnergyDistributionSet::AddDistribution(EnergyDistribution&& distribution)
+{
+	info.AddDistributionValues(distribution);
+
+	// will call move Constructor
+	distributions.emplace_back(std::move(distribution));
+	EnergyDistribution& justMoved = distributions.back();
+	//std::cout << "E_d: " << justMoved.eBeamParameter.detuningEnergy << std::endl;
+	EdToDistMap[justMoved.eBeamParameter.detuningEnergy] = &justMoved;
+}
+
 EnergyDistribution* EnergyDistributionSet::FindByEd(double detuningEnergy)
 {
 	if (EdToDistMap.find(detuningEnergy) == EdToDistMap.end())
