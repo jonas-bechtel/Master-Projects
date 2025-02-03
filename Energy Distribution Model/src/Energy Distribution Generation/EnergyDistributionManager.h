@@ -24,6 +24,7 @@ private:
 	void ShowEnergyDistributionSet(int setIndex);
 	void ShowEnergyDistributionPlot();
 	void ShowSetInformationWindow();
+	void ShowAnalyticalParameterWindow();
 
 	void CreateNewSet();
 	void RemoveSet(int setIndex);
@@ -36,6 +37,8 @@ private:
 	void PLotZweightByEnergy();
 	void PlotLongkTDistribution();
 	void PlotLongVelAddition();
+
+	void UpdateAnalytical();
 
 	void ClearDistributionsInSet(int setIndex);
 
@@ -76,6 +79,17 @@ private:
 	bool logY = true;
 	bool showMarkers = false;
 	bool showFits = true;
+	bool showAnalytical = false;
+
+	// Analytical Parameter
+	float scale = 1;
+	float E_d = 10;
+	float kT_long = 1e-4;
+	float kT_trans = 0.002;
+	float energyRange[2] = { 0,1 };
+	float energies[200];
+	float values[200];
+	float color[3] = { 0.6, 0.2, 0.4};
 
 	// random number generation things
 	std::mersenne_twister_engine<std::uint_fast64_t,

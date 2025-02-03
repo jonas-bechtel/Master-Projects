@@ -351,14 +351,27 @@ void EnergyDistribution::FitAnalyticalToPeak(bool fixKT_trans, bool fixDetuningE
 
 	TF1* fitFunction = new TF1("fit function", AnalyticalEnergyDistributionFit, energyMin, energyMax, nParameter);
 	fitFunction->SetParameters(initialGuess);
-	if (fixDetuningEnergy) fitFunction->FixParameter(1, detuningEnergy);
-	if (fixKT_trans) fitFunction->FixParameter(2, kt_trans);
+	//if (fixDetuningEnergy) fitFunction->FixParameter(1, detuningEnergy);
+	//if (fixKT_trans) fitFunction->FixParameter(2, kt_trans);
+	fitFunction->FixParameter(1, detuningEnergy);
+	fitFunction->FixParameter(2, kt_trans);
+	fitFunction->FixParameter(3, kT_long);
 
-	TFitResultPtr result = Fit(fitFunction, "QRN0");
+	Fit(fitFunction, "QRN0");
+	fitFunction->ReleaseParameter(3);
+	Fit(fitFunction, "QRN0");
+	if (!fixDetuningEnergy) fitFunction->ReleaseParameter(1);
+	Fit(fitFunction, "QRN0");
+	if (!fixKT_trans) fitFunction->ReleaseParameter(2);
+	Fit(fitFunction, "QRN0");
+
 	double maxValue = fitFunction->GetMaximum();
 	double energyOfMax = fitFunction->GetMaximumX();
-	double xLeft = fitFunction->GetX(maxValue / 2, 0, energyOfMax);
-	double xRight = fitFunction->GetX(maxValue / 2, energyOfMax, 1000);
+	double xLeft = fitFunction->GetX(maxValue / 2, std::max(0.0, energyOfMax - 1), energyOfMax);
+	double xRight = fitFunction->GetX(maxValue / 2, energyOfMax, energyOfMax + 1);
+	//std::cout << "maxValue: " << maxValue << " maxValue / 2: " << maxValue / 2 << " energyOfMax: " << energyOfMax << std::endl;
+	//std::cout << "xLeft: " << xLeft << " xRight: " << xRight << std::endl;
+	//std::cout << "f(xLeft) = " << fitFunction->Eval(xLeft) << " f(xRight) = " << fitFunction->Eval(xRight) << std::endl;
 
 	double* fitParameter = fitFunction->GetParameters();
 	outputParameter.fitDetuningEnergy = fitParameter[1];
@@ -373,7 +386,7 @@ void EnergyDistribution::FitAnalyticalToPeak(bool fixKT_trans, bool fixDetuningE
 	{
 		double energyStep = (energyMax - energyMin) / 200;
 		int i = 0;
-		while (i < 1e5	)
+		while (i < 1e5)
 		{
 			double energy = energyMin + i * energyStep;
 			double value = AnalyticalEnergyDistributionFit(&energy, fitParameter);

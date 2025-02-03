@@ -3,6 +3,7 @@
 #include "EnergyDistributionManager.h"
 #include "Constants.h"
 #include "FileHandler.h"
+#include "AnalyticalDistribution.h"
 
 EnergyDistributionManager::EnergyDistributionManager()
 	: EnergyDistributionModule("Energy Distribution Manager")
@@ -13,7 +14,8 @@ EnergyDistributionManager::EnergyDistributionManager()
 	m_mainCanvas->Clear();
 	m_mainCanvas->Divide(3,2);
 	m_mainCanvas->SetWindowSize(1500, 800);
-
+	
+	UpdateAnalytical();
 	//CreateNewSet();
 }
 
@@ -32,6 +34,7 @@ void EnergyDistributionManager::ShowUI()
 	ShowEnergyDistributionPlot();
 
 	ShowSetInformationWindow();
+	ShowAnalyticalParameterWindow();
 }
 
 void EnergyDistributionManager::ShowSettings()
@@ -234,6 +237,13 @@ void EnergyDistributionManager::ShowEnergyDistributionSet(int setIndex)
 				eDist.plotted = !eDist.plotted;
 			}
 
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+			{
+				ImGui::SetDragDropPayload("Analytical_Pars", &eDist.outputParameter, sizeof(OutputParameters));
+				ImGui::Text("dragging stuff");
+				ImGui::EndDragDropSource();
+			}
+
 			if (ImGui::BeginItemTooltip())
 			{
 				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -300,6 +310,8 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 	ImGui::Checkbox("show markers", &showMarkers);
 	ImGui::SameLine();
 	ImGui::Checkbox("show fit", &showFits);
+	ImGui::SameLine();
+	ImGui::Checkbox("show analytical", &showAnalytical);
 
 	if (ImPlot::BeginPlot("collision Energy distribution"))
 	{
@@ -348,6 +360,13 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 				}
 				i++;
 			}
+		}
+
+		if (showAnalytical)
+		{
+			ImPlot::PushStyleColor(ImPlotCol_Line, {color[0], color[1], color[2], 1.0});
+			ImPlot::PlotLine("analytical", energies, values, 200, ImPlotLineFlags_Segments);
+			ImPlot::PopStyleColor();
 		}
 		ImPlot::EndPlot();
 	}
@@ -470,6 +489,45 @@ void EnergyDistributionManager::ShowSetInformationWindow()
 				ImPlot::EndSubplots();
 			}
 			ImGui::EndChild();
+		}
+		
+		ImGui::End();
+	}
+}
+
+void EnergyDistributionManager::ShowAnalyticalParameterWindow()
+{
+	if (showAnalytical && ImGui::Begin("Analytical parameters", &showAnalytical))
+	{
+		bool changed = false;
+		changed |= ImGui::SliderFloat2("range", energyRange, 1e-5, 100, "%.6f", ImGuiSliderFlags_Logarithmic);
+		changed |= ImGui::SliderFloat("scale", &scale, 0, 2);
+		changed |= ImGui::SliderFloat("E_d", &E_d, 0, 100, "%.6f", ImGuiSliderFlags_Logarithmic);
+		changed |= ImGui::SliderFloat("kT long", &kT_long, 1e-6, 0.1, "%.6f", ImGuiSliderFlags_Logarithmic);
+		changed |= ImGui::SliderFloat("kT trans", &kT_trans, 0, 0.1, "%.6f", ImGuiSliderFlags_Logarithmic);
+		//ImGui::ColorPicker3("color", color);
+		ImGui::ColorEdit3("color", color);
+
+		if (changed)
+		{
+			UpdateAnalytical();
+		}
+
+		ImGui::InvisibleButton("invisible button", ImVec2(-1, -1));
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Analytical_Pars"))
+			{
+				OutputParameters& parameter = *(OutputParameters*)payload->Data;
+				scale = parameter.fitScalingFactor;
+				E_d = parameter.fitDetuningEnergy;
+				kT_long = parameter.fitLongitudinalTemperature;
+				kT_trans = parameter.fitTransverseTemperature;
+				energyRange[0] = std::max(1e-5, E_d - parameter.fitFWHM);
+				energyRange[1] = E_d + parameter.fitFWHM;
+				UpdateAnalytical();
+			}
+			ImGui::EndDragDropTarget();
 		}
 		
 		ImGui::End();
@@ -825,5 +883,15 @@ void EnergyDistributionManager::PlotLongVelAddition()
 	m_secondCanvas->cd(2);
 
 	long_VelAddition->Draw();
+}
+
+void EnergyDistributionManager::UpdateAnalytical()
+{
+	double step = (energyRange[1] - energyRange[0]) / 199;
+	for (int i = 0; i < 200; i++)
+	{
+		energies[i] = energyRange[0] + i * step;
+		values[i] = scale * AnalyticalEnergyDistribution(energies[i], E_d, kT_trans, kT_long);
+	}
 }
 
