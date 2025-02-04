@@ -526,6 +526,11 @@ void ElectronBeam::PlotProjections()
 		generatedBeamProjectionY = generatedBeamDensity->ProjectionY();
 		generatedBeamProjectionZ = generatedBeamDensity->ProjectionZ();
 
+		delete bla;
+		bla = generatedBeamDensity->Project3DProfile();
+		m_secondCanvas->cd(5);
+		bla->Draw();
+
 		generatedBeamProjectionX->Scale(1 / generatedBeamProjectionX->GetMaximum());
 		generatedBeamProjectionY->Scale(1 / generatedBeamProjectionY->GetMaximum());
 		generatedBeamProjectionZ->Scale(1 / generatedBeamProjectionZ->GetMaximum());

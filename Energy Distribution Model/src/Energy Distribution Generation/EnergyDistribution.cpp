@@ -333,7 +333,7 @@ void EnergyDistribution::CalculateFWHM()
 	outputParameter.FWHM = energyRight - energyLeft;
 }
 
-void EnergyDistribution::FitAnalyticalToPeak(bool fixKT_trans, bool fixDetuningEnergy, bool showLimitedFit)
+void EnergyDistribution::FitAnalyticalToPeak(const PeakFitSettings& settings)
 {
 	double detuningEnergy = eBeamParameter.detuningEnergy;
 	double kt_trans = eBeamParameter.transverse_kT;
@@ -351,19 +351,19 @@ void EnergyDistribution::FitAnalyticalToPeak(bool fixKT_trans, bool fixDetuningE
 
 	TF1* fitFunction = new TF1("fit function", AnalyticalEnergyDistributionFit, energyMin, energyMax, nParameter);
 	fitFunction->SetParameters(initialGuess);
-	//if (fixDetuningEnergy) fitFunction->FixParameter(1, detuningEnergy);
-	//if (fixKT_trans) fitFunction->FixParameter(2, kt_trans);
 	fitFunction->FixParameter(1, detuningEnergy);
 	fitFunction->FixParameter(2, kt_trans);
 	fitFunction->FixParameter(3, kT_long);
 
-	Fit(fitFunction, "QRN0");
-	fitFunction->ReleaseParameter(3);
-	Fit(fitFunction, "QRN0");
-	if (!fixDetuningEnergy) fitFunction->ReleaseParameter(1);
-	Fit(fitFunction, "QRN0");
-	if (!fixKT_trans) fitFunction->ReleaseParameter(2);
-	Fit(fitFunction, "QRN0");
+	for (int i = 0; i < settings.fitRounds; i++)
+	{
+		double* parameter = fitFunction->GetParameters();
+		//std::cout << parameter[1] << ", " << parameter[2] << ", " << parameter[3] << std::endl;
+		settings.freeDetuningEnergy[i] ? fitFunction->ReleaseParameter(1) : fitFunction->FixParameter(1, parameter[1]);
+		settings.freeKT_trans[i] ? fitFunction->ReleaseParameter(2) : fitFunction->FixParameter(2, parameter[2]);
+		settings.freekT_long[i] ? fitFunction->ReleaseParameter(3) : fitFunction->FixParameter(3, parameter[3]);
+		Fit(fitFunction, "QRN0");
+	}
 
 	double maxValue = fitFunction->GetMaximum();
 	double energyOfMax = fitFunction->GetMaximumX();
@@ -382,7 +382,7 @@ void EnergyDistribution::FitAnalyticalToPeak(bool fixKT_trans, bool fixDetuningE
 	outputParameter.effectiveLength = fitParameter[0] * CSR::overlapLength;
 
 	// Fill distribution Fit data with these parameters
-	if (showLimitedFit)
+	if (settings.showLimitedFit)
 	{
 		double energyStep = (energyMax - energyMin) / 200;
 		int i = 0;

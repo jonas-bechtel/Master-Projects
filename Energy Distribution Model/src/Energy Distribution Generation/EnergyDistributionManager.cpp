@@ -35,6 +35,8 @@ void EnergyDistributionManager::ShowUI()
 
 	ShowSetInformationWindow();
 	ShowAnalyticalParameterWindow();
+	ShowPeakFitSettings();
+	ShowBinningSettings();
 }
 
 void EnergyDistributionManager::ShowSettings()
@@ -42,13 +44,40 @@ void EnergyDistributionManager::ShowSettings()
 	ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX | ImGuiChildFlags_ResizeY;
 	if (ImGui::BeginChild("##Settings", ImVec2(0.0f, 0.0f), flags))
 	{
+		ImGui::SeparatorText("input things");
 		if (ImGui::Button("select description file"))
 		{
 			currentDescriptionFile = FileHandler::GetInstance().SelectFile();
 			maxIndex = FileHandler::GetInstance().GetMaxIndex(currentDescriptionFile);
 		}
+		ImGui::Text("file: %s", (currentDescriptionFile.parent_path().filename() / currentDescriptionFile.filename()).string().c_str());
+
+		ImGui::Checkbox("Binning settings", &showBinningSettings);
+
+		ImGui::SeparatorText("output things");
+		ImGui::Checkbox("Peak fit settings", &showPeakFitSettings);
+
+		if(!energyDistributionSets.empty())
+		{
+			EnergyDistributionSet& currentSet = energyDistributionSets.at(currentSetIndex);
+			char buf[64] = "";
+			strncpy_s(buf, currentSet.subFolder.string().c_str(), sizeof(buf) - 1);
+			ImGui::SetNextItemWidth(150.0f);
+			if (ImGui::InputText("set subfolder", buf, IM_ARRAYSIZE(buf)))
+			{
+				currentSet.subFolder = std::filesystem::path(buf);
+			}
+		}		
+
+		ImGui::SeparatorText("Additional Options");
+		ImGui::SetNextItemWidth(200.0f);
+		ImGui::BeginDisabled(!activeDist.simplifyParams.cutOutZValues);
+		ImGui::InputFloat2("", activeDist.simplifyParams.cutOutRange);
+		ImGui::EndDisabled();
 		ImGui::SameLine();
-		ImGui::Text(currentDescriptionFile.filename().string().c_str());
+		ImGui::Checkbox("cut out z range", activeDist.simplifyParams.cutOutZValues);
+
+		ImGui::Separator();
 
 		ImGui::BeginDisabled(currentDescriptionFile.empty());
 		if (ImGui::Button("Generate Distributions from File"))
@@ -76,72 +105,10 @@ void EnergyDistributionManager::ShowSettings()
 		ImGui::Text("(max Index: %d)", maxIndex);
 		ImGui::EndDisabled();
 
-		ImGui::SetNextItemWidth(200.0f);
-		ImGui::BeginDisabled(!activeDist.simplifyParams.cutOutZValues);
-		ImGui::InputFloat2("", activeDist.simplifyParams.cutOutRange);
-		ImGui::EndDisabled();
-		ImGui::SameLine();
-		ImGui::Checkbox("cut out z range", activeDist.simplifyParams.cutOutZValues);
-
-		ImGui::SeparatorText("input things");
-		ImGui::SeparatorText("output things");
-		if(!energyDistributionSets.empty())
-		{
-			EnergyDistributionSet& currentSet = energyDistributionSets.at(currentSetIndex);
-			char buf[64] = "";
-			strncpy_s(buf, currentSet.subFolder.string().c_str(), sizeof(buf) - 1);
-			ImGui::SetNextItemWidth(150.0f);
-			if (ImGui::InputText("set subfolder", buf, IM_ARRAYSIZE(buf)))
-			{
-				currentSet.subFolder = std::filesystem::path(buf);
-			}
-		}
-
-		ImGui::SeparatorText("Binning options");
-		ImGui::SetNextItemWidth(150.0f);
-		ImGui::InputFloat2("energy range", binSettings.energyRange, "%.1e");
-		ImGui::SameLine();
-		ImGui::Checkbox("more bins at peaks", &binSettings.increasePeakResolution);
-
-		if (ImGui::Checkbox("factor binning", &binSettings.factorBinning))
-		{
-			binSettings.constantBinSize = !binSettings.factorBinning;
-		}
-		ImGui::SameLine();
-		ImGui::BeginDisabled(!binSettings.factorBinning);
-		ImGui::SetNextItemWidth(50.0f);
-		ImGui::InputInt("bins per decade", &binSettings.binsPerDecade, 0);
-		ImGui::SameLine();
-		ImGui::BeginDisabled(!binSettings.increasePeakResolution);
-		ImGui::SetNextItemWidth(50.0f);
-		ImGui::InputInt("bins at peak", &binSettings.binsAtPeak, 0);
-		ImGui::EndDisabled();
-		ImGui::EndDisabled();
-
-
-		if (ImGui::Checkbox("constant bin size", &binSettings.constantBinSize))
-		{
-			binSettings.factorBinning = !binSettings.constantBinSize;
-		}
-		ImGui::BeginDisabled(!binSettings.constantBinSize);
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(50.0f);
-		ImGui::InputDouble("step size", &binSettings.normalStepSize, 0, 0, "%.3f");
-		ImGui::SameLine();
-		ImGui::BeginDisabled(!binSettings.increasePeakResolution);
-		ImGui::SetNextItemWidth(50.0f);
-		ImGui::InputDouble("peak step size", &binSettings.peakStepSize, 0, 0, "%.3f");
-		ImGui::EndDisabled();
-		ImGui::EndDisabled();
-
-		ImGui::SeparatorText("Peak fitting options");
-		ImGui::Checkbox("fix kT trans", &fixKT_trans);
-		ImGui::Checkbox("fix detuning energy", &fixDetuningEnergy);
-		ImGui::Checkbox("show limited fit range", &showLimitedFit);
-
 		ImGui::EndChild();
 	}
 }
+
 
 void EnergyDistributionManager::ShowTabsWithSets()
 {
@@ -499,21 +466,21 @@ void EnergyDistributionManager::ShowAnalyticalParameterWindow()
 {
 	if (showAnalytical && ImGui::Begin("Analytical parameters", &showAnalytical))
 	{
+		ImGui::BeginGroup();
 		bool changed = false;
-		changed |= ImGui::SliderFloat2("range", energyRange, 1e-5, 100, "%.6f", ImGuiSliderFlags_Logarithmic);
+		changed |= ImGui::SliderFloat2("range", energyRange, 1e-6, 100, "%.6f", ImGuiSliderFlags_Logarithmic);
 		changed |= ImGui::SliderFloat("scale", &scale, 0, 2);
-		changed |= ImGui::SliderFloat("E_d", &E_d, 0, 100, "%.6f", ImGuiSliderFlags_Logarithmic);
+		changed |= ImGui::SliderFloat("E_d", &E_d, 0, 100, "%.8f", ImGuiSliderFlags_Logarithmic);
 		changed |= ImGui::SliderFloat("kT long", &kT_long, 1e-6, 0.1, "%.6f", ImGuiSliderFlags_Logarithmic);
 		changed |= ImGui::SliderFloat("kT trans", &kT_trans, 0, 0.1, "%.6f", ImGuiSliderFlags_Logarithmic);
-		//ImGui::ColorPicker3("color", color);
 		ImGui::ColorEdit3("color", color);
-
+		ImGui::EndGroup();
 		if (changed)
 		{
 			UpdateAnalytical();
 		}
 
-		ImGui::InvisibleButton("invisible button", ImVec2(-1, -1));
+		//ImGui::InvisibleButton("invisible button", ImVec2(-1, -1));
 		if (ImGui::BeginDragDropTarget())
 		{
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Analytical_Pars"))
@@ -523,13 +490,77 @@ void EnergyDistributionManager::ShowAnalyticalParameterWindow()
 				E_d = parameter.fitDetuningEnergy;
 				kT_long = parameter.fitLongitudinalTemperature;
 				kT_trans = parameter.fitTransverseTemperature;
-				energyRange[0] = std::max(1e-5, E_d - parameter.fitFWHM);
+				energyRange[0] = std::max(1e-6, E_d - parameter.fitFWHM);
 				energyRange[1] = E_d + parameter.fitFWHM;
 				UpdateAnalytical();
 			}
 			ImGui::EndDragDropTarget();
 		}
 		
+		ImGui::End();
+	}
+}
+
+void EnergyDistributionManager::ShowPeakFitSettings()
+{
+	if (showPeakFitSettings && ImGui::Begin("Peak Fit Settings", &showPeakFitSettings))
+	{
+		ImGui::SliderInt("number fit rounds", &peakFitSettings.fitRounds, 1, 4);
+		for (int i = 0; i < peakFitSettings.fitRounds; i++)
+		{
+			ImGui::PushID(i);
+			ImGui::BeginGroup();
+			ImGui::Text(("fit " + std::to_string(i + 1)).c_str());
+			ImGui::Checkbox("free E_d", &peakFitSettings.freeDetuningEnergy[i]);
+			ImGui::Checkbox("free kT_long", &peakFitSettings.freekT_long[i]);
+			ImGui::Checkbox("free kT_trans", &peakFitSettings.freeKT_trans[i]);
+			ImGui::EndGroup();
+			ImGui::SameLine();
+		}
+		ImGui::End();
+	}
+}
+
+void EnergyDistributionManager::ShowBinningSettings()
+{
+	if (showBinningSettings && ImGui::Begin("Binning settings", &showBinningSettings))
+	{
+		ImGui::SetNextItemWidth(150.0f);
+		ImGui::InputFloat2("energy range", binSettings.energyRange, "%.1e");
+		ImGui::SameLine();
+		ImGui::Checkbox("more bins at peaks", &binSettings.increasePeakResolution);
+
+		if (ImGui::Checkbox("factor binning", &binSettings.factorBinning))
+		{
+			binSettings.constantBinSize = !binSettings.factorBinning;
+		}
+		ImGui::SameLine();
+		ImGui::BeginDisabled(!binSettings.factorBinning);
+		ImGui::SetNextItemWidth(50.0f);
+		ImGui::InputInt("bins per decade", &binSettings.binsPerDecade, 0);
+		ImGui::SameLine();
+		ImGui::BeginDisabled(!binSettings.increasePeakResolution);
+		ImGui::SetNextItemWidth(50.0f);
+		ImGui::InputInt("bins at peak", &binSettings.binsAtPeak, 0);
+		ImGui::EndDisabled();
+		ImGui::EndDisabled();
+
+
+		if (ImGui::Checkbox("constant bin size", &binSettings.constantBinSize))
+		{
+			binSettings.factorBinning = !binSettings.constantBinSize;
+		}
+		ImGui::BeginDisabled(!binSettings.constantBinSize);
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(50.0f);
+		ImGui::InputDouble("step size", &binSettings.normalStepSize, 0, 0, "%.3f");
+		ImGui::SameLine();
+		ImGui::BeginDisabled(!binSettings.increasePeakResolution);
+		ImGui::SetNextItemWidth(50.0f);
+		ImGui::InputDouble("peak step size", &binSettings.peakStepSize, 0, 0, "%.3f");
+		ImGui::EndDisabled();
+		ImGui::EndDisabled();
+
 		ImGui::End();
 	}
 }
@@ -677,7 +708,7 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 	activeDist.FillVectorsFromHist();
 	activeDist.RemoveEdgeZeros();
 	activeDist.CalculateFWHM();
-	activeDist.FitAnalyticalToPeak(fixKT_trans, fixDetuningEnergy, showLimitedFit);
+	activeDist.FitAnalyticalToPeak(peakFitSettings);
 
 	//std::cout << "Ed1: " << activeDist.eBeamParameter.detuningEnergy << "\n";
 }

@@ -40,6 +40,7 @@ private:
 
 private:
 	ElectronBeamParameters& m_parameters;
+	TProfile2D* bla = nullptr;
 
 	TH3D* generatedBeamDensity = nullptr;
 	TH3D* generatedBeamDensitySmall = nullptr;

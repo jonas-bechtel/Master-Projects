@@ -17,6 +17,15 @@ struct BinningSettings
 	bool increasePeakResolution = true;
 };
 
+struct PeakFitSettings
+{
+	int fitRounds = 4;
+	bool freeDetuningEnergy[4] = { false, true, false, false };
+	bool freekT_long[4] = { true, false, true, true };
+	bool freeKT_trans[4] = { false, false, false, false };
+	bool showLimitedFit = true;
+};
+
 struct EnergyDistribution : public TH1D
 {
 	EnergyDistribution();
@@ -33,7 +42,7 @@ struct EnergyDistribution : public TH1D
 	void FillVectorsFromHist();
 	void RemoveEdgeZeros();
 	void CalculateFWHM();
-	void FitAnalyticalToPeak(bool fixKT_trans = true, bool fixDetuningEnergy = true, bool showLimitedFit = true);
+	void FitAnalyticalToPeak(const PeakFitSettings& settings);
 	void CalculatePsisFromBinning(TH1D* crossSection);
 	double CalculateTestRateCoefficient();
 

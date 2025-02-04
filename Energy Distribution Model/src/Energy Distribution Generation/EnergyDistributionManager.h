@@ -25,6 +25,8 @@ private:
 	void ShowEnergyDistributionPlot();
 	void ShowSetInformationWindow();
 	void ShowAnalyticalParameterWindow();
+	void ShowPeakFitSettings();
+	void ShowBinningSettings();
 
 	void CreateNewSet();
 	void RemoveSet(int setIndex);
@@ -67,12 +69,12 @@ private:
 	bool infoPlotsLogY = false;
 
 	// binning related parameters
+	bool showBinningSettings = false;
 	BinningSettings binSettings;
 
 	// fit options
-	bool fixKT_trans = true;
-	bool fixDetuningEnergy = false;
-	bool showLimitedFit = true;
+	bool showPeakFitSettings = false;
+	PeakFitSettings peakFitSettings;
 	
 	// plot parameters
 	bool logX = true;
@@ -89,7 +91,7 @@ private:
 	float energyRange[2] = { 0,1 };
 	float energies[200];
 	float values[200];
-	float color[3] = { 0.6, 0.2, 0.4};
+	float color[3] = { 1.0, 0.0, 0.0};
 
 	// random number generation things
 	std::mersenne_twister_engine<std::uint_fast64_t,
