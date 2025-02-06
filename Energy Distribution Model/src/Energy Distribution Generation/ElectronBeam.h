@@ -15,7 +15,7 @@ public:
 	void LoadDensityFile(std::filesystem::path file);
 	void GenerateElectronBeamDensity();
 
-	double Trajectory(double z);
+	double Trajectory(double z) const;
 
 	TVector3 GetDirection(double z);
 	TVector3 GetDirection(Point3D point);
@@ -30,7 +30,7 @@ private:
 
 	TVector3 GetNormal(double z);
 	
-	double Derivative(double z);
+	double Derivative(double z) const;
 	double DistancePointToTrajectoryOfZ(double z, Point3D point);
 
 	void PlotDensitySlice();

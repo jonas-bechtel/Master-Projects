@@ -26,12 +26,17 @@ std::vector<EnergyDistributionSet>& EnergyDistributionManager::GetEnergyDistribu
 
 void EnergyDistributionManager::ShowUI()
 {
-	ShowSettings();
-	ImGui::SameLine();
+	ImGui::BeginGroup();
 	ShowTabsWithSets();
-	
-	//ImGui::Separator();
+	ShowCanvasButtons();
+	ImGui::EndGroup();
+
+	ImGui::SameLine();
+
+	ImGui::BeginGroup();
+	ShowSettings();
 	ShowEnergyDistributionPlot();
+	ImGui::EndGroup();
 
 	ShowSetInformationWindow();
 	ShowAnalyticalParameterWindow();
@@ -112,8 +117,8 @@ void EnergyDistributionManager::ShowSettings()
 
 void EnergyDistributionManager::ShowTabsWithSets()
 {
-	ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeY;
-	if (ImGui::BeginChild("listbox", ImVec2(0, 0), flags))
+	ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX | ImGuiChildFlags_ResizeY;
+	if (ImGui::BeginChild("listbox", ImVec2(400.0f, -1), flags))
 	{
 		ImGui::Text("energy distributions");
 		ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.7f, 0.15f, 0.15f, 1.0f));
@@ -184,7 +189,9 @@ void EnergyDistributionManager::ShowEnergyDistributionSet(int setIndex)
 	std::vector<EnergyDistribution>& energyDistributionList = set.distributions;
 
 	std::string listboxLabel = std::to_string(setIndex);
-	if (ImGui::BeginListBox(listboxLabel.c_str(), ImVec2(-1, 250)))
+	//float sizeY = 2 * ImGui::GetContentRegionAvail().y - ImGui::GetWindowSize().y;
+	float sizeY = ImGui::GetContentRegionAvail().y - 100.0f;
+	if (ImGui::BeginListBox(listboxLabel.c_str(), ImVec2(-1, sizeY)))
 	{
 		for (int i = 0; i < energyDistributionList.size(); i++)
 		{
@@ -280,7 +287,7 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 	ImGui::SameLine();
 	ImGui::Checkbox("show analytical", &showAnalytical);
 
-	if (ImPlot::BeginPlot("collision Energy distribution"))
+	if (ImPlot::BeginPlot("collision Energy distribution", ImVec2(-1,-1)))
 	{
 		ImPlot::SetupAxis(ImAxis_X1, "collision energy [eV]");
 		ImPlot::SetupAxis(ImAxis_Y1, "f(E)", ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit);
@@ -341,7 +348,7 @@ void EnergyDistributionManager::ShowEnergyDistributionPlot()
 
 void EnergyDistributionManager::ShowSetInformationWindow()
 {
-	if (showSetInformation && ImGui::Begin("Set Information", &showSetInformation))
+	if (showSetInformation && ImGui::Begin("Set Information", &showSetInformation, ImGuiWindowFlags_NoDocking))
 	{
 		ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX;
 		if (ImGui::BeginChild("Selection", ImVec2(100, -1), flags))
@@ -358,105 +365,37 @@ void EnergyDistributionManager::ShowSetInformationWindow()
 			ImGui::EndChild();
 		}
 		ImGui::SameLine();
-		if (ImGui::BeginChild("info plots", ImVec2(100, -1), flags))
+		
+		if (ImPlot::BeginSubplots("set info", 2, 3, ImVec2(-1,-1), ImPlotSubplotFlags_NoTitle))
 		{
-			if (ImPlot::BeginSubplots("set info", 2, 3, ImVec2(-1,-1), ImPlotSubplotFlags_NoTitle))
+			std::string lineNames[6] = { "fit E_d", "fit kT_long", "fit kT_trans", "fit scaling factor","fit FWHM", "FWHM" };
+			for (int i = 0; i < 6; i++)
 			{
-				std::string lineNames[6] = { "fit E_d", "fit kT_long", "fit kT_trans", "fit scaling factor","fit FWHM", "FWHM" };
-				for (int i = 0; i < 6; i++)
+				std::string plotName = std::string("##") + std::to_string(i);
+				if (ImPlot::BeginPlot(plotName.c_str()))
 				{
-					std::string plotName = std::string("##") + std::to_string(i);
-					if (ImPlot::BeginPlot(plotName.c_str()))
+					ImPlot::SetupAxis(ImAxis_X1, "detuning energy [eV]");
+					ImPlot::SetupAxis(ImAxis_Y1, lineNames[i].c_str());
+					if (infoPlotsLogX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
+					if (infoPlotsLogY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+
+					int j = 0;
+					for (const EnergyDistributionSet& set : energyDistributionSets)
 					{
-						ImPlot::SetupAxis(ImAxis_X1, "detuning energy [eV]");
-						ImPlot::SetupAxis(ImAxis_Y1, lineNames[i].c_str());
-						if (infoPlotsLogX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
-						if (infoPlotsLogY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+						if (!set.plotInfo) continue;
 
-						int j = 0;
-						for (const EnergyDistributionSet& set : energyDistributionSets)
-						{
-							if (!set.plotInfo) continue;
-
-							std::string lineName = lineNames[i] + "##" + std::to_string(j);
-							std::vector<double> yData = *((std::vector<double>*)&set.info + (i + 3));
-							ImPlot::PlotLine(lineName.c_str(), set.info.detuningEnergy.data(), yData.data(), set.info.detuningEnergy.size());
-							j++;
-						}
-						ImPlot::EndPlot();
+						std::string lineName = lineNames[i] + "##" + std::to_string(j);
+						std::vector<double> yData = *((std::vector<double>*)&set.info + (i + 3));
+						ImPlot::PlotLine(lineName.c_str(), set.info.detuningEnergy.data(), yData.data(), set.info.detuningEnergy.size());
+						j++;
 					}
+					ImPlot::EndPlot();
 				}
-
-				//if (ImPlot::BeginPlot("##1"))
-				//{
-				//	int i = 0;
-				//	for (const EnergyDistributionSet& set : energyDistributionSets)
-				//	{
-				//		if (!set.plotInfo) continue;
-				//		ImPlot::PlotLine((std::string("fit E_d ##") + i), set.info.detuningEnergy.data(), set.info.fitDetuningEnergy.data(), set.info.detuningEnergy.size());
-				//		i++;
-				//	}
-				//	ImPlot::EndPlot();
-				//}
-				//if (ImPlot::BeginPlot("##2"))
-				//{
-				//	int i = 0;
-				//	for (const EnergyDistributionSet& set : energyDistributionSets)
-				//	{
-				//		if (!set.plotInfo) continue;
-				//		ImPlot::PlotLine((std::string("fit kT_long ##") + i), set.info.detuningEnergy.data(), set.info.fitLongitudinalTemperature.data(), set.info.detuningEnergy.size());
-				//		i++;
-				//	}					
-				//	ImPlot::EndPlot();
-				//}
-				//if (ImPlot::BeginPlot("##3"))
-				//{
-				//	int i = 0;
-				//	for (const EnergyDistributionSet& set : energyDistributionSets)
-				//	{
-				//		if (!set.plotInfo) continue;
-				//		ImPlot::PlotLine((std::string("fit kT_trans ##") + i), set.info.detuningEnergy.data(), set.info.fitTransverseTemperature.data(), set.info.detuningEnergy.size());
-				//		i++;
-				//	}
-				//	ImPlot::EndPlot();
-				//}
-				//if (ImPlot::BeginPlot("##4"))
-				//{
-				//	int i = 0;
-				//	for (const EnergyDistributionSet& set : energyDistributionSets)
-				//	{
-				//		if (!set.plotInfo) continue;
-				//		ImPlot::PlotLine((std::string("fit scaling factor ##") + i), set.info.detuningEnergy.data(), set.info.fitScalingFactor.data(), set.info.detuningEnergy.size());
-				//		i++;
-				//	}
-				//	ImPlot::EndPlot();
-				//}
-				//if (ImPlot::BeginPlot("##5"))
-				//{
-				//	int i = 0;
-				//	for (const EnergyDistributionSet& set : energyDistributionSets)
-				//	{
-				//		if (!set.plotInfo) continue;
-				//		ImPlot::PlotLine((std::string("fit FWHM ##") + i), set.info.detuningEnergy.data(), set.info.fitFWHM.data(), set.info.detuningEnergy.size());
-				//		i++;
-				//	}
-				//	ImPlot::EndPlot();
-				//}
-				//if (ImPlot::BeginPlot("##6"))
-				//{
-				//	int i = 0;
-				//	for (const EnergyDistributionSet& set : energyDistributionSets)
-				//	{
-				//		if (!set.plotInfo) continue;
-				//		ImPlot::PlotLine((std::string("FWHM ##") + i), set.info.detuningEnergy.data(), set.info.FWHM.data(), set.info.detuningEnergy.size());
-				//		i++;
-				//	}
-				//	ImPlot::EndPlot();
-				//}
-				ImPlot::EndSubplots();
 			}
-			ImGui::EndChild();
+
+			ImPlot::EndSubplots();
 		}
+		
 		
 		ImGui::End();
 	}
@@ -464,7 +403,7 @@ void EnergyDistributionManager::ShowSetInformationWindow()
 
 void EnergyDistributionManager::ShowAnalyticalParameterWindow()
 {
-	if (showAnalytical && ImGui::Begin("Analytical parameters", &showAnalytical))
+	if (showAnalytical && ImGui::Begin("Analytical parameters", &showAnalytical, ImGuiWindowFlags_NoDocking))
 	{
 		ImGui::BeginGroup();
 		bool changed = false;
@@ -503,7 +442,7 @@ void EnergyDistributionManager::ShowAnalyticalParameterWindow()
 
 void EnergyDistributionManager::ShowPeakFitSettings()
 {
-	if (showPeakFitSettings && ImGui::Begin("Peak Fit Settings", &showPeakFitSettings))
+	if (showPeakFitSettings && ImGui::Begin("Peak Fit Settings", &showPeakFitSettings, ImGuiWindowFlags_NoDocking))
 	{
 		ImGui::SliderInt("number fit rounds", &peakFitSettings.fitRounds, 1, 4);
 		for (int i = 0; i < peakFitSettings.fitRounds; i++)
@@ -523,7 +462,7 @@ void EnergyDistributionManager::ShowPeakFitSettings()
 
 void EnergyDistributionManager::ShowBinningSettings()
 {
-	if (showBinningSettings && ImGui::Begin("Binning settings", &showBinningSettings))
+	if (showBinningSettings && ImGui::Begin("Binning settings", &showBinningSettings, ImGuiWindowFlags_NoDocking))
 	{
 		ImGui::SetNextItemWidth(150.0f);
 		ImGui::InputFloat2("energy range", binSettings.energyRange, "%.1e");

@@ -101,6 +101,9 @@ void MCMC::ShowUI()
 	ImGui::LabelText("", "Took %.1f ms total. Interpolation took %.1f ms", totalTime, interpolationTime);
 	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 	ImGui::LabelText("", "Acceptance Rate: %.1f %%", acceptanceRate * 100);
+
+	ImGui::Separator();
+	ShowCanvasButtons();
 }
 
 void MCMC::GenerateSamples()

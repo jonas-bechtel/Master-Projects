@@ -788,7 +788,7 @@ void Demo_Histogram2D() {
     if (ImPlot::BeginPlot("##Hist2D",ImVec2(ImGui::GetContentRegionAvail().x-100-ImGui::GetStyle().ItemSpacing.x,0))) {
         ImPlot::SetupAxes(nullptr, nullptr, flags, flags);
         ImPlot::SetupAxesLimits(-6,6,-6,6);
-        max_count = ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,count,xybins[0],xybins[1],ImPlotRect(-6,6,-6,6), hist_flags);
+        max_count = ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,count,xybins[0],xybins[1],ImPlotRect(-8,8,-6,6), hist_flags);
         ImPlot::EndPlot();
     }
     ImGui::SameLine();

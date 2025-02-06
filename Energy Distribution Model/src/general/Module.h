@@ -7,7 +7,7 @@ struct EnergyDistribution;
 class MCMC;
 class ElectronBeam;
 class IonBeam;
-class LabEnergies;
+class LabEnergyWindow;
 class EnergyDistributionManager;
 
 struct CrossSection;
@@ -22,6 +22,9 @@ public:
 	virtual ~Window();
 
 	void ShowWindow();
+
+protected:
+	void ShowCanvasButtons(); 
 
 private:
 	bool IsCanvasShown(TCanvas* canvas);
@@ -69,7 +72,7 @@ protected:
 	static MCMC* mcmc;
 	static ElectronBeam* eBeam;
 	static IonBeam* ionBeam;
-	static LabEnergies* labEnergies;
+	static LabEnergyWindow* labEnergies;
 	static EnergyDistributionManager* manager;
 
 	static int s_rebinningFactors[3];

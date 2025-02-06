@@ -120,6 +120,9 @@ void IonBeam::ShowUI()
 
 		PlotIonBeamProjections();
 	}
+
+	ImGui::Separator();
+	ShowCanvasButtons();
 }
 
 void IonBeam::PlotIonBeamProjections()

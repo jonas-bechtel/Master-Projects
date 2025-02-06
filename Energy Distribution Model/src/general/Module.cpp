@@ -12,7 +12,7 @@ EnergyDistribution EnergyDistributionModule::activeDist;
 MCMC* EnergyDistributionModule::mcmc = nullptr;
 ElectronBeam* EnergyDistributionModule::eBeam = nullptr;
 IonBeam* EnergyDistributionModule::ionBeam = nullptr;
-LabEnergies* EnergyDistributionModule::labEnergies = nullptr;
+LabEnergyWindow* EnergyDistributionModule::labEnergies = nullptr;
 EnergyDistributionManager* EnergyDistributionModule::manager = nullptr;
 
 std::vector<EnergyDistributionSet> EnergyDistribtionSetsContainer::energyDistributionSets;
@@ -46,19 +46,22 @@ void Window::ShowWindow()
 	{
 		ImGui::PushItemWidth(100.0f);
 		ShowUI();
-		ImGui::PopItemWidth();
-		ImGui::Separator();
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.2f, 0.5f, 1.0f));     
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.3f, 0.6f, 1.0f)); 
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.2f, 0.4f, 1.0f));
-
-		ShowHideCanvasButton(m_mainCanvas);
-		ShowHideCanvasButton(m_secondCanvas);
-		ImGui::PopStyleColor(3);
+		ImGui::PopItemWidth();		
 	}
 	ImGui::End();
 
 	UpdateCanvas();
+}
+
+void Window::ShowCanvasButtons()
+{
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.2f, 0.5f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.3f, 0.6f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.2f, 0.4f, 1.0f));
+
+	ShowHideCanvasButton(m_mainCanvas);
+	ShowHideCanvasButton(m_secondCanvas);
+	ImGui::PopStyleColor(3);
 }
 
 Window::~Window()

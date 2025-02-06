@@ -19,7 +19,7 @@ private:
 	ElectronBeam electronBeam;
 	IonBeam ionBeam;
 	MCMC mcmc;
-	LabEnergies labEnergies;
+	LabEnergyWindow labEnergies;
 	EnergyDistributionManager energyDistributionManager;
 
 	DeconvolutionManager deconvolutionManager;

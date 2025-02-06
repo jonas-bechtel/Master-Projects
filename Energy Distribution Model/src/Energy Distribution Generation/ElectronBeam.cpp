@@ -209,6 +209,9 @@ void ElectronBeam::ShowUI()
 	{
 		PlotTrajectory();
 	}
+
+	ImGui::Separator();
+	ShowCanvasButtons();
 }
 
 void ElectronBeam::CutZerosFromDistribution()
@@ -551,13 +554,13 @@ void ElectronBeam::PlotProjections()
 }
 
 // returns the y value as function of z
-double ElectronBeam::Trajectory(double z)
+double ElectronBeam::Trajectory(double z) const
 {
 	z = TMath::Abs(z);
     return pow(10, (-7.374 + 0.9 * z + 19.8 * z * z + 2.055 * z * z * z - 20.56 * z * z * z * z)) - pow(10, -7.374) + 1.0e-5;
 }
 
-double ElectronBeam::Derivative(double z)
+double ElectronBeam::Derivative(double z) const
 {
 	double sign = TMath::Sign(1, z);
 	z = TMath::Abs(z);
