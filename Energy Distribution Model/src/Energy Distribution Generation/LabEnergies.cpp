@@ -4,7 +4,7 @@
 #include "FileHandler.h"
 
 LabEnergyWindow::LabEnergyWindow()
-	: EnergyDistributionModule("Lab Energies"), m_parameters(activeDist.labEnergiesParameter)
+	: EnergyDistributionModule("Lab Energies", 0), m_parameters(activeDist.labEnergiesParameter)
 {
 	labEnergies = this;
 }
@@ -61,6 +61,8 @@ void LabEnergyWindow::LoadToLookAt(std::filesystem::path file)
 		LabEnergy newLabEnergy;
 
 		newLabEnergy.fullHistogram = FileHandler::GetInstance().LoadMatrixFile(file);
+		newLabEnergy.fullHistogram->SetTitle("lab energies");
+		newLabEnergy.fullHistogram->SetName("lab energies");
 		newLabEnergy.FillData(eBeam);
 		newLabEnergy.label = file.parent_path().parent_path().filename().string() + ": index " + std::stoi(file.filename().string().substr(0, 4));
 
@@ -68,91 +70,27 @@ void LabEnergyWindow::LoadToLookAt(std::filesystem::path file)
 		if (labEnergiesToLookAt.size() == 1)
 		{
 			selectedIndex = 0;
+			LabEnergy& first = labEnergiesToLookAt.at(0);
+			first.slice.FromTH3D(first.fullHistogram, SliceZ);
 		}
 	}
 }
 
 void LabEnergyWindow::ShowUI()
 {
-	ShowList();
-	ImGui::SameLine();
-
 	ImGui::BeginGroup();
-	if (ImGui::Button("Load lab energies"))
-	{
-		std::vector<std::filesystem::path> files = FileHandler::GetInstance().SelectFiles();
-		for (const std::filesystem::path& file : files)
-		{
-			LoadToLookAt(file);
-		}
-		
-		//LoadLabEnergyFile(file);
-		//PlotLabEnergyProjections();
-		//PlotDistribution();
-		//PlotLabEnergySlice();
-		//PlotOutInsideEnergyOnZ();
-	}
-	ImGui::SameLine();
-	if (ImGui::SliderFloat("slice z value", &SliceZ, 0, 0.7))
-	{
-		LabEnergy& le = labEnergiesToLookAt.at(selectedIndex);
-		le.slice.FromTH3D(le.fullHistogram, SliceZ);
-	}
-	//if (ImGui::InputFloat("slice z value", &SliceZ, 0.05f))
-	//{
-	//	//PlotLabEnergySlice();
-	//}
-
-	ImGui::BeginDisabled(activeDist.simplifyParams.sliceLabEnergies);
-	ImGui::Checkbox("uniform energies", activeDist.simplifyParams.uniformLabEnergies);
-	ImGui::EndDisabled();
-
-	ImGui::BeginDisabled(activeDist.simplifyParams.uniformLabEnergies);
-	ImGui::Checkbox("fill energies with slice", activeDist.simplifyParams.sliceLabEnergies);
-	ImGui::EndDisabled();
-	ImGui::SameLine();
-	ImGui::BeginDisabled(!activeDist.simplifyParams.sliceLabEnergies);
-	ImGui::InputDouble("z slice", activeDist.simplifyParams.sliceToFill, 0.05f);
-	ImGui::EndDisabled();
-	
-	ShowLabEnergyPlots();
+	ShowList();
+	ShowSettings();
 	ImGui::EndGroup();
 
-	//ImGui::Separator();
-	//if (ImGui::Button("clear plot"))
-	//{
-	//	zValues.clear();
-	//	energyValuesInside.clear();
-	//	energyValuesOutside.clear();
-	//}
-	//if (ImPlot::BeginPlot("lab energy on trajectory and outside tube"))
-	//{
-	//	for (int i = 0; i < energyValuesInside.size(); i++)
-	//	{
-	//		ImGui::PushID(i);
-	//		ImVec4 color = ImPlot::GetColormapColor(i % ImPlot::GetColormapSize());
-	//		ImPlot::PushStyleColor(ImPlotCol_Line, color);
-	//		
-	//		//ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 2);
-	//		ImPlot::PlotLine("inside", zValues.data(), energyValuesInside[i].data(), energyValuesInside[i].size());
-	//		ImPlot::PlotLine("outside", zValues.data(), energyValuesOutside[i].data(), energyValuesOutside[i].size(), ImPlotLineFlags_Segments);
-	//		
-	//		ImPlot::PopStyleColor();
-	//		ImGui::PopID();
-	//	}
-	//	//static double values[4] = {1,2,3,4};
-	//	//ImPlot::PlotHeatmap("test", values, 2, 2, 0, 0, nullptr, ImPlotPoint(-1,-1), ImPlotPoint(1, 1));
-	//	
-	//	ImPlot::EndPlot();
-	//}
+	ImGui::SameLine();
 
-	ImGui::Separator();
-	ShowCanvasButtons();
+	ShowLabEnergyPlots();
 }
 
 void LabEnergyWindow::ShowList()
 {
-	if (ImGui::BeginListBox("##lab energies", ImVec2(200.0f, -1)))
+	if (ImGui::BeginListBox("##lab energies", ImVec2(250.0f, 400.0f)))
 	{
 		for (int i = 0; i < labEnergiesToLookAt.size(); i++)
 		{
@@ -175,6 +113,42 @@ void LabEnergyWindow::ShowList()
 		}
 		ImGui::EndListBox();
 	}
+}
+
+void LabEnergyWindow::ShowSettings()
+{
+	if (ImGui::Button("Load lab energies"))
+	{
+		std::vector<std::filesystem::path> files = FileHandler::GetInstance().SelectFiles();
+		for (const std::filesystem::path& file : files)
+		{
+			LoadToLookAt(file);
+		}
+	}
+
+	ImGui::SetNextItemWidth(200.0f);
+	if (ImGui::SliderFloat("slice z", &SliceZ, 0, 0.7))
+	{
+		if (selectedIndex >= 0)
+		{
+			LabEnergy& le = labEnergiesToLookAt.at(selectedIndex);
+			le.slice.FromTH3D(le.fullHistogram, SliceZ);
+		}
+	}
+
+	ImGui::Separator();
+	ImGui::BeginDisabled(activeDist.simplifyParams.sliceLabEnergies);
+	ImGui::Checkbox("uniform energies", activeDist.simplifyParams.uniformLabEnergies);
+	ImGui::EndDisabled();
+
+	ImGui::BeginDisabled(activeDist.simplifyParams.uniformLabEnergies);
+	ImGui::Checkbox("fill energies with slice", activeDist.simplifyParams.sliceLabEnergies);
+	ImGui::EndDisabled();
+	ImGui::SameLine();
+	ImGui::BeginDisabled(!activeDist.simplifyParams.sliceLabEnergies);
+	ImGui::SetNextItemWidth(70.0f);
+	ImGui::InputDouble("##z slice", activeDist.simplifyParams.sliceToFill, 0,0, "%.3f");
+	ImGui::EndDisabled();
 }
 
 void LabEnergyWindow::ShowLabEnergyPlots()
@@ -280,109 +254,6 @@ void LabEnergyWindow::FillEnergiesWithXY_Slice()
 	m_distribution = temp;
 }
 
-//void LabEnergyWindow::PlotLabEnergySlice()
-//{
-//	if (!m_distribution) return;
-//	if (labEnergySliceXY) delete labEnergySliceXY;
-//
-//	int z_bin = m_distribution->GetZaxis()->FindBin(SliceZ);
-//
-//	// Create a new TH2D histogram for the slice
-//	int n_bins_x = m_distribution->GetNbinsX();
-//	int n_bins_y = m_distribution->GetNbinsY();
-//	double x_min = m_distribution->GetXaxis()->GetXmin();
-//	double x_max = m_distribution->GetXaxis()->GetXmax();
-//	double y_min = m_distribution->GetYaxis()->GetXmin();
-//	double y_max = m_distribution->GetYaxis()->GetXmax();
-//
-//	labEnergySliceXY = new TH2D("Energy Slice", Form("XY Slice at Z = %.2f", SliceZ),
-//		n_bins_x, x_min, x_max,
-//		n_bins_y, y_min, y_max);
-//
-//	// Fill the 2D histogram with the contents of the corresponding Z slice
-//	for (int x_bin = 1; x_bin <= n_bins_x; x_bin++)
-//	{
-//		for (int y_bin = 1; y_bin <= n_bins_y; y_bin++)
-//		{
-//			double content = m_distribution->GetBinContent(x_bin, y_bin, z_bin);
-//			labEnergySliceXY->SetBinContent(x_bin, y_bin, content);
-//		}
-//	}
-//	labEnergySliceXY->SetContour(100); 
-//
-//	m_mainCanvas->cd(1)->SetRightMargin(0.15);
-//	labEnergySliceXY->Draw("COLZ");
-//}
-
-//void LabEnergyWindow::PlotLabEnergyProjections()
-//{
-//	if (!m_distribution) return;
-//
-//	delete labEnergyProjectionX;
-//	delete labEnergyProjectionY;
-//	delete labEnergyProjectionZ;
-//
-//	m_secondCanvas->cd(1);
-//	labEnergyProjectionX = m_distribution->ProjectionX();
-//	labEnergyProjectionX->Draw();
-//
-//	m_secondCanvas->cd(2);
-//	labEnergyProjectionY = m_distribution->ProjectionY();
-//	labEnergyProjectionY->Draw();
-//
-//	m_secondCanvas->cd(3);
-//	labEnergyProjectionZ = m_distribution->ProjectionZ();
-//	labEnergyProjectionZ->Draw();
-//}
-
-//void LabEnergyWindow::PlotOutInsideEnergyOnZ()
-//{
-//	if (!m_distribution) return;
-//	if (labEnergyInside) delete labEnergyInside;
-//	if (labEnergyOutside) delete labEnergyOutside;
-//
-//	labEnergyInside = new TGraph(m_distribution->GetNbinsZ());
-//	labEnergyOutside = new TGraph(m_distribution->GetNbinsZ());
-//
-//	std::vector<double> insideEnergies;
-//	std::vector<double> outsideEnergies;
-//
-//	int binInCenterX = m_distribution->GetNbinsX() / 2;
-//	//int binInCenterY = m_distribution->GetNbinsY() / 2;
-//	for (int i = 1; i <= m_distribution->GetNbinsZ(); i++)
-//	{
-//		double zValue = m_distribution->GetZaxis()->GetBinCenter(i);
-//		int binInCenterY = m_distribution->GetYaxis()->FindBin(eBeam->Trajectory(zValue));
-//		//std::cout << binInCenterY << std::endl;
-//		double energyValueIn = m_distribution->GetBinContent(binInCenterX, binInCenterY, i);
-//		double energyValueOut = m_distribution->GetBinContent(1, 1, i);
-//		//std::cout << zValue << " " << energyValueIn << " " << energyValueOut << std::endl;
-//		labEnergyInside->SetPoint(i - 1, zValue, energyValueIn);
-//		labEnergyOutside->SetPoint(i - 1, zValue, energyValueOut);
-//
-//		if (counter == 0)
-//		{
-//			zValues.push_back(zValue);
-//		}
-//		insideEnergies.push_back(energyValueIn);
-//		outsideEnergies.push_back(energyValueOut);
-//	}
-//
-//	energyValuesInside.push_back(insideEnergies);
-//	energyValuesOutside.push_back(outsideEnergies);
-//	counter++;
-//
-//	m_secondCanvas->cd(6);
-//	labEnergyInside->SetLineColor(kRed);
-//	labEnergyInside->SetTitle("lab energy on e-beam trajectory and on the outside");
-//	labEnergyInside->GetXaxis()->SetTitle("z");
-//	labEnergyInside->GetYaxis()->SetTitle("energy");
-//	
-//	labEnergyInside->Draw("ALP");
-//	labEnergyOutside->Draw("LP");
-//	
-//}
-
 void LabEnergy::FillData(const ElectronBeam* eBeam)
 {
 	xAxis.reserve(fullHistogram->GetNbinsX());
@@ -423,7 +294,9 @@ void LabEnergy::FillData(const ElectronBeam* eBeam)
 		projectionValuesZ.push_back(projectionZ->GetBinContent(i));
 	}
 
-	slice.FromTH3D(fullHistogram, 0.0);
+	delete projectionX;
+	delete projectionY;
+	delete projectionZ;
 
 	int binInCenterX = fullHistogram->GetNbinsX() / 2;
 	for (int i = 1; i <= fullHistogram->GetNbinsZ(); i++)
@@ -437,6 +310,54 @@ void LabEnergy::FillData(const ElectronBeam* eBeam)
 		labEnergyInside.push_back(energyValueIn);
 		labEnergyOutside.push_back(energyValueOut);
 	}
+}
+
+LabEnergy::LabEnergy(LabEnergy&& other)
+{
+	fullHistogram = other.fullHistogram;
+	other.fullHistogram = nullptr;
+
+	xAxis = std::move(other.xAxis);
+	yAxis = std::move(other.yAxis);
+	zAxis = std::move(other.zAxis);
+
+	projectionValuesX = std::move(other.projectionValuesX);
+	projectionValuesY = std::move(other.projectionValuesY);
+	projectionValuesZ = std::move(other.projectionValuesZ);
+
+	slice = std::move(other.slice);
+
+	labEnergyInside = std::move(other.labEnergyInside);
+	labEnergyOutside = std::move(other.labEnergyOutside);
+
+	label = std::move(other.label);
+	//std::cout << "Lab energy move Constructor" << std::endl;
+}
+
+LabEnergy& LabEnergy::operator=(LabEnergy&& other)
+{
+	if (this == &other) return *this;
+
+	delete fullHistogram;
+	fullHistogram = other.fullHistogram;
+	other.fullHistogram = nullptr;
+
+	xAxis = std::move(other.xAxis);
+	yAxis = std::move(other.yAxis);
+	zAxis = std::move(other.zAxis);
+
+	projectionValuesX = std::move(other.projectionValuesX);
+	projectionValuesY = std::move(other.projectionValuesY);
+	projectionValuesZ = std::move(other.projectionValuesZ);
+
+	slice = std::move(other.slice);
+
+	labEnergyInside = std::move(other.labEnergyInside);
+	labEnergyOutside = std::move(other.labEnergyOutside);
+
+	label = std::move(other.label);
+	//std::cout << "Lab energy move assignemnt" << std::endl;
+	return *this;
 }
 
 void HeatMapData::FromTH3D(TH3D* hist, float zSliceValue)

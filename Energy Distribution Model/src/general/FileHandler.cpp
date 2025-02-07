@@ -596,7 +596,6 @@ TH3D* FileHandler::CreateTH3DfromHeader(std::ifstream& file) const
     std::string line;
     std::vector<double> xNodes, yNodes, zNodes;
 
-    
     while (file.peek() == '#')
     {
         std::getline(file, line);

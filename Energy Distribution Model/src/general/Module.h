@@ -18,7 +18,7 @@ class DeconvolutionManager;
 class Window
 {
 public:
-	Window(std::string name);
+	Window(std::string name, int numberCanvasses = 2);
 	virtual ~Window();
 
 	void ShowWindow();
@@ -37,8 +37,8 @@ private:
 
 protected:	
 	std::string m_name;
-	TCanvas* m_mainCanvas;
-	TCanvas* m_secondCanvas;
+	TCanvas* m_mainCanvas = nullptr;
+	TCanvas* m_secondCanvas = nullptr;
 };
 
 class EnergyDistribtionSetsContainer
@@ -51,7 +51,7 @@ protected:
 class EnergyDistributionModule : public Window
 {
 public:
-	EnergyDistributionModule(std::string name);
+	EnergyDistributionModule(std::string name, int numberCanvasses = 2);
 	virtual void SetupDistribution(std::filesystem::path = "") = 0;
 	virtual TH3D* GetDistribution();
 	void PlotDistribution();
@@ -81,7 +81,7 @@ protected:
 class CrossSectionDeconvolutionModule : public EnergyDistribtionSetsContainer, public Window
 {
 public:
-	CrossSectionDeconvolutionModule(std::string name);
+	CrossSectionDeconvolutionModule(std::string name, int numberCanvasses = 2);
 
 	virtual ~CrossSectionDeconvolutionModule();
 

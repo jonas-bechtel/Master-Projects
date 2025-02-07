@@ -35,6 +35,17 @@ struct LabEnergy
 	std::string label;
 
 	void FillData(const ElectronBeam* eBeam);
+
+	LabEnergy() {}
+	LabEnergy(const LabEnergy& other) = delete;
+	LabEnergy& operator=(const LabEnergy& other) = delete;
+	LabEnergy(LabEnergy&& other);
+	LabEnergy& operator=(LabEnergy&& other);
+	~LabEnergy()
+	{
+		//std::cout << "deleting " << fullHistogram << std::endl;
+		delete fullHistogram;
+	}
 };
 
 class LabEnergyWindow : public EnergyDistributionModule
@@ -47,6 +58,7 @@ public:
 private:
 	void ShowUI() override;
 	void ShowList();
+	void ShowSettings();
 	void ShowLabEnergyPlots();
 
 	void LoadLabEnergyFile(std::filesystem::path file);
@@ -55,27 +67,11 @@ private:
 	void GenerateUniformLabEnergy();
 	void FillEnergiesWithXY_Slice();
 
-	//void PlotLabEnergySlice();
-	//void PlotLabEnergyProjections();
-	//void PlotOutInsideEnergyOnZ();
-
 private:
 	LabEnergyParameters& m_parameters;
 
 	std::vector<LabEnergy> labEnergiesToLookAt;
 	int selectedIndex = -1;
-
-	//TH1D* labEnergyProjectionX = nullptr;
-	//TH1D* labEnergyProjectionY = nullptr;
-	//TH1D* labEnergyProjectionZ = nullptr;
-	//TH2D* labEnergySliceXY = nullptr;
-	//TGraph* labEnergyInside = nullptr;
-	//TGraph* labEnergyOutside = nullptr;
-	//
-	//std::vector<double> zValues;
-	//std::vector<std::vector<double>> energyValuesInside;
-	//std::vector<std::vector<double>> energyValuesOutside;
-	//int counter = 0;
 
 	// z value for the xy slice of the lab energies
 	float SliceZ = 0.0f;

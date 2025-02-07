@@ -26,17 +26,21 @@ int CrossSectionDeconvolutionModule::currentRateCoefficientIndex = 0;
 int CrossSectionDeconvolutionModule::currentPlasmaRateCoefficientIndex = 0;
 DeconvolutionManager* CrossSectionDeconvolutionModule::deconvolutionManager = nullptr;
 
-Window::Window(std::string name)
+Window::Window(std::string name, int numberCanvasses)
 	: m_name(name)
 {
-	m_mainCanvas = new TCanvas((m_name + " main canvas").c_str(), (m_name + " main canvas").c_str(), 1200, 500);
-	m_mainCanvas->Divide(2, 1);
-
-	m_secondCanvas = new TCanvas((m_name + " analysis canvas").c_str(), (m_name + " analysis canvas").c_str(), 1500, 800);
-	m_secondCanvas->Divide(3, 2);
-
-	HideCanvas(m_mainCanvas);
-	HideCanvas(m_secondCanvas);
+	if (numberCanvasses >= 1)
+	{
+		m_mainCanvas = new TCanvas((m_name + " main canvas").c_str(), (m_name + " main canvas").c_str(), 1200, 500);
+		m_mainCanvas->Divide(2, 1);
+		HideCanvas(m_mainCanvas);
+	}
+	if (numberCanvasses >= 2)
+	{
+		m_secondCanvas = new TCanvas((m_name + " analysis canvas").c_str(), (m_name + " analysis canvas").c_str(), 1500, 800);
+		m_secondCanvas->Divide(3, 2);
+		HideCanvas(m_secondCanvas);
+	}
 }
 
 void Window::ShowWindow()
@@ -88,6 +92,8 @@ void Window::HideCanvas(TCanvas* canvas)
 
 void Window::ShowHideCanvasButton(TCanvas* canvas)
 {
+	if (!canvas) return;
+
 	if (ImGui::Button(("Show/Hide " + std::string(canvas->GetTitle())).c_str()))
 	{
 		if (IsCanvasShown(canvas))
@@ -104,17 +110,23 @@ void Window::ShowHideCanvasButton(TCanvas* canvas)
 
 void Window::UpdateCanvas()
 {
-	m_mainCanvas->cd();
-	m_mainCanvas->Modified();
-	m_mainCanvas->Update();
+	if (m_mainCanvas)
+	{
+		m_mainCanvas->cd();
+		m_mainCanvas->Modified();
+		m_mainCanvas->Update();
 
-	m_secondCanvas->cd();
-	m_secondCanvas->Modified();
-	m_secondCanvas->Update();
+	}
+	if (m_secondCanvas)
+	{
+		m_secondCanvas->cd();
+		m_secondCanvas->Modified();
+		m_secondCanvas->Update();
+	}
 }
 
-EnergyDistributionModule::EnergyDistributionModule(std::string name)
-	: Window(name)
+EnergyDistributionModule::EnergyDistributionModule(std::string name, int numberCanvasses)
+	: Window(name, numberCanvasses)
 {
 
 }
@@ -126,7 +138,7 @@ TH3D* EnergyDistributionModule::GetDistribution()
 
 void EnergyDistributionModule::PlotDistribution()
 {
-	if (!m_distribution) return;
+	if (!m_distribution || !m_mainCanvas) return;
 	if (m_distributionSmall) delete m_distributionSmall;
 
 	m_mainCanvas->cd(2);
@@ -152,8 +164,8 @@ bool EnergyDistributionModule::RebinningFactorInput()
 	return ImGui::InputInt3("Rebinning factors", s_rebinningFactors);
 }
 
-CrossSectionDeconvolutionModule::CrossSectionDeconvolutionModule(std::string name)
-	: Window(name)
+CrossSectionDeconvolutionModule::CrossSectionDeconvolutionModule(std::string name, int numberCanvasses)
+	: Window(name, numberCanvasses)
 {
 }
 
