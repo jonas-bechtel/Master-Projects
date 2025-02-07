@@ -191,5 +191,8 @@
     <ClInclude Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Energy Distribution Generation\HeatMapData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

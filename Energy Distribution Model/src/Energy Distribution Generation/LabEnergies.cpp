@@ -108,6 +108,12 @@ void LabEnergyWindow::ShowList()
 			{
 				labEnergiesToLookAt.erase(labEnergiesToLookAt.begin() + i);
 				selectedIndex = std::min(selectedIndex, (int)labEnergiesToLookAt.size() - 1);
+
+				if (selectedIndex >= 0)
+				{
+					LabEnergy& newSelected = labEnergiesToLookAt.at(selectedIndex);
+					newSelected.slice.FromTH3D(newSelected.fullHistogram, SliceZ);
+				}
 			}
 			ImGui::PopID();
 		}
@@ -254,7 +260,7 @@ void LabEnergyWindow::FillEnergiesWithXY_Slice()
 	m_distribution = temp;
 }
 
-void LabEnergy::FillData(const ElectronBeam* eBeam)
+void LabEnergy::FillData(const ElectronBeamWindow* eBeam)
 {
 	xAxis.reserve(fullHistogram->GetNbinsX());
 	yAxis.reserve(fullHistogram->GetNbinsY());
@@ -358,30 +364,4 @@ LabEnergy& LabEnergy::operator=(LabEnergy&& other)
 	label = std::move(other.label);
 	//std::cout << "Lab energy move assignemnt" << std::endl;
 	return *this;
-}
-
-void HeatMapData::FromTH3D(TH3D* hist, float zSliceValue)
-{
-	nRows = hist->GetNbinsX();
-	nCols = hist->GetNbinsY();
-
-	values.clear();
-	values.reserve(nRows * nCols);
-
-	int z_bin = hist->GetZaxis()->FindBin(zSliceValue);
-
-	for (int x_bin = 1; x_bin <= nRows; x_bin++)
-	{
-		for (int y_bin = 1; y_bin <= nCols; y_bin++)
-		{
-			double content = hist->GetBinContent(x_bin, y_bin, z_bin);
-			values.push_back(content);
-		}
-	}
-
-	minValue = *std::min_element(values.begin(), values.end());
-	maxValue = *std::max_element(values.begin(), values.end());
-
-	bottomLeft = { hist->GetXaxis()->GetBinLowEdge(1), hist->GetYaxis()->GetBinLowEdge(1) };
-	topRight = { hist->GetXaxis()->GetBinUpEdge(nRows), hist->GetYaxis()->GetBinUpEdge(nCols)};
 }

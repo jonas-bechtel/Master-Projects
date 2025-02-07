@@ -5,7 +5,7 @@
 struct EnergyDistributionSet;
 struct EnergyDistribution;
 class MCMC;
-class ElectronBeam;
+class ElectronBeamWindow;
 class IonBeam;
 class LabEnergyWindow;
 class EnergyDistributionManager;
@@ -70,7 +70,7 @@ protected:
 
 	// all the components affecting it
 	static MCMC* mcmc;
-	static ElectronBeam* eBeam;
+	static ElectronBeamWindow* eBeam;
 	static IonBeam* ionBeam;
 	static LabEnergyWindow* labEnergies;
 	static EnergyDistributionManager* manager;

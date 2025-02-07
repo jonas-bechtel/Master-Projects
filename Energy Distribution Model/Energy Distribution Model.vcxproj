@@ -250,6 +250,7 @@
     <ClInclude Include="src\Cross Section Deconvolution\DeconvolutionManager.h" />
     <ClInclude Include="src\Cross Section Deconvolution\RateCoefficient.h" />
     <ClInclude Include="src\Energy Distribution Generation\AnalyticalDistribution.h" />
+    <ClInclude Include="src\Energy Distribution Generation\HeatMapData.h" />
     <ClInclude Include="src\general\Parameter.h" />
     <ClInclude Include="src\Cross Section Deconvolution\CrossSection.h" />
     <ClInclude Include="src\Energy Distribution Generation\EnergyDistribution.h" />

@@ -1,20 +1,7 @@
 #pragma once
 
 #include "Module.h"
-
-
-struct HeatMapData
-{
-	std::vector<double> values;
-	int nRows;
-	int nCols;
-	double minValue;
-	double maxValue;
-	ImPlotPoint bottomLeft;
-	ImPlotPoint topRight;
-
-	void FromTH3D(TH3D* hist, float zSliceValue);
-};
+#include "HeatMapData.h"
 
 struct LabEnergy
 {
@@ -34,7 +21,7 @@ struct LabEnergy
 
 	std::string label;
 
-	void FillData(const ElectronBeam* eBeam);
+	void FillData(const ElectronBeamWindow* eBeam);
 
 	LabEnergy() {}
 	LabEnergy(const LabEnergy& other) = delete;
