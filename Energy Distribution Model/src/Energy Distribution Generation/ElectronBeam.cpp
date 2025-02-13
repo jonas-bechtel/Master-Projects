@@ -17,7 +17,8 @@ void ElectronBeamWindow::SetupDistribution(std::filesystem::path densityfile)
 {
 	if (activeDist.simplifyParams.gaussianElectronBeam || activeDist.simplifyParams.cylindricalElectronBeam)
 	{
-		GenerateElectronBeamDensity();
+		delete m_distribution;
+		m_distribution = GenerateElectronBeamDensity();
 	}
 	else
 	{
@@ -66,20 +67,38 @@ void ElectronBeamWindow::LoadToLookAt(std::filesystem::path file)
 
 		newBeam.fullHistogram = FileHandler::GetInstance().LoadMatrixFile(file);
 		newBeam.fullHistogram = CutZerosFromDistribution(newBeam.fullHistogram);
-
+		
 		newBeam.fullHistogram->SetTitle("electron beam");
 		newBeam.fullHistogram->SetName("electron beam");
 
 		newBeam.FillData();
 		newBeam.label = file.parent_path().parent_path().filename().string() + ": index " + std::stoi(file.filename().string().substr(0, 4));
 
-		eBeamsToLookAt.push_back(std::move(newBeam));
-		if (eBeamsToLookAt.size() == 1)
-		{
-			selectedIndex = 0;
-			ElectronBeam& first = eBeamsToLookAt.at(0);
-			first.slice.FromTH3D(first.fullHistogram, SliceZ);
-		}
+		AddBeamToList(newBeam);
+	}
+}
+
+void ElectronBeamWindow::AddBeamToList(ElectronBeam& eBeam)
+{
+	eBeamsToLookAt.push_back(std::move(eBeam));
+	if (eBeamsToLookAt.size() == 1)
+	{
+		selectedIndex = 0;
+		ElectronBeam& first = eBeamsToLookAt.at(0);
+		first.slice.FromTH3D(first.fullHistogram, SliceZ);
+		Plot3DBeam(first.fullHistogram);
+	}
+}
+
+void ElectronBeamWindow::RemoveBeamFromList(int index)
+{
+	eBeamsToLookAt.erase(eBeamsToLookAt.begin() + index);
+	selectedIndex = std::min(selectedIndex, (int)eBeamsToLookAt.size() - 1);
+	if (selectedIndex >= 0)
+	{
+		ElectronBeam& newSelected = eBeamsToLookAt.at(selectedIndex);
+		newSelected.slice.FromTH3D(newSelected.fullHistogram, SliceZ);
+		Plot3DBeam(newSelected.fullHistogram);
 	}
 }
 
@@ -160,7 +179,7 @@ void ElectronBeamWindow::ShowUI()
 
 void ElectronBeamWindow::ShowList()
 {
-	if (ImGui::BeginListBox("##electron beam list", ImVec2(250.0f, 300.0f)))
+	if (ImGui::BeginListBox("##electron beam list", ImVec2(-1, 270.0f)))
 	{
 		for (int i = 0; i < eBeamsToLookAt.size(); i++)
 		{
@@ -171,19 +190,13 @@ void ElectronBeamWindow::ShowList()
 			{
 				selectedIndex = i;
 				eBeam.slice.FromTH3D(eBeam.fullHistogram, SliceZ);
+				Plot3DBeam(eBeam.fullHistogram);
 			}
 
 			ImGui::SameLine();
 			if (ImGui::SmallButton("x"))
 			{
-				eBeamsToLookAt.erase(eBeamsToLookAt.begin() + i);
-				selectedIndex = std::min(selectedIndex, (int)eBeamsToLookAt.size() - 1);
-				if (selectedIndex >= 0)
-				{
-					ElectronBeam& newSelected = eBeamsToLookAt.at(selectedIndex);
-					newSelected.slice.FromTH3D(newSelected.fullHistogram, SliceZ);
-				}
-				
+				RemoveBeamFromList(i);
 			}
 			ImGui::PopID();
 		}
@@ -211,6 +224,14 @@ void ElectronBeamWindow::ShowSettings()
 		//
 		//mcmc->SetupDistribution();
 		//mcmc->PlotTargetDistribution();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("clear list"))
+	{
+		for (int i = eBeamsToLookAt.size() - 1; i >= 0; i--)
+		{
+			RemoveBeamFromList(i);
+		}
 	}
 	ImGui::SetNextItemWidth(200.0f);
 	if (ImGui::SliderFloat("slice z", &SliceZ, 0, 0.7))
@@ -245,17 +266,22 @@ void ElectronBeamWindow::ShowSettings()
 	ImGui::Checkbox("no bend", activeDist.simplifyParams.noElectronBeamBend);
 	if (ImGui::Button("generate density"))
 	{
-		//GenerateElectronBeamDensity();
-		//PlotGeneratedDensities();
-		//PlotProjections();
-		//PlotDensitySlice();
+		ElectronBeam newBeam;
+		newBeam.fullHistogram = GenerateElectronBeamDensity();
+		
+		newBeam.FillData();
+		std::string shape = activeDist.simplifyParams.gaussianElectronBeam ? "gaussian" : "cylindrical";
+		std::string bend = activeDist.simplifyParams.noElectronBeamBend ? "no bend" : "";
+		std::string radius = std::to_string(activeDist.simplifyParams.electronBeamRadius);
+		newBeam.label = shape + " beam, radius " + radius + " " + bend;
+		AddBeamToList(newBeam);
 
-		ionBeam->SetupDistribution();
-		ionBeam->PlotDistribution();
-		ionBeam->PlotIonBeamProjections();
-
-		mcmc->SetupDistribution();
-		mcmc->PlotTargetDistribution();
+		//ionBeam->SetupDistribution();
+		//ionBeam->PlotDistribution();
+		//ionBeam->PlotIonBeamProjections();
+		//
+		//mcmc->SetupDistribution();
+		//mcmc->PlotTargetDistribution();
 	}
 	ImGui::EndDisabled();
 
@@ -264,13 +290,9 @@ void ElectronBeamWindow::ShowSettings()
 	ImGui::BeginDisabled(!activeDist.simplifyParams.fixedLongitudinalTemperature);
 	ImGui::InputDouble("longitudinal kT [eV]", activeDist.eBeamParameter.longitudinal_kT_estimate);
 	ImGui::EndDisabled();
-	if (ImGui::InputDouble("cooling energy [eV]", m_parameters.coolingEnergy))
-	{
-		CalculateDetuningEnergy();
-	}
+	ImGui::InputDouble("cooling energy [eV]", m_parameters.coolingEnergy);	
 	ImGui::InputDouble("transverse kT [eV]", m_parameters.transverse_kT);
 	ImGui::BeginDisabled(activeDist.simplifyParams.fixedLongitudinalTemperature);
-	ImGui::InputDouble("electron current: [A]", m_parameters.electronCurrent, 0.0, 0.0, "%.2e");
 	ImGui::InputDouble("cathode radius [m]", m_parameters.cathodeRadius);
 	ImGui::InputDouble("cathode Temperature [K]", m_parameters.cathodeTemperature);
 	ImGui::InputDouble("extraction energy [eV]", m_parameters.extractionEnergy);
@@ -330,6 +352,7 @@ void ElectronBeamWindow::ShowElectronBeamPlots()
 
 			if (ImPlot::BeginPlot("XY Slice"))
 			{
+				ImPlot::SetupAxes("x", "y");
 				ImPlot::PlotHeatmap(sliceBeam.label.c_str(), sliceBeam.slice.values.data(), sliceBeam.slice.nRows,
 					sliceBeam.slice.nCols, sliceBeam.slice.minValue, sliceBeam.slice.maxValue, nullptr,
 					sliceBeam.slice.bottomLeft, sliceBeam.slice.topRight);
@@ -350,7 +373,7 @@ TH3D* ElectronBeamWindow::CutZerosFromDistribution(TH3D* input)
 	// Identify the non-zero bin ranges
 	int minX = input->GetNbinsX(), maxX = 0;
 	int minY = input->GetNbinsY(), maxY = 0;
-	int minZ = 0;
+	int minZ = 1;
 	int maxZ = input->GetNbinsY();
 
 	// Loop over all bins to find the first and last non-zero bins in both x and y
@@ -451,21 +474,20 @@ void ElectronBeamWindow::CreateLargeDistribution()
 	m_distribution = temp;
 }
 
-void ElectronBeamWindow::GenerateElectronBeamDensity()
+TH3D* ElectronBeamWindow::GenerateElectronBeamDensity()
 {
 	int nXBins = 100;
 	int nYBins = 100;
 	int nZBins = 100;
 
-	double xmin = -0.04;
-	double xmax = 0.04;
-	double ymin = -0.04;
-	double ymax = 0.04;
+	double xmin = -0.08;
+	double xmax = 0.08;
+	double ymin = -0.08;
+	double ymax = 0.08;
 	double zmin = 0.0;
-	double zmax = 0.65;
+	double zmax = 0.7;
 
-	delete m_distribution;
-	m_distribution = new TH3D("generated densites", "generated densites", nXBins, xmin, xmax,
+	TH3D* eBeam = new TH3D("generated densites", "generated densites", nXBins, xmin, xmax,
 																				nYBins, ymin, ymax,
 																				nZBins, zmin, zmax);
 
@@ -476,9 +498,9 @@ void ElectronBeamWindow::GenerateElectronBeamDensity()
 			for (int k = 1; k <= nZBins; k++)
 			{
 				// Calculate the coordinates for this bin
-				double x = m_distribution->GetXaxis()->GetBinCenter(i);
-				double y = m_distribution->GetYaxis()->GetBinCenter(j);
-				double z = m_distribution->GetZaxis()->GetBinCenter(k);
+				double x = eBeam->GetXaxis()->GetBinCenter(i);
+				double y = eBeam->GetYaxis()->GetBinCenter(j);
+				double z = eBeam->GetZaxis()->GetBinCenter(k);
 
 				double ymean = 0;
 				double value = 0;
@@ -499,10 +521,11 @@ void ElectronBeamWindow::GenerateElectronBeamDensity()
 						value = 1;
 					}
 				}
-				m_distribution->SetBinContent(i, j, k, value);
+				eBeam->SetBinContent(i, j, k, value);
 			}
 		}
 	}
+	return eBeam;
 }
 
 //void ElectronBeam::PlotDensitySlice()
@@ -606,6 +629,25 @@ void ElectronBeamWindow::PlotTrajectory()
 	normalArrow->SetLineWidth(2);
 	normalArrow->SetAngle(30); // Arrowhead angle
 	normalArrow->Draw();
+}
+
+void ElectronBeamWindow::Plot3DBeam(TH3D* eBeam)
+{
+	if (!IsCanvasShown(m_mainCanvas) || !eBeam || !m_mainCanvas) return;
+
+	m_mainCanvas->cd(2);
+
+	delete m_distributionSmall;
+	m_distributionSmall = (TH3D*)eBeam->Rebin3D(s_rebinningFactors[0],
+		s_rebinningFactors[1],
+		s_rebinningFactors[2], "dist small");
+
+	m_distributionSmall->GetXaxis()->SetTitle("x-axis");
+	m_distributionSmall->GetYaxis()->SetTitle("y-axis");
+	m_distributionSmall->GetZaxis()->SetTitle("z-axis");
+	m_distributionSmall->Draw("BOX2 COLZ");
+
+	
 }
 
 //void ElectronBeam::PlotProjections()

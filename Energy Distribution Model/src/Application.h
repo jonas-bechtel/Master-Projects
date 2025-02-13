@@ -17,7 +17,7 @@ private:
 	TApplication app = TApplication("app", nullptr, nullptr);
 
 	ElectronBeamWindow electronBeam;
-	IonBeam ionBeam;
+	IonBeamWindow ionBeam;
 	MCMC mcmc;
 	LabEnergyWindow labEnergies;
 	EnergyDistributionManager energyDistributionManager;

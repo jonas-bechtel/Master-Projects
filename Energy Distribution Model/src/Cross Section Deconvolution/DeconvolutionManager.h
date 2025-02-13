@@ -20,6 +20,7 @@ private:
 	void ShowPlots();
 	void SetupFitOptionsPopup();
 	void SetupBinningOptionsPopup();
+	void ShowBoltzmannConvolutionSettings();
 
 	void CreateOneOverECrossSection();
 
@@ -49,6 +50,8 @@ private:
 	void PlotRateCoefficient();
 	void PlotCrossSections();
 
+	void UpdateBoltzmannConvolutionData();
+
 private:
 
 	const char* binningOptions[4] = { "paper binning", "factor binning", "paper/factor mix", "paper/FWHM" };
@@ -66,6 +69,15 @@ private:
 	bool logX = true;
 	bool logY = true;
 	bool showMarkers = false;
+
+	// boltzmann distribution convolution window things
+	bool showBoltzmannConvolutionWindow = false;
+	float temperature = 100.0;
+	float energyRange[2] = {1e-6, 100.0};
+	float energies[2000];
+	float values[2000];
+	float valuesMultiplied[2000];
+	float color[3] = { 1.0, 0.0, 0.0 };
 
 	ImVec4 inputColor = ImVec4(0.6, 0.2, 0.1, 1.0);
 

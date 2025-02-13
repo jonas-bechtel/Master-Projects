@@ -38,7 +38,6 @@ class ElectronBeamWindow : public EnergyDistributionModule
 public:
 	ElectronBeamWindow();
 	void SetupDistribution(std::filesystem::path densityfile = "") override;
-	//TH3D* GetDistribution() override;
 
 	void CalculateDetuningEnergy();
 
@@ -58,7 +57,10 @@ private:
 	void LoadDensityFile(std::filesystem::path file);
 	void LoadToLookAt(std::filesystem::path file);
 
-	void GenerateElectronBeamDensity();
+	void AddBeamToList(ElectronBeam& eBeam);
+	void RemoveBeamFromList(int index);
+
+	TH3D* GenerateElectronBeamDensity();
 
 	TH3D* CutZerosFromDistribution(TH3D* input);
 	void CreateLargeDistribution();
@@ -68,18 +70,18 @@ private:
 	double Derivative(double z) const;
 	double DistancePointToTrajectoryOfZ(double z, Point3D point);
 
-	//void PlotDensitySlice();
-	//void PlotGeneratedDensities();
 	void PlotTrajectory();
-	//void PlotProjections();
+	void Plot3DBeam(TH3D* eBeam);
 
 private:
 	ElectronBeamParameters& m_parameters;
 
+	TH3D* m_distributionSmall = nullptr;
+
 	std::vector<ElectronBeam> eBeamsToLookAt;
 	int selectedIndex = -1;
 
-	TProfile2D* bla = nullptr;
+	//TProfile2D* bla = nullptr;
 
 	//TH3D* generatedBeamDensity = nullptr;
 	//TH3D* generatedBeamDensitySmall = nullptr;

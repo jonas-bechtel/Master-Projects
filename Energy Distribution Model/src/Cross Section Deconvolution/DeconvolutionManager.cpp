@@ -12,6 +12,8 @@ DeconvolutionManager::DeconvolutionManager()
 	: CrossSectionDeconvolutionModule("Deconvolution")
 {
 	deconvolutionManager = this;
+
+	UpdateBoltzmannConvolutionData();
 }
 
 void DeconvolutionManager::ShowRateCoefficientListWindow()
@@ -179,6 +181,8 @@ void DeconvolutionManager::ShowUI()
 {
 	ShowSettings();
 	ShowPlots();
+
+	ShowBoltzmannConvolutionSettings();
 }
 
 void DeconvolutionManager::ShowSettings()
@@ -290,6 +294,8 @@ void DeconvolutionManager::ShowPlots()
 	ImGui::Checkbox("log Y", &logY);
 	ImGui::SameLine();
 	ImGui::Checkbox("show markers", &showMarkers);
+	ImGui::SameLine();
+	ImGui::Checkbox("show f_pl", &showBoltzmannConvolutionWindow);
 
 	if (ImPlot::BeginPlot("cross section"))
 	{
@@ -308,6 +314,17 @@ void DeconvolutionManager::ShowPlots()
 
 			ImPlot::PlotLine((cs.label + " init").c_str(), cs.energies.data(), cs.initialGuess.data(), cs.initialGuess.size());
 			ImGui::PopID();
+		}
+
+		if (showBoltzmannConvolutionWindow)
+		{
+			if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
+			ImPlot::PushStyleColor(ImPlotCol_Line, { color[0], color[1], color[2], 1.0 });
+			ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+			ImPlot::PlotLine("Maxwell Boltzmann distribution", energies, values, 2000);
+			ImPlot::PlotLine("sigma * v * f_pl", energies, valuesMultiplied, 2000, ImPlotLineFlags_Shaded);
+			ImPlot::PopStyleVar();
+			ImPlot::PopStyleColor();
 		}
 
 		ImPlot::EndPlot();
@@ -380,6 +397,25 @@ void DeconvolutionManager::SetupBinningOptionsPopup()
 			//ImGui::InputInt("factor", &binFactor);
 		}
 		ImGui::EndPopup();
+	}
+}
+
+void DeconvolutionManager::ShowBoltzmannConvolutionSettings()
+{
+	if (showBoltzmannConvolutionWindow && ImGui::Begin("plasma rate convolution extra window", &showBoltzmannConvolutionWindow))
+	{
+		bool changed = false;
+
+		changed |= ImGui::SliderFloat("Temperature", &temperature, 1, 5000, "%.3f", ImGuiSliderFlags_Logarithmic);
+		changed |= ImGui::SliderFloat2("range", energyRange, 1e-6, 100, "%.6f", ImGuiSliderFlags_Logarithmic);
+
+		ImGui::ColorEdit3("color", color);
+
+		if (changed)
+		{
+			UpdateBoltzmannConvolutionData();
+		}
+		ImGui::End();
 	}
 }
 
@@ -749,6 +785,23 @@ void DeconvolutionManager::PlotCrossSections()
 		}
 	}
 	legend->Draw();
+}
+
+void DeconvolutionManager::UpdateBoltzmannConvolutionData()
+{
+	double step = (energyRange[1] - energyRange[0]) / 1999;
+	for (int i = 0; i < 2000; i++)
+	{
+		energies[i] = energyRange[0] + i * step;
+		values[i] = MaxwellBoltzmannDistribution(energies[i], temperature);
+		float velocity = TMath::Sqrt(2 * energies[i] * TMath::Qe() / PhysicalConstants::electronMass);
+		float sigma = 0;
+		if (crossSectionList.size() > 0)
+		{
+			sigma = crossSectionList.at(currentCrossSectionIndex).hist->Interpolate(energies[i]);
+		}
+		valuesMultiplied[i] = values[i] * velocity * sigma;
+	}
 }
 
 

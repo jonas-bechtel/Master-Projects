@@ -76,6 +76,18 @@ void LabEnergyWindow::LoadToLookAt(std::filesystem::path file)
 	}
 }
 
+void LabEnergyWindow::RemoveBeamFromList(int index)
+{
+	labEnergiesToLookAt.erase(labEnergiesToLookAt.begin() + index);
+	selectedIndex = std::min(selectedIndex, (int)labEnergiesToLookAt.size() - 1);
+
+	if (selectedIndex >= 0)
+	{
+		LabEnergy& newSelected = labEnergiesToLookAt.at(selectedIndex);
+		newSelected.slice.FromTH3D(newSelected.fullHistogram, SliceZ);
+	}
+}
+
 void LabEnergyWindow::ShowUI()
 {
 	ImGui::BeginGroup();
@@ -106,14 +118,7 @@ void LabEnergyWindow::ShowList()
 			ImGui::SameLine();
 			if (ImGui::SmallButton("x"))
 			{
-				labEnergiesToLookAt.erase(labEnergiesToLookAt.begin() + i);
-				selectedIndex = std::min(selectedIndex, (int)labEnergiesToLookAt.size() - 1);
-
-				if (selectedIndex >= 0)
-				{
-					LabEnergy& newSelected = labEnergiesToLookAt.at(selectedIndex);
-					newSelected.slice.FromTH3D(newSelected.fullHistogram, SliceZ);
-				}
+				RemoveBeamFromList(i);
 			}
 			ImGui::PopID();
 		}
@@ -129,6 +134,14 @@ void LabEnergyWindow::ShowSettings()
 		for (const std::filesystem::path& file : files)
 		{
 			LoadToLookAt(file);
+		}
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("clear list"))
+	{
+		for (int i = labEnergiesToLookAt.size() - 1; i >= 0; i--)
+		{
+			RemoveBeamFromList(i);
 		}
 	}
 
@@ -205,6 +218,7 @@ void LabEnergyWindow::ShowLabEnergyPlots()
 		
 			if (ImPlot::BeginPlot("XY Slice"))
 			{
+				ImPlot::SetupAxes("x", "y");
 				ImPlot::PlotHeatmap(sliceLE.label.c_str(), sliceLE.slice.values.data(), sliceLE.slice.nRows,
 					sliceLE.slice.nCols, sliceLE.slice.minValue, sliceLE.slice.maxValue, nullptr,
 					sliceLE.slice.bottomLeft, sliceLE.slice.topRight);

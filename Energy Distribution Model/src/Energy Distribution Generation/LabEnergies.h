@@ -51,6 +51,8 @@ private:
 	void LoadLabEnergyFile(std::filesystem::path file);
 	void LoadToLookAt(std::filesystem::path file);
 
+	void RemoveBeamFromList(int index);
+
 	void GenerateUniformLabEnergy();
 	void FillEnergiesWithXY_Slice();
 

@@ -2,24 +2,38 @@
 
 #include "Module.h"
 #include "Point3D.h"
+#include "HeatMapData.h"
 
-class IonBeam : public EnergyDistributionModule
+class IonBeamWindow : public EnergyDistributionModule
 {
 public:
-	IonBeam();
+	IonBeamWindow();
 	void SetupDistribution(std::filesystem::path file = "") override;
 	TH3D* MultiplyWithElectronDensities();
 
-	void PlotIonBeamProjections();
-
 private:
 	void ShowUI() override;
+	void ShowSettings();
+	void ShowPlots();
+
+	void FillHistogram(TH3D* hist);
+	void UpdateDataToLookAt();
 
 private:
 	IonBeamParameters& m_parameters;
 
-	TH1D* ionBeamProjectionX = nullptr;
-	TH1D* ionBeamProjectionY = nullptr;
-	TH1D* ionBeamProjectionZ = nullptr;
+	// ion beam to look at
+	//TH3D* m_distribution = nullptr;
+
+	std::vector<double> xAxis;
+	std::vector<double> yAxis;
+	std::vector<double> zAxis;
+
+	std::vector<double> projectionValuesX;
+	std::vector<double> projectionValuesY;
+	std::vector<double> projectionValuesZ;
+
+	HeatMapData slice;
+	float SliceZ = 0.0f;
 };
 

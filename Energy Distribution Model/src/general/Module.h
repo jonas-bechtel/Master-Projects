@@ -6,7 +6,7 @@ struct EnergyDistributionSet;
 struct EnergyDistribution;
 class MCMC;
 class ElectronBeamWindow;
-class IonBeam;
+class IonBeamWindow;
 class LabEnergyWindow;
 class EnergyDistributionManager;
 
@@ -25,9 +25,9 @@ public:
 
 protected:
 	void ShowCanvasButtons(); 
+	bool IsCanvasShown(TCanvas* canvas);
 
 private:
-	bool IsCanvasShown(TCanvas* canvas);
 	void ShowCanvas(TCanvas* canvas);
 	void HideCanvas(TCanvas* canvas);
 	void ShowHideCanvasButton(TCanvas* canvas);
@@ -71,7 +71,7 @@ protected:
 	// all the components affecting it
 	static MCMC* mcmc;
 	static ElectronBeamWindow* eBeam;
-	static IonBeam* ionBeam;
+	static IonBeamWindow* ionBeam;
 	static LabEnergyWindow* labEnergies;
 	static EnergyDistributionManager* manager;
 

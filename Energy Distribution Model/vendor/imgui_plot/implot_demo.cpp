@@ -638,13 +638,13 @@ void Demo_PieCharts() {
 //-----------------------------------------------------------------------------
 
 void Demo_Heatmaps() {
-    static float values1[7][7]  = {{0.8f, 2.4f, 2.5f, 3.9f, 0.0f, 4.0f, 0.0f},
-                                    {2.4f, 0.0f, 4.0f, 1.0f, 2.7f, 0.0f, 0.0f},
-                                    {1.1f, 2.4f, 0.8f, 4.3f, 1.9f, 4.4f, 0.0f},
-                                    {0.6f, 0.0f, 0.3f, 0.0f, 3.1f, 0.0f, 0.0f},
-                                    {0.7f, 1.7f, 0.6f, 2.6f, 2.2f, 6.2f, 0.0f},
-                                    {1.3f, 1.2f, 0.0f, 0.0f, 0.0f, 3.2f, 5.1f},
-                                    {0.1f, 2.0f, 0.0f, 1.4f, 0.0f, 1.9f, 6.3f}};
+    static float values1[49]  = { 0.8f, 2.4f, 2.5f, 3.9f, 0.0f, 4.0f, 0.0f,
+                                    2.4f, 0.0f, 4.0f, 1.0f, 2.7f, 0.0f, 0.0f,
+                                    1.1f, 2.4f, 0.8f, 4.3f, 1.9f, 4.4f, 0.0f,
+                                    0.6f, 0.0f, 0.3f, 0.0f, 3.1f, 0.0f, 0.0f,
+                                    0.7f, 1.7f, 0.6f, 2.6f, 2.2f, 6.2f, 0.0f,
+                                    1.3f, 1.2f, 0.0f, 0.0f, 0.0f, 3.2f, 5.1f,
+                                    0.1f, 2.0f, 0.0f, 1.4f, 0.0f, 1.9f, 6.3f};
     static float scale_min       = 0;
     static float scale_max       = 6.3f;
     static const char* xlabels[] = {"C1","C2","C3","C4","C5","C6","C7"};
@@ -677,7 +677,7 @@ void Demo_Heatmaps() {
         ImPlot::SetupAxes(nullptr, nullptr, axes_flags, axes_flags);
         ImPlot::SetupAxisTicks(ImAxis_X1,0 + 1.0/14.0, 1 - 1.0/14.0, 7, xlabels);
         ImPlot::SetupAxisTicks(ImAxis_Y1,1 - 1.0/14.0, 0 + 1.0/14.0, 7, ylabels);
-        ImPlot::PlotHeatmap("heat",values1[0],7,7,scale_min,scale_max,"%g",ImPlotPoint(0,0),ImPlotPoint(1,1),hm_flags);
+        ImPlot::PlotHeatmap("heat",values1,7,7,scale_min,scale_max,"%g",ImPlotPoint(0,0),ImPlotPoint(1,1),hm_flags);
         ImPlot::EndPlot();
     }
     ImGui::SameLine();

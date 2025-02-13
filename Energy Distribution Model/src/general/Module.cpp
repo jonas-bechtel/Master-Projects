@@ -11,7 +11,7 @@ int EnergyDistributionModule::s_rebinningFactors[3] = { 10, 10, 10 };
 EnergyDistribution EnergyDistributionModule::activeDist;
 MCMC* EnergyDistributionModule::mcmc = nullptr;
 ElectronBeamWindow* EnergyDistributionModule::eBeam = nullptr;
-IonBeam* EnergyDistributionModule::ionBeam = nullptr;
+IonBeamWindow* EnergyDistributionModule::ionBeam = nullptr;
 LabEnergyWindow* EnergyDistributionModule::labEnergies = nullptr;
 EnergyDistributionManager* EnergyDistributionModule::manager = nullptr;
 
@@ -76,6 +76,8 @@ Window::~Window()
 
 bool Window::IsCanvasShown(TCanvas* canvas)
 {
+	if (!canvas) return false;
+
 	return ((TRootCanvas*)canvas->GetCanvasImp())->IsMapped();
 }
 
