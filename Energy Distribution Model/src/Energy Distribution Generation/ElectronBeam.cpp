@@ -78,15 +78,24 @@ void ElectronBeamWindow::LoadToLookAt(std::filesystem::path file)
 	}
 }
 
+void ElectronBeamWindow::ChangeSelectedItem(int i)
+{
+	ElectronBeam& newlySelected = eBeamsToLookAt.at(i);
+	newlySelected.slice.FromTH3D(newlySelected.fullHistogram, SliceZ);
+
+	delete m_distribution;
+	m_distribution = (TH3D*)newlySelected.fullHistogram->Clone("copied e beam");
+	if (IsCanvasShown(m_mainCanvas)) PlotDistribution();
+	//Plot3DBeam(newlySelected.fullHistogram);
+}
+
 void ElectronBeamWindow::AddBeamToList(ElectronBeam& eBeam)
 {
 	eBeamsToLookAt.push_back(std::move(eBeam));
 	if (eBeamsToLookAt.size() == 1)
 	{
 		selectedIndex = 0;
-		ElectronBeam& first = eBeamsToLookAt.at(0);
-		first.slice.FromTH3D(first.fullHistogram, SliceZ);
-		Plot3DBeam(first.fullHistogram);
+		ChangeSelectedItem(0);
 	}
 }
 
@@ -96,9 +105,7 @@ void ElectronBeamWindow::RemoveBeamFromList(int index)
 	selectedIndex = std::min(selectedIndex, (int)eBeamsToLookAt.size() - 1);
 	if (selectedIndex >= 0)
 	{
-		ElectronBeam& newSelected = eBeamsToLookAt.at(selectedIndex);
-		newSelected.slice.FromTH3D(newSelected.fullHistogram, SliceZ);
-		Plot3DBeam(newSelected.fullHistogram);
+		ChangeSelectedItem(selectedIndex);
 	}
 }
 
@@ -159,6 +166,13 @@ double ElectronBeamWindow::GetTransverse_kT()
 	return m_parameters.transverse_kT;
 }
 
+ElectronBeam* ElectronBeamWindow::GetSelected()
+{
+	if (selectedIndex < 0) return nullptr;
+
+	return &eBeamsToLookAt.at(selectedIndex);
+}
+
 void ElectronBeamWindow::ShowUI()
 {
 	if (ImGui::BeginChild("left side", ImVec2(300, -1), ImGuiChildFlags_ResizeX))
@@ -189,8 +203,7 @@ void ElectronBeamWindow::ShowList()
 			if (ImGui::Selectable(eBeam.label.c_str(), i == selectedIndex, ImGuiSelectableFlags_AllowItemOverlap))
 			{
 				selectedIndex = i;
-				eBeam.slice.FromTH3D(eBeam.fullHistogram, SliceZ);
-				Plot3DBeam(eBeam.fullHistogram);
+				ChangeSelectedItem(selectedIndex);
 			}
 
 			ImGui::SameLine();

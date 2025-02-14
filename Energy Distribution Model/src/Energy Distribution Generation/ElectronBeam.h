@@ -48,6 +48,8 @@ public:
 	double GetLongitudinal_kT(double labEnergy);
 	double GetTransverse_kT();
 
+	ElectronBeam* GetSelected();
+
 private:
 	void ShowUI() override;
 	void ShowList();
@@ -57,6 +59,7 @@ private:
 	void LoadDensityFile(std::filesystem::path file);
 	void LoadToLookAt(std::filesystem::path file);
 
+	void ChangeSelectedItem(int i);
 	void AddBeamToList(ElectronBeam& eBeam);
 	void RemoveBeamFromList(int index);
 
@@ -80,20 +83,6 @@ private:
 
 	std::vector<ElectronBeam> eBeamsToLookAt;
 	int selectedIndex = -1;
-
-	//TProfile2D* bla = nullptr;
-
-	//TH3D* generatedBeamDensity = nullptr;
-	//TH3D* generatedBeamDensitySmall = nullptr;
-	//TH2D* densitySliceXY = nullptr;
-
-	//TH1D* electronBeamProjectionX = nullptr;
-	//TH1D* electronBeamProjectionY = nullptr;
-	//TH1D* electronBeamProjectionZ = nullptr;
-
-	//TH1D* generatedBeamProjectionX = nullptr;
-	//TH1D* generatedBeamProjectionY = nullptr;
-	//TH1D* generatedBeamProjectionZ = nullptr;
 
 	// parameters to increase histogram resolution by interpolation
 	bool increaseHist = false;

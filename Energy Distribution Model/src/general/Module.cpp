@@ -9,7 +9,7 @@
 int EnergyDistributionModule::s_rebinningFactors[3] = { 10, 10, 10 };
 
 EnergyDistribution EnergyDistributionModule::activeDist;
-MCMC* EnergyDistributionModule::mcmc = nullptr;
+MCMC_Window* EnergyDistributionModule::mcmc = nullptr;
 ElectronBeamWindow* EnergyDistributionModule::eBeam = nullptr;
 IonBeamWindow* EnergyDistributionModule::ionBeam = nullptr;
 LabEnergyWindow* EnergyDistributionModule::labEnergies = nullptr;

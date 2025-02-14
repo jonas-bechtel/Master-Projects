@@ -692,7 +692,7 @@ void EnergyDistributionManager::GenerateEnergyDistributionsFromFile(std::filesys
 		if (energyfile.empty()) continue;
 		labEnergies->SetupDistribution(energyfile);
 
-		ionBeam->SetupDistribution();
+		//ionBeam->SetupDistribution();
 		mcmc->SetupDistribution();
 
 		// 2. sample from this distribution

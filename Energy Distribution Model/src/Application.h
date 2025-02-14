@@ -18,7 +18,7 @@ private:
 
 	ElectronBeamWindow electronBeam;
 	IonBeamWindow ionBeam;
-	MCMC mcmc;
+	MCMC_Window mcmc;
 	LabEnergyWindow labEnergies;
 	EnergyDistributionManager energyDistributionManager;
 

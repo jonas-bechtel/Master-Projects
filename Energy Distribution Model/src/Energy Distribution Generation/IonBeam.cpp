@@ -31,6 +31,7 @@ void IonBeamWindow::SetupDistribution(std::filesystem::path file)
 
 TH3D* IonBeamWindow::MultiplyWithElectronDensities()
 {
+	SetupDistribution();
 	TH3D* electronDensities = eBeam->GetDistribution();
 	if (!electronDensities)
 	{
