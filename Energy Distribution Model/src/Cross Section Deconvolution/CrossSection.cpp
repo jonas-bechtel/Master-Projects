@@ -62,7 +62,7 @@ void CrossSection::SetupBinning(CrossSectionBinningSettings binSettings, const R
 		double lastEdgeSoFar = binEdges.back();
 
 		// add edges so rc points are in bin center
-		for (int i = rc.detuningEnergies.size() - 1; i > 0; i--)
+		for (size_t i = rc.detuningEnergies.size() - 1; i > 0; i--)
 		{
 			if (rc.detuningEnergies.at(i) < lastEdgeSoFar) continue;
 			
@@ -77,7 +77,7 @@ void CrossSection::SetupBinning(CrossSectionBinningSettings binSettings, const R
 	// bin width increses by a constant factor
 	if (binSettings.scheme == FactorBinning)
 	{
-		float min = minEnergy;
+		double min = minEnergy;
 		double factor = TMath::Power((maxEnergy / min), (1.0 / binSettings.numberBins));
 
 		binEdges.reserve(binSettings.numberBins + 1);

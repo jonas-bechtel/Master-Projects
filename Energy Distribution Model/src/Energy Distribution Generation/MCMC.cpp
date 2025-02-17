@@ -6,18 +6,23 @@
 #include "EnergyDistributionManager.h"
 
 MCMC_Window::MCMC_Window()
-	: EnergyDistributionModule("MCMC"), m_parameters(activeDist.mcmcParameter)
+	: EnergyDistributionModule("MCMC", 1), m_parameters(activeDist.mcmcParameter)
 {
 	mcmc = this;
 
-	for (int i = 0; i < numThreads; i++)
+	if (generatorList.size() < numThreads)
 	{
-		generatorList.emplace_back();
+		std::cout << "list of generators is not large enough: size = " << generatorList.size() << " # threads = " << numThreads << std::endl;
+	}
+	for (unsigned int i = 0; i < numThreads; i++)
+	{
+		generatorList.at(i) = RNG_engine();
 	}
 }
 
 void MCMC_Window::SetupDistribution(std::filesystem::path file)
 {
+	delete targetDist;
 	targetDist = ionBeam->MultiplyWithElectronDensities();
 
 	if (!targetDist)
@@ -26,21 +31,6 @@ void MCMC_Window::SetupDistribution(std::filesystem::path file)
 		return;
 	}	
 }
-
-//void MCMC::SetTargetDistribution(TH3D* targetDist)
-//{
-//	if (targetDist)
-//	{
-//		this->targetDist = targetDist;
-//		this->targetDist->SetTitle("target density");
-//		axisRanges[0] = targetDist->GetXaxis()->GetXmin();
-//		axisRanges[1] = targetDist->GetXaxis()->GetXmax();
-//		axisRanges[2] = targetDist->GetYaxis()->GetXmin();
-//		axisRanges[3] = targetDist->GetYaxis()->GetXmax();
-//		axisRanges[4] = targetDist->GetZaxis()->GetXmin();
-//		axisRanges[5] = targetDist->GetZaxis()->GetXmax();
-//	}
-//}
 
 std::vector<Point3D>& MCMC_Window::GetSamples()
 {
@@ -68,6 +58,8 @@ void MCMC_Window::ShowUI()
 	ImGui::SameLine();
 
 	ShowMCMCDataPlots();
+
+	ShowAutoCorrelationPlots();
 }
 
 void MCMC_Window::ShowList()
@@ -82,10 +74,7 @@ void MCMC_Window::ShowList()
 			if (ImGui::Selectable(mcmcData.label.c_str(), i == selectedIndex, ImGuiSelectableFlags_AllowItemOverlap))
 			{
 				selectedIndex = i;
-				mcmcData.targetSlice.FromTH3D(mcmcData.targetDist, SliceZ);
-				mcmcData.generatedSlice.FromTH3D(mcmcData.generatedDist, SliceZ);
-
-				//Plot3DBeam(eBeam.fullHistogram);
+				SelectedItemChanged();
 			}
 
 			ImGui::SameLine();
@@ -158,6 +147,7 @@ void MCMC_Window::ShowSettings()
 			//PlotAutocorrelation();
 			//PlotProjections();
 		}
+		UpdateAutocorrelationData();
 	}
 	ImGui::SameLine();
 	ImGui::Checkbox("async", &generateAsync);
@@ -169,8 +159,10 @@ void MCMC_Window::ShowSettings()
 	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 	ImGui::LabelText("", "Acceptance Rate: %.1f %%", acceptanceRate * 100);
 
+	ImGui::Checkbox("show autocorrelation", &showAutoCorrelationWindow);
+
 	ImGui::SetNextItemWidth(200.0f);
-	if (ImGui::SliderFloat("slice z", &SliceZ, 0, 0.7))
+	if (ImGui::SliderFloat("slice z", &SliceZ, 0.0f, 0.7f))
 	{
 		if (selectedIndex >= 0)
 		{
@@ -187,30 +179,36 @@ void MCMC_Window::ShowMCMCDataPlots()
 	{
 		if (ImPlot::BeginPlot("Projection X"))
 		{
+			int i = 0;
 			for (const MCMC_Data& mcmc_data : mcmcDataToLookAt)
 			{
-				ImPlot::PlotLine(mcmc_data.label.c_str(), mcmc_data.xAxis.data(), mcmc_data.targetProjectionValuesX.data(), mcmc_data.xAxis.size(), ImPlotLineFlags_Segments);
-				ImPlot::PlotLine(mcmc_data.label.c_str(), mcmc_data.xAxis.data(), mcmc_data.generatedProjectionValuesX.data(), mcmc_data.xAxis.size());
+				std::string label = mcmc_data.label + " " + std::to_string(i++);
+				ImPlot::PlotLine(label.c_str(), mcmc_data.xAxis.data(), mcmc_data.targetProjectionValuesX.data(), mcmc_data.xAxis.size(), ImPlotLineFlags_Segments);
+				ImPlot::PlotLine(label.c_str(), mcmc_data.xAxis.data(), mcmc_data.generatedProjectionValuesX.data(), mcmc_data.xAxis.size());
 			}
 			ImPlot::EndPlot();
 		}
 
 		if (ImPlot::BeginPlot("Projection Y"))
 		{
+			int i = 0;
 			for (const MCMC_Data& mcmc_data : mcmcDataToLookAt)
 			{
-				ImPlot::PlotLine(mcmc_data.label.c_str(), mcmc_data.yAxis.data(), mcmc_data.targetProjectionValuesY.data(), mcmc_data.yAxis.size(), ImPlotLineFlags_Segments);
-				ImPlot::PlotLine(mcmc_data.label.c_str(), mcmc_data.yAxis.data(), mcmc_data.generatedProjectionValuesY.data(), mcmc_data.yAxis.size());
+				std::string label = mcmc_data.label + " " + std::to_string(i++);
+				ImPlot::PlotLine(label.c_str(), mcmc_data.yAxis.data(), mcmc_data.targetProjectionValuesY.data(), mcmc_data.yAxis.size(), ImPlotLineFlags_Segments);
+				ImPlot::PlotLine(label.c_str(), mcmc_data.yAxis.data(), mcmc_data.generatedProjectionValuesY.data(), mcmc_data.yAxis.size());
 			}
 			ImPlot::EndPlot();
 		}
 
 		if (ImPlot::BeginPlot("Projection Z"))
 		{
+			int i = 0;
 			for (const MCMC_Data& mcmc_data : mcmcDataToLookAt)
 			{
-				ImPlot::PlotLine(mcmc_data.label.c_str(), mcmc_data.zAxis.data(), mcmc_data.targetProjectionValuesZ.data(), mcmc_data.zAxis.size(), ImPlotLineFlags_Segments);
-				ImPlot::PlotLine(mcmc_data.label.c_str(), mcmc_data.zAxis.data(), mcmc_data.generatedProjectionValuesZ.data(), mcmc_data.zAxis.size());
+				std::string label = mcmc_data.label + " " + std::to_string(i++);
+				ImPlot::PlotLine(label.c_str(), mcmc_data.zAxis.data(), mcmc_data.targetProjectionValuesZ.data(), mcmc_data.zAxis.size(), ImPlotLineFlags_Segments);
+				ImPlot::PlotLine(label.c_str(), mcmc_data.zAxis.data(), mcmc_data.generatedProjectionValuesZ.data(), mcmc_data.zAxis.size());
 			}
 			ImPlot::EndPlot();
 		}
@@ -221,31 +219,64 @@ void MCMC_Window::ShowMCMCDataPlots()
 			const MCMC_Data& mcmc_data = mcmcDataToLookAt.at(selectedIndex);
 			const HeatMapData& targetSlice = mcmcDataToLookAt.at(selectedIndex).targetSlice;
 			const HeatMapData& generatedSlice = mcmcDataToLookAt.at(selectedIndex).generatedSlice;
+			std::string label = mcmc_data.label + " " + std::to_string(selectedIndex);
 
 			if (ImPlot::BeginPlot("XY target Slice"))
 			{
 				ImPlot::SetupAxes("x", "y");
-				ImPlot::PlotHeatmap(mcmc_data.label.c_str(), targetSlice.values.data(), targetSlice.nRows,
+				ImPlot::PlotHeatmap(label.c_str(), targetSlice.values.data(), targetSlice.nRows,
 					targetSlice.nCols, targetSlice.minValue, targetSlice.maxValue, nullptr,
 					targetSlice.bottomLeft, targetSlice.topRight);
 				ImPlot::EndPlot();
 			}
-			
+			ImGui::SameLine();
+			ImPlot::ColormapScale("##targetScale", targetSlice.minValue, targetSlice.maxValue, ImVec2(80, -1));
+
+			ImGui::SameLine();
 			if (ImPlot::BeginPlot("XY generated Slice"))
 			{
 				ImPlot::SetupAxes("x", "y");
-				ImPlot::PlotHeatmap(mcmc_data.label.c_str(), generatedSlice.values.data(), generatedSlice.nRows,
+				ImPlot::PlotHeatmap(label.c_str(), generatedSlice.values.data(), generatedSlice.nRows,
 					generatedSlice.nCols, generatedSlice.minValue, generatedSlice.maxValue, nullptr,
 					generatedSlice.bottomLeft, generatedSlice.topRight);
 				ImPlot::EndPlot();
 			}
 			ImGui::SameLine();
-			ImPlot::ColormapScale("##HeatScale", generatedSlice.minValue, generatedSlice.maxValue, ImVec2(100, -1));
-
+			ImPlot::ColormapScale("##generatedScale", generatedSlice.minValue, generatedSlice.maxValue, ImVec2(80, -1));
 		}
 		ImPlot::PopColormap();
 
 		ImPlot::EndSubplots();
+	}
+}
+
+void MCMC_Window::ShowAutoCorrelationPlots()
+{
+	if (showAutoCorrelationWindow && ImGui::Begin("Autocorrelation window", &showAutoCorrelationWindow, ImGuiWindowFlags_NoDocking))
+	{
+		if (ImPlot::BeginSubplots("##autocorr subplots", 1, 3, ImVec2(-1, -1), ImPlotSubplotFlags_ShareItems))
+		{
+			if (ImPlot::BeginPlot("Autocorrelation X"))
+			{
+				ImPlot::PlotLine("##", lagValues.data(), autocorrX.data(), autocorrX.size());
+				ImPlot::EndPlot();
+			}
+
+			if (ImPlot::BeginPlot("Autocorrelation Y"))
+			{
+				ImPlot::PlotLine("##", lagValues.data(), autocorrY.data(), autocorrY.size());
+				ImPlot::EndPlot();
+			}
+
+			if (ImPlot::BeginPlot("Autocorrelation Z"))
+			{
+				ImPlot::PlotLine("##", lagValues.data(), autocorrZ.data(), autocorrZ.size());
+				ImPlot::EndPlot();
+			}
+			ImPlot::EndSubplots();
+		}
+
+		ImGui::End();
 	}
 }
 
@@ -274,13 +305,10 @@ void MCMC_Window::GenerateSamples()
 	m_distribution->Reset();
 	m_distribution->SetTitle("generated Histogram");
 
-	//m_distribution->SetXTitle("X-axis");
-	//m_distribution->SetYTitle("Y-axis");
-	//m_distribution->SetZTitle("Z-axis");
-
 	chain.clear();
 	chain.resize(m_parameters.numberSamples);
 	futures.clear();
+	futures.reserve(numThreads);
 	m_distribution->Reset();
 	interpolationTime = 0;
 
@@ -295,19 +323,21 @@ void MCMC_Window::GenerateSamples()
 	if (generateAsync)
 	{
 		// Launch asynchronous tasks
-		for (int i = 0; i < numThreads; i++)
+		for (unsigned int i = 0; i < numThreads; i++)
 		{
 			int length = m_parameters.numberSamples / numThreads;
 			int offset = i * length;
 			RNG_engine& generator = generatorList.at(i);
 			generator.seed(m_parameters.seed.get() + i);
+			
 			futures.push_back(std::async(std::launch::async, &MCMC_Window::GenerateSubchain, this, length, offset, std::ref(generator)));
 		}
 
 		acceptanceRate = 0;
 
 		// Wait for all tasks to complete
-		for (auto& future : futures) {
+		for (auto& future : futures) 
+		{
 			acceptanceRate += future.get();
 		}
 
@@ -330,14 +360,6 @@ void MCMC_Window::GenerateSamples()
 
 float MCMC_Window::GenerateSubchain(int length, int offset, RNG_engine& generator)
 {
-	//thread_local RNG_engine generatorLocal(m_parameters.seed + index);
-
-	//std::vector<Point3D>& subchain = subchains[index];
-	//int subchainLength = m_parameters.numberSamples / numThreads;
-	//int offset = index * subchainLength;
-	//subchain.clear();
-	//subchain.reserve(subchainLength);
-
 	// random start point
 	double x = 0; //uniformDist(generator);
 	double y = 0; //uniformDist(generator);
@@ -384,9 +406,10 @@ float MCMC_Window::GenerateSubchain(int length, int offset, RNG_engine& generato
 bool MCMC_Window::GenerateSingleSample(Point3D& current, double& currentValue, RNG_engine& generator)
 {
 	// propose new sample
-	double x_proposed = current.x + normalDistX(generator); //axisRanges[0] + uniformDist(generator) * (axisRanges[1] - axisRanges[0]); 
+	double x_proposed = current.x + normalDistX(generator);
 	double y_proposed = current.y + normalDistY(generator);
 	double z_proposed = current.z + normalDistZ(generator);
+	//double z_proposed = uniformDist(generator) * 0.7 ; 
 
 	// check if point is outside histogram domain
 	if (x_proposed < targetDist->GetXaxis()->GetXmin() || x_proposed > targetDist->GetXaxis()->GetXmax() ||
@@ -436,16 +459,30 @@ bool MCMC_Window::GenerateSingleSample(Point3D& current, double& currentValue, R
 	return false;
 }
 
+void MCMC_Window::SelectedItemChanged()
+{
+	MCMC_Data& newlySelected = mcmcDataToLookAt.at(selectedIndex);
+	newlySelected.targetSlice.FromTH3D(newlySelected.targetDist, SliceZ);
+	newlySelected.generatedSlice.FromTH3D(newlySelected.generatedDist, SliceZ);
+
+	delete targetDist;
+	delete m_distribution;
+	targetDist = (TH3D*)newlySelected.targetDist->Clone("copied target");
+	m_distribution = (TH3D*)newlySelected.generatedDist->Clone("copied generated");
+	if (IsCanvasShown(m_mainCanvas))
+	{
+		PlotTargetDistribution();
+		PlotDistribution();
+	}
+}
+
 void MCMC_Window::AddMCMCDataToList(MCMC_Data& mcmcData)
 {
 	mcmcDataToLookAt.push_back(std::move(mcmcData));
 	if (mcmcDataToLookAt.size() == 1)
 	{
 		selectedIndex = 0;
-		MCMC_Data& first = mcmcDataToLookAt.at(0);
-		first.targetSlice.FromTH3D(first.targetDist, SliceZ);
-		first.generatedSlice.FromTH3D(first.generatedDist, SliceZ);
-		//Plot3DBeam(first.fullHistogram);
+		SelectedItemChanged();
 	}
 }
 
@@ -455,39 +492,14 @@ void MCMC_Window::RemoveMCMCDataFromList(int index)
 	selectedIndex = std::min(selectedIndex, (int)mcmcDataToLookAt.size() - 1);
 	if (selectedIndex >= 0)
 	{
-		MCMC_Data& newSelected = mcmcDataToLookAt.at(selectedIndex);
-		newSelected.targetSlice.FromTH3D(newSelected.targetDist, SliceZ);
-		newSelected.generatedSlice.FromTH3D(newSelected.generatedDist, SliceZ);
-	
-		//Plot3DBeam(newSelected.fullHistogram);
+		SelectedItemChanged();
 	}
 }
 
-void MCMC_Window::PlotTargetDistribution()
+void MCMC_Window::UpdateAutocorrelationData()
 {
-	if (!targetDist) return;
-	if (targetDistSmall) delete targetDistSmall;
-
-	m_mainCanvas->cd(1);
-	targetDistSmall = (TH3D*)targetDist->Rebin3D(s_rebinningFactors[0],
-												 s_rebinningFactors[1],
-												 s_rebinningFactors[2], "target Distribution small");
-	targetDistSmall->Draw("BOX2");
-}
-
-void MCMC_Window::PlotAutocorrelation()
-{
-	if (chain.size() != m_parameters.numberSamples)
-	{
-		std::cout << "the chain has the wrong size: " << chain.size() << "\n";
-		return;
-	}
-
-	double means[3] = { 0, 0, 0 };
-	double variances[3] = { 0, 0, 0 };
-
 	// Compute means and variances
-	for (const Point3D& point : chain) 
+	for (const Point3D& point : chain)
 	{
 		means[0] += point.x;
 		means[1] += point.y;
@@ -498,7 +510,7 @@ void MCMC_Window::PlotAutocorrelation()
 	means[2] /= m_parameters.numberSamples;
 
 	// Compute variances
-	for (const Point3D& point : chain) 
+	for (const Point3D& point : chain)
 	{
 		variances[0] += (point.x - means[0]) * (point.x - means[0]);
 		variances[1] += (point.y - means[1]) * (point.y - means[1]);
@@ -508,18 +520,14 @@ void MCMC_Window::PlotAutocorrelation()
 	variances[1] /= m_parameters.numberSamples;
 	variances[2] /= m_parameters.numberSamples;
 
-	std::vector<double> autocorrX(m_parameters.numberSamples);
-	std::vector<double> autocorrY(m_parameters.numberSamples);
-	std::vector<double> autocorrZ(m_parameters.numberSamples);
-
 	// Compute autocorrelation
-	for (int lag = 1; lag < 100; lag++) 
+	for (int lag = 0; lag < 100; lag++)
 	{
 		double sumX = 0;
 		double sumY = 0;
 		double sumZ = 0;
 
-		for (int i = 0; i < m_parameters.numberSamples - lag;  i++)
+		for (int i = 0; i < m_parameters.numberSamples - lag; i++)
 		{
 			Point3D point = chain[i];
 			Point3D pointLag = chain[i + lag];
@@ -530,68 +538,22 @@ void MCMC_Window::PlotAutocorrelation()
 		autocorrX[lag] = sumX / (variances[0] * (m_parameters.numberSamples - lag));
 		autocorrY[lag] = sumY / (variances[1] * (m_parameters.numberSamples - lag));
 		autocorrZ[lag] = sumZ / (variances[2] * (m_parameters.numberSamples - lag));
+
+		lagValues[lag] = lag;
 	}
-	//std::cout << "x variance: " << variances[0] << " mean: " << means[0] << "\n";
-	//std::cout << "y variance: " << variances[1] << " mean: " << means[1] << "\n";
-	//std::cout << "z variance: " << variances[2] << " mean : " << means[2] << "\n";
-		 
-	m_secondCanvas->cd(4);
-	TGraph* graphX = new TGraph(100, &autocorrX[0]);
-	graphX->SetTitle("Autocorrelation X;Lag;Autocorrelation");
-	graphX->Draw("AL");
-
-	m_secondCanvas->cd(5);
-	TGraph* graphY = new TGraph(100, &autocorrY[0]);
-	graphY->SetTitle("Autocorrelation Y;Lag;Autocorrelation");
-	graphY->Draw("AL");
-
-	m_secondCanvas->cd(6);
-	TGraph* graphZ = new TGraph(100, &autocorrZ[0]);
-	graphZ->SetTitle("Autocorrelation Z;Lag;Autocorrelation");
-	graphZ->Draw("AL");
-
 }
 
-//void MCMC_Window::PlotProjections()
-//{
-//	if (!m_distribution || !targetDist)
-//	{
-//		return;
-//	}
-//	delete projectionXTarget;
-//	delete projectionYTarget;
-//	delete projectionZTarget;
-//	delete projectionX;
-//	delete projectionY;
-//	delete projectionZ;
-//
-//	m_secondCanvas->cd(1);
-//	projectionXTarget = targetDist->ProjectionX();
-//	projectionXTarget->Scale(1.0 / projectionXTarget->Integral());
-//	projectionX = m_distribution->ProjectionX();
-//	projectionX->SetLineColor(kRed);
-//	projectionX->Scale(1.0 / projectionX->Integral());
-//	projectionX->Draw("HIST E");
-//	projectionXTarget->Draw("HIST SAME");
-//
-//	m_secondCanvas->cd(2);
-//	projectionYTarget = targetDist->ProjectionY();
-//	projectionYTarget->Scale(1.0 / projectionYTarget->Integral());
-//	projectionY = m_distribution->ProjectionY();
-//	projectionY->SetLineColor(kRed);
-//	projectionY->Scale(1.0 / projectionY->Integral());
-//	projectionY->Draw("HIST E");
-//	projectionYTarget->Draw("HIST SAME");
-//
-//	m_secondCanvas->cd(3);
-//	projectionZTarget = targetDist->ProjectionZ();
-//	projectionZTarget->Scale(1.0 / projectionZTarget->Integral());
-//	projectionZ = m_distribution->ProjectionZ();
-//	projectionZ->SetLineColor(kRed);
-//	projectionZ->Scale(1.0 / projectionZ->Integral());
-//	projectionZ->Draw("HIST E");
-//	projectionZTarget->Draw("HIST SAME");
-//}
+void MCMC_Window::PlotTargetDistribution()
+{
+	if (!targetDist) return;
+
+	m_mainCanvas->cd(1);
+	delete targetDistSmall;
+	targetDistSmall = (TH3D*)targetDist->Rebin3D(s_rebinningFactors[0],
+												 s_rebinningFactors[1],
+												 s_rebinningFactors[2], "target Distribution small");
+	targetDistSmall->Draw("BOX2");
+}
 
 void MCMC_Data::FillData()
 {
@@ -669,7 +631,7 @@ void MCMC_Data::FillData()
 	delete generatedProjectionZ;
 }
 
-MCMC_Data::MCMC_Data(MCMC_Data&& other)
+MCMC_Data::MCMC_Data(MCMC_Data&& other) noexcept
 {
 	targetDist = other.targetDist;
 	generatedDist = other.generatedDist;
@@ -694,7 +656,7 @@ MCMC_Data::MCMC_Data(MCMC_Data&& other)
 	label = std::move(other.label);
 }
 
-MCMC_Data& MCMC_Data::operator=(MCMC_Data&& other)
+MCMC_Data& MCMC_Data::operator=(MCMC_Data&& other) noexcept
 {
 	if (this == &other) return *this;
 

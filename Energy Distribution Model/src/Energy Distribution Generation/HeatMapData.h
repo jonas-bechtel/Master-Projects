@@ -14,7 +14,7 @@ struct HeatMapData
 	{
 		nRows = hist->GetNbinsY();
 		nCols = hist->GetNbinsX();
-		std::cout << nRows << ", " << nCols << std::endl;
+		//std::cout << nRows << ", " << nCols << std::endl;
 		values.clear();
 		values.reserve(nRows * nCols);
 

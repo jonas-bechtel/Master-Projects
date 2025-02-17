@@ -14,8 +14,8 @@ using RNG_engine = std::mersenne_twister_engine<std::uint_fast64_t,
 
 struct MCMC_Data
 {
-	TH3D* targetDist;
-	TH3D* generatedDist;
+	TH3D* targetDist = nullptr;
+	TH3D* generatedDist = nullptr;
 
 	std::vector<double> xAxis;
 	std::vector<double> yAxis;
@@ -39,8 +39,8 @@ struct MCMC_Data
 	MCMC_Data() {}
 	MCMC_Data(const MCMC_Data& other) = delete;
 	MCMC_Data& operator=(const MCMC_Data& other) = delete;
-	MCMC_Data(MCMC_Data&& other);
-	MCMC_Data& operator=(MCMC_Data&& other);
+	MCMC_Data(MCMC_Data&& other) noexcept;
+	MCMC_Data& operator=(MCMC_Data&& other) noexcept;
 	~MCMC_Data()
 	{
 		delete targetDist;
@@ -62,16 +62,19 @@ private:
 	void ShowList();
 	void ShowSettings();
 	void ShowMCMCDataPlots();
+	void ShowAutoCorrelationPlots();
 
 	float GenerateSubchain(int length, int offset, RNG_engine& generator);
 	bool GenerateSingleSample(Point3D& current, double& currentValue, RNG_engine& generator);
 
+	void SelectedItemChanged();
 	void AddMCMCDataToList(MCMC_Data& mcmcData);
 	void RemoveMCMCDataFromList(int index);
 
+	void UpdateAutocorrelationData();
+
 	void PlotTargetDistribution();
-	void PlotAutocorrelation();
-	//void PlotProjections();
+	//void PlotAutocorrelation();
 
 private:
 	MCMC_Parameters& m_parameters;
@@ -86,27 +89,17 @@ private:
 	int selectedIndex = -1;
 	float SliceZ = 0.0f;
 
-	// graphs
-	//TH3D* targetDist = nullptr;
-	//TH3D* generatedDist = nullptr;
-	//TH1D* projectionXTarget = nullptr;
-	//TH1D* projectionYTarget = nullptr;
-	//TH1D* projectionZTarget = nullptr;
-	//TH1D* projectionX = nullptr;
-	//TH1D* projectionY = nullptr;
-	//TH1D* projectionZ = nullptr;
-
 	float acceptanceRate = 0.0;
 	bool changeSeed = true;
 	bool automaticProposalStd = true;
 	bool useInterpolation = false;
 
 	bool generateAsync = true;
-	int numThreads = std::thread::hardware_concurrency();
+	unsigned int numThreads = std::thread::hardware_concurrency();
 	std::vector<std::future<float>> futures;
 
 	//std::default_random_engine generator;
-	std::vector<RNG_engine> generatorList;
+	std::array<RNG_engine, 4> generatorList;
 	//std::subtract_with_carry_engine< std::uint_fast64_t, 48, 5, 12> generator; // is slightly faster but maybe less quality
 	//std::linear_congruential_engine<std::uint_fast32_t, 48271, 0, 2147483647> generator; // is even faster
 	std::uniform_real_distribution<double> uniformDist = std::uniform_real_distribution<double>(0.0, 1.0);
@@ -116,5 +109,18 @@ private:
 
 	double totalTime = 0.0;
 	double interpolationTime = 0;
+
+	// Autocorrelation stuff
+	bool showAutoCorrelationWindow = false;
+
+	double means[3] = { 0, 0, 0 };
+	double variances[3] = { 0, 0, 0 };
+	static constexpr int maxLag = 100;
+
+	std::array<double, maxLag> lagValues;
+
+	std::array<double, maxLag> autocorrX;
+	std::array<double, maxLag> autocorrY;
+	std::array<double, maxLag> autocorrZ;
 };
 

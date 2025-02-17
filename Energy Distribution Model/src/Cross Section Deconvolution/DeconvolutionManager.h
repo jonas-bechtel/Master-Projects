@@ -72,14 +72,14 @@ private:
 
 	// boltzmann distribution convolution window things
 	bool showBoltzmannConvolutionWindow = false;
-	float temperature = 100.0;
-	float energyRange[2] = {1e-6, 100.0};
+	float temperature = 100.0f;
+	float energyRange[2] = {1e-6f, 100.0f};
 	float energies[2000];
 	float values[2000];
 	float valuesMultiplied[2000];
-	float color[3] = { 1.0, 0.0, 0.0 };
+	float color[3] = { 1.0f, 0.0f, 0.0f };
 
-	ImVec4 inputColor = ImVec4(0.6, 0.2, 0.1, 1.0);
+	ImVec4 inputColor = ImVec4(0.6f, 0.2f, 0.1f, 1.0f);
 
 	char CSnameInput[64] = "cross section name";
 	char RCnameInput[64] = "rate coefficient name";

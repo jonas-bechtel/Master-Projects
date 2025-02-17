@@ -84,14 +84,14 @@ private:
 	bool showAnalytical = false;
 
 	// Analytical Parameter
-	float scale = 1;
-	float E_d = 10;
-	float kT_long = 1e-4;
-	float kT_trans = 0.002;
-	float energyRange[2] = { 0,1 };
+	float scale = 1.0f;
+	float E_d = 10.0f;
+	float kT_long = 1e-4f;
+	float kT_trans = 0.002f;
+	float energyRange[2] = { 0.0f,1.0f };
 	float energies[200];
 	float values[200];
-	float color[3] = { 1.0, 0.0, 0.0};
+	float color[3] = { 1.0f, 0.0f, 0.0f};
 
 	// random number generation things
 	std::mersenne_twister_engine<std::uint_fast64_t,

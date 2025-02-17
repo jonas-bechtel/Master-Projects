@@ -6,7 +6,7 @@
 
 struct ElectronBeam
 {
-	TH3D* fullHistogram;
+	TH3D* fullHistogram = nullptr;
 	std::vector<double> xAxis;
 	std::vector<double> yAxis;
 	std::vector<double> zAxis;
@@ -24,8 +24,8 @@ struct ElectronBeam
 	ElectronBeam() {}
 	ElectronBeam(const ElectronBeam& other) = delete;
 	ElectronBeam& operator=(const ElectronBeam& other) = delete;
-	ElectronBeam(ElectronBeam&& other);
-	ElectronBeam& operator=(ElectronBeam&& other);
+	ElectronBeam(ElectronBeam&& other) noexcept;
+	ElectronBeam& operator=(ElectronBeam&& other) noexcept;
 	~ElectronBeam()
 	{
 		//std::cout << "deleting " << fullHistogram << std::endl;
@@ -59,7 +59,7 @@ private:
 	void LoadDensityFile(std::filesystem::path file);
 	void LoadToLookAt(std::filesystem::path file);
 
-	void ChangeSelectedItem(int i);
+	void SelectedItemChanged();
 	void AddBeamToList(ElectronBeam& eBeam);
 	void RemoveBeamFromList(int index);
 

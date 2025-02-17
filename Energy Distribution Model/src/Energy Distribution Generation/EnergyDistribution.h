@@ -4,7 +4,7 @@
 
 struct BinningSettings
 {
-	float energyRange[2] = { 1e-6, 100 };
+	float energyRange[2] = { 1e-6f, 100.0f };
 
 	bool constantBinSize = false;
 	double normalStepSize = 0.5;
@@ -33,8 +33,8 @@ struct EnergyDistribution : public TH1D
 
 	EnergyDistribution(const EnergyDistribution& other) = delete;// { std::cout << "using illegal copy constructor" << std::endl; }// = delete;
 	EnergyDistribution& operator=(const EnergyDistribution& other) = delete;
-	EnergyDistribution(EnergyDistribution&& other);
-	EnergyDistribution& operator=(EnergyDistribution&& other);
+	EnergyDistribution(EnergyDistribution&& other) noexcept;
+	EnergyDistribution& operator=(EnergyDistribution&& other) noexcept;
 	
 	void ResetDefaultValues();
 	void SetupLabellingThings();
@@ -118,7 +118,7 @@ struct EnergyDistributionSet
 	EnergyDistributionSet(const EnergyDistributionSet& other) = delete;
 	EnergyDistributionSet& operator=(const EnergyDistributionSet& other) = delete;
 
-	EnergyDistributionSet(EnergyDistributionSet&& other)
+	EnergyDistributionSet(EnergyDistributionSet&& other) noexcept
 	{
 		distributions = std::move(other.distributions);
 		EdToDistMap = std::move(other.EdToDistMap);
@@ -128,7 +128,7 @@ struct EnergyDistributionSet
 
 		//std::cout << "calling EnergyDistSet move constructor" << std::endl;
 	}
-	EnergyDistributionSet& operator=(EnergyDistributionSet&& other)
+	EnergyDistributionSet& operator=(EnergyDistributionSet&& other) noexcept
 	{
 		distributions = std::move(other.distributions);
 		EdToDistMap = std::move(other.EdToDistMap);

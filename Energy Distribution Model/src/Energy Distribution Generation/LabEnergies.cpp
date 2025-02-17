@@ -146,7 +146,7 @@ void LabEnergyWindow::ShowSettings()
 	}
 
 	ImGui::SetNextItemWidth(200.0f);
-	if (ImGui::SliderFloat("slice z", &SliceZ, 0, 0.7))
+	if (ImGui::SliderFloat("slice z", &SliceZ, 0.0f, 0.7f))
 	{
 		if (selectedIndex >= 0)
 		{
@@ -332,7 +332,7 @@ void LabEnergy::FillData(const ElectronBeamWindow* eBeam)
 	}
 }
 
-LabEnergy::LabEnergy(LabEnergy&& other)
+LabEnergy::LabEnergy(LabEnergy&& other) noexcept
 {
 	fullHistogram = other.fullHistogram;
 	other.fullHistogram = nullptr;
@@ -354,7 +354,7 @@ LabEnergy::LabEnergy(LabEnergy&& other)
 	//std::cout << "Lab energy move Constructor" << std::endl;
 }
 
-LabEnergy& LabEnergy::operator=(LabEnergy&& other)
+LabEnergy& LabEnergy::operator=(LabEnergy&& other) noexcept
 {
 	if (this == &other) return *this;
 

@@ -16,7 +16,7 @@ EnergyDistribution::~EnergyDistribution()
 	//std::cout << "calling Energy Distribution destructor" << std::endl;
 }
 
-EnergyDistribution::EnergyDistribution(EnergyDistribution&& other)
+EnergyDistribution::EnergyDistribution(EnergyDistribution&& other) noexcept
 	: TH1D(std::move(other))
 {
 	other.Reset();
@@ -51,7 +51,7 @@ EnergyDistribution::EnergyDistribution(EnergyDistribution&& other)
 	//std::cout << "calling Energy Distribution Move Constructor" << std::endl;
 }
 
-EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other)
+EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other) noexcept
 {
 	if (this == &other) return *this;
 	

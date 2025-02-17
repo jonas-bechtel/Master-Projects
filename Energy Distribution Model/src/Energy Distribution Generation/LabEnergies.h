@@ -5,7 +5,7 @@
 
 struct LabEnergy
 {
-	TH3D* fullHistogram;
+	TH3D* fullHistogram = nullptr;
 	std::vector<double> xAxis;
 	std::vector<double> yAxis;
 	std::vector<double> zAxis;
@@ -26,8 +26,8 @@ struct LabEnergy
 	LabEnergy() {}
 	LabEnergy(const LabEnergy& other) = delete;
 	LabEnergy& operator=(const LabEnergy& other) = delete;
-	LabEnergy(LabEnergy&& other);
-	LabEnergy& operator=(LabEnergy&& other);
+	LabEnergy(LabEnergy&& other) noexcept;
+	LabEnergy& operator=(LabEnergy&& other) noexcept;
 	~LabEnergy()
 	{
 		//std::cout << "deleting " << fullHistogram << std::endl;

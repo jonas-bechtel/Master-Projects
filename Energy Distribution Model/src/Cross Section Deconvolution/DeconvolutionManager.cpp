@@ -406,8 +406,8 @@ void DeconvolutionManager::ShowBoltzmannConvolutionSettings()
 	{
 		bool changed = false;
 
-		changed |= ImGui::SliderFloat("Temperature", &temperature, 1, 5000, "%.3f", ImGuiSliderFlags_Logarithmic);
-		changed |= ImGui::SliderFloat2("range", energyRange, 1e-6, 100, "%.6f", ImGuiSliderFlags_Logarithmic);
+		changed |= ImGui::SliderFloat("Temperature", &temperature, 1.0f, 5000.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
+		changed |= ImGui::SliderFloat2("range", energyRange, 1e-6f, 100.0f, "%.6f", ImGuiSliderFlags_Logarithmic);
 
 		ImGui::ColorEdit3("color", color);
 
@@ -789,7 +789,7 @@ void DeconvolutionManager::PlotCrossSections()
 
 void DeconvolutionManager::UpdateBoltzmannConvolutionData()
 {
-	double step = (energyRange[1] - energyRange[0]) / 1999;
+	float step = (energyRange[1] - energyRange[0]) / 1999;
 	for (int i = 0; i < 2000; i++)
 	{
 		energies[i] = energyRange[0] + i * step;

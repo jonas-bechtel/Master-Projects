@@ -78,15 +78,14 @@ void ElectronBeamWindow::LoadToLookAt(std::filesystem::path file)
 	}
 }
 
-void ElectronBeamWindow::ChangeSelectedItem(int i)
+void ElectronBeamWindow::SelectedItemChanged()
 {
-	ElectronBeam& newlySelected = eBeamsToLookAt.at(i);
+	ElectronBeam& newlySelected = eBeamsToLookAt.at(selectedIndex);
 	newlySelected.slice.FromTH3D(newlySelected.fullHistogram, SliceZ);
 
 	delete m_distribution;
 	m_distribution = (TH3D*)newlySelected.fullHistogram->Clone("copied e beam");
 	if (IsCanvasShown(m_mainCanvas)) PlotDistribution();
-	//Plot3DBeam(newlySelected.fullHistogram);
 }
 
 void ElectronBeamWindow::AddBeamToList(ElectronBeam& eBeam)
@@ -95,7 +94,7 @@ void ElectronBeamWindow::AddBeamToList(ElectronBeam& eBeam)
 	if (eBeamsToLookAt.size() == 1)
 	{
 		selectedIndex = 0;
-		ChangeSelectedItem(0);
+		SelectedItemChanged();
 	}
 }
 
@@ -105,7 +104,7 @@ void ElectronBeamWindow::RemoveBeamFromList(int index)
 	selectedIndex = std::min(selectedIndex, (int)eBeamsToLookAt.size() - 1);
 	if (selectedIndex >= 0)
 	{
-		ChangeSelectedItem(selectedIndex);
+		SelectedItemChanged();
 	}
 }
 
@@ -203,7 +202,7 @@ void ElectronBeamWindow::ShowList()
 			if (ImGui::Selectable(eBeam.label.c_str(), i == selectedIndex, ImGuiSelectableFlags_AllowItemOverlap))
 			{
 				selectedIndex = i;
-				ChangeSelectedItem(selectedIndex);
+				SelectedItemChanged();
 			}
 
 			ImGui::SameLine();
@@ -247,7 +246,7 @@ void ElectronBeamWindow::ShowSettings()
 		}
 	}
 	ImGui::SetNextItemWidth(200.0f);
-	if (ImGui::SliderFloat("slice z", &SliceZ, 0, 0.7))
+	if (ImGui::SliderFloat("slice z", &SliceZ, 0.0f, 0.7f))
 	{
 		if (selectedIndex >= 0)
 		{
@@ -627,7 +626,7 @@ void ElectronBeamWindow::PlotTrajectory()
 	tangent *= arrowLength;// / (1 + 2000 * y0);
 
 	// Draw the arrow pointing in the direction of the trajectory
-	TArrow* tangentArrow = new TArrow(z0, y0, z0 + tangent.z(), y0 + tangent.y(), 0.02, "|>");
+	TArrow* tangentArrow = new TArrow(z0, y0, z0 + tangent.z(), y0 + tangent.y(), 0.02f, "|>");
 	tangentArrow->SetLineColor(kRed);
 	tangentArrow->SetLineWidth(2);
 	tangentArrow->SetAngle(30); // Arrowhead angle
@@ -637,7 +636,7 @@ void ElectronBeamWindow::PlotTrajectory()
 	normal *= arrowLength / 20;
 
 	// Draw the normal vector arrow
-	TArrow* normalArrow = new TArrow(z0, y0, z0 + normal.z(), y0 + normal.y(), 0.02, "|>");
+	TArrow* normalArrow = new TArrow(z0, y0, z0 + normal.z(), y0 + normal.y(), 0.02f, "|>");
 	normalArrow->SetLineColor(kBlue);
 	normalArrow->SetLineWidth(2);
 	normalArrow->SetAngle(30); // Arrowhead angle
@@ -786,7 +785,7 @@ void ElectronBeam::FillData()
 	delete projectionZ;
 }
 
-ElectronBeam::ElectronBeam(ElectronBeam&& other)
+ElectronBeam::ElectronBeam(ElectronBeam&& other) noexcept
 {
 	fullHistogram = other.fullHistogram;
 	other.fullHistogram = nullptr;
@@ -804,7 +803,7 @@ ElectronBeam::ElectronBeam(ElectronBeam&& other)
 	label = std::move(other.label);
 }
 
-ElectronBeam& ElectronBeam::operator=(ElectronBeam&& other)
+ElectronBeam& ElectronBeam::operator=(ElectronBeam&& other) noexcept
 {
 	if (this == &other) return *this;
 

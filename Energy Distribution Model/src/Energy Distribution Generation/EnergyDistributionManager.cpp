@@ -407,11 +407,11 @@ void EnergyDistributionManager::ShowAnalyticalParameterWindow()
 	{
 		ImGui::BeginGroup();
 		bool changed = false;
-		changed |= ImGui::SliderFloat2("range", energyRange, 1e-6, 100, "%.6f", ImGuiSliderFlags_Logarithmic);
-		changed |= ImGui::SliderFloat("scale", &scale, 0, 2);
-		changed |= ImGui::SliderFloat("E_d", &E_d, 0, 100, "%.8f", ImGuiSliderFlags_Logarithmic);
-		changed |= ImGui::SliderFloat("kT long", &kT_long, 1e-6, 0.1, "%.6f", ImGuiSliderFlags_Logarithmic);
-		changed |= ImGui::SliderFloat("kT trans", &kT_trans, 0, 0.1, "%.6f", ImGuiSliderFlags_Logarithmic);
+		changed |= ImGui::SliderFloat2("range", energyRange, 1e-6f, 100.0f, "%.6f", ImGuiSliderFlags_Logarithmic);
+		changed |= ImGui::SliderFloat("scale", &scale, 0.0f, 2.0f);
+		changed |= ImGui::SliderFloat("E_d", &E_d, 0.0f, 100.0f, "%.8f", ImGuiSliderFlags_Logarithmic);
+		changed |= ImGui::SliderFloat("kT long", &kT_long, 1e-6f, 0.1f, "%.6f", ImGuiSliderFlags_Logarithmic);
+		changed |= ImGui::SliderFloat("kT trans", &kT_trans, 0.0f, 0.1f, "%.6f", ImGuiSliderFlags_Logarithmic);
 		ImGui::ColorEdit3("color", color);
 		ImGui::EndGroup();
 		if (changed)
@@ -857,7 +857,7 @@ void EnergyDistributionManager::PlotLongVelAddition()
 
 void EnergyDistributionManager::UpdateAnalytical()
 {
-	double step = (energyRange[1] - energyRange[0]) / 199;
+	float step = (energyRange[1] - energyRange[0]) / 199;
 	for (int i = 0; i < 200; i++)
 	{
 		energies[i] = energyRange[0] + i * step;

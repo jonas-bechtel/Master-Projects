@@ -48,24 +48,11 @@ TH3D* IonBeamWindow::MultiplyWithElectronDensities()
 
 	TH3D* result = (TH3D*)electronDensities->Clone("e*ion density");
 	result->SetTitle("electron-ion density");
-	result->Multiply(m_distribution);
-	//result->Reset();
-
-	//double nXBins = electronDensities->GetXaxis()->GetNbins();
-	//double nYBins = electronDensities->GetYaxis()->GetNbins();
-	//double nZBins = electronDensities->GetZaxis()->GetNbins();
-	//
-	//for (int i = 1; i <= nXBins; i++)
-	//{
-	//	for (int j = 1; j <= nYBins; j++)
-	//	{
-	//		for (int k = 1; k <= nZBins; k++)
-	//		{
-	//			double value = electronDensities->GetBinContent(i, j, k) * m_distribution->GetBinContent(i, j, k);
-	//			result->SetBinContent(i, j, k, value);
-	//		}
-	//	}
-	//}
+	bool success = result->Multiply(m_distribution);
+	if (!success)
+	{
+		std::cout << "multiplication failed" << std::endl;
+	}
 
 	return result;
 }
@@ -101,7 +88,7 @@ void IonBeamWindow::ShowSettings()
 	somethingChanged |= ImGui::InputFloat2("sigmas 2 x and y [m]", m_parameters.shape2, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
 	ImGui::EndDisabled();
 
-	if (ImGui::SliderFloat("slice z", &SliceZ, 0, 0.7))
+	if (ImGui::SliderFloat("slice z", &SliceZ, 0.0f, 0.7f))
 	{
 		slice.FromTH3D(m_distribution, SliceZ);
 	}
