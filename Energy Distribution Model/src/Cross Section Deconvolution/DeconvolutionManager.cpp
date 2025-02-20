@@ -650,7 +650,7 @@ PlasmaRateCoefficient DeconvolutionManager::ConvolveIntoPlasmaRate(const CrossSe
 	PlasmaRateCoefficient prc = PlasmaRateCoefficient();
 	int numberValue = 10000;
 	double T_start = 1;
-	double T_end = 5000;
+	double T_end = 50000;
 	double step = (T_end - T_start) / numberValue;
 
 	prc.temperatures.clear();

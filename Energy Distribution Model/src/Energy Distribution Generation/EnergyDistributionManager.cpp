@@ -82,6 +82,8 @@ void EnergyDistributionManager::ShowSettings()
 		ImGui::SameLine();
 		ImGui::Checkbox("cut out z range", activeDist.simplifyParams.cutOutZValues);
 
+		ImGui::Checkbox("use old transverse addition method", &oldTransverseAddition);
+
 		ImGui::Separator();
 
 		ImGui::BeginDisabled(currentDescriptionFile.empty());
@@ -425,12 +427,12 @@ void EnergyDistributionManager::ShowAnalyticalParameterWindow()
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Analytical_Pars"))
 			{
 				OutputParameters& parameter = *(OutputParameters*)payload->Data;
+				energyRange[0] = std::max(1e-6f, parameter.fitRange.get().x);
+				energyRange[1] = parameter.fitRange.get().y;
 				scale = parameter.fitScalingFactor;
 				E_d = parameter.fitDetuningEnergy;
 				kT_long = parameter.fitLongitudinalTemperature;
 				kT_trans = parameter.fitTransverseTemperature;
-				energyRange[0] = std::max(1e-6, E_d - parameter.fitFWHM);
-				energyRange[1] = E_d + parameter.fitFWHM;
 				UpdateAnalytical();
 			}
 			ImGui::EndDragDropTarget();
@@ -444,6 +446,15 @@ void EnergyDistributionManager::ShowPeakFitSettings()
 {
 	if (showPeakFitSettings && ImGui::Begin("Peak Fit Settings", &showPeakFitSettings, ImGuiWindowFlags_NoDocking))
 	{
+		ImGui::BeginDisabled(peakFitSettings.adjustRange[0]);
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputDouble("##", &peakFitSettings.initialRange[0], 0.0, 0.0, "%.4e");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputDouble("initial Range", &peakFitSettings.initialRange[1], 0.0, 0.0, "%.4e");
+		ImGui::EndDisabled();
+
+		//ImGui::SetNextItemWidth(160.0f);
 		ImGui::SliderInt("number fit rounds", &peakFitSettings.fitRounds, 1, 4);
 		for (int i = 0; i < peakFitSettings.fitRounds; i++)
 		{
@@ -453,6 +464,7 @@ void EnergyDistributionManager::ShowPeakFitSettings()
 			ImGui::Checkbox("free E_d", &peakFitSettings.freeDetuningEnergy[i]);
 			ImGui::Checkbox("free kT_long", &peakFitSettings.freekT_long[i]);
 			ImGui::Checkbox("free kT_trans", &peakFitSettings.freeKT_trans[i]);
+			ImGui::Checkbox("adjust range", &peakFitSettings.adjustRange[i]);
 			ImGui::EndGroup();
 			ImGui::SameLine();
 		}
@@ -491,12 +503,12 @@ void EnergyDistributionManager::ShowBinningSettings()
 		}
 		ImGui::BeginDisabled(!binSettings.constantBinSize);
 		ImGui::SameLine();
-		ImGui::SetNextItemWidth(50.0f);
-		ImGui::InputDouble("step size", &binSettings.normalStepSize, 0, 0, "%.3f");
+		ImGui::SetNextItemWidth(80.0f);
+		ImGui::InputDouble("step size", &binSettings.normalStepSize, 0, 0, "%.6f");
 		ImGui::SameLine();
 		ImGui::BeginDisabled(!binSettings.increasePeakResolution);
-		ImGui::SetNextItemWidth(50.0f);
-		ImGui::InputDouble("peak step size", &binSettings.peakStepSize, 0, 0, "%.3f");
+		ImGui::SetNextItemWidth(80.0f);
+		ImGui::InputDouble("peak step size", &binSettings.peakStepSize, 0, 0, "%.6f");
 		ImGui::EndDisabled();
 		ImGui::EndDisabled();
 
@@ -622,15 +634,32 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 		longitudinalNormalDistribution = std::normal_distribution<double>(0, longSigma);
 		transverseNormalDistribution = std::normal_distribution<double>(0, transSigma);
 		double longitudinalAddition = longitudinalNormalDistribution(generator);
-		double transverseAddition = transverseNormalDistribution(generator);
-		double transverseAdditionAngle = angleDistribution(generator);
 		long_VelAddition->Fill(longitudinalAddition);
 
-		transverseDirection.Rotate(transverseAdditionAngle, longitudinalDirection);
-
 		TVector3 finalElectronVelocity = electronVelocityMagnitude * longitudinalDirection
-										 + longitudinalAddition * longitudinalDirection
-										 + sqrt(2) * transverseAddition * transverseDirection;
+										+ longitudinalAddition * longitudinalDirection;
+
+		if (oldTransverseAddition)
+		{
+			double transverseAddition = transverseNormalDistribution(generator);
+			double transverseAdditionAngle = angleDistribution(generator);
+
+			transverseDirection.Rotate(transverseAdditionAngle, longitudinalDirection);
+			finalElectronVelocity += sqrt(2) * transverseAddition * transverseDirection;
+		}
+		else
+		{
+			double transverseAdditionX = transverseNormalDistribution(generator);
+			double transverseAdditionY = transverseNormalDistribution(generator);
+
+			// we need a vector that is never in line with the longitudinalDirection
+			TVector3 helpVector = TVector3(1, 0, 0);
+			TVector3 transverseDirection1 = longitudinalDirection.Cross(helpVector);
+			TVector3 transverseDirection2 = longitudinalDirection.Cross(transverseDirection1);
+			
+			finalElectronVelocity += transverseAdditionX * transverseDirection1;
+			finalElectronVelocity += transverseAdditionY * transverseDirection2;
+		}
 
 		// calculate collision velocity vector and magnitude using a fixed ion beam velocity
 		double ionVelocityMagnitude = TMath::Sqrt(2 * activeDist.eBeamParameter.coolingEnergy * TMath::Qe() / PhysicalConstants::electronMass); // calc from cooling energy;

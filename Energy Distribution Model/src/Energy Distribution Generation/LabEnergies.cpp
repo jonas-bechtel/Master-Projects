@@ -19,7 +19,10 @@ double LabEnergyWindow::Get(double x, double y, double z)
 	double y_modified = std::min(std::max(y, m_distribution->GetYaxis()->GetBinCenter(1)), m_distribution->GetYaxis()->GetBinCenter(numberBinsY) - 1e-4);
 	double z_modified = std::min(std::max(z, m_distribution->GetZaxis()->GetBinCenter(1)), m_distribution->GetZaxis()->GetBinCenter(numberBinsZ) - 1e-4);
 
-	return m_distribution->Interpolate(x_modified, y_modified, z_modified);
+	if(interpolateEnergy)
+		return m_distribution->Interpolate(x_modified, y_modified, z_modified);
+	else
+		return m_distribution->GetBinContent(m_distribution->FindBin(x, y, z));
 }
 
 void LabEnergyWindow::SetupDistribution(std::filesystem::path energyfile)
@@ -155,6 +158,10 @@ void LabEnergyWindow::ShowSettings()
 		}
 	}
 
+	ImGui::Checkbox("interpolate", &interpolateEnergy);
+
+	ImGui::Checkbox("show markers", &showMarkers);
+
 	ImGui::Separator();
 	ImGui::BeginDisabled(activeDist.simplifyParams.sliceLabEnergies);
 	ImGui::Checkbox("uniform energies", activeDist.simplifyParams.uniformLabEnergies);
@@ -174,6 +181,7 @@ void LabEnergyWindow::ShowLabEnergyPlots()
 {
 	if(ImPlot::BeginSubplots("##labenergy subplots", 2, 3, ImVec2(-1, -1), ImPlotSubplotFlags_ShareItems))
 	{
+		if (showMarkers) ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Square);
 		if (ImPlot::BeginPlot("Projection X"))
 		{
 			for (const LabEnergy& labEnergy : labEnergiesToLookAt)
@@ -210,6 +218,7 @@ void LabEnergyWindow::ShowLabEnergyPlots()
 			}
 			ImPlot::EndPlot();
 		}
+		if (showMarkers) ImPlot::PopStyleVar();
 
 		ImPlot::PushColormap(9);
 		if (selectedIndex >= 0)

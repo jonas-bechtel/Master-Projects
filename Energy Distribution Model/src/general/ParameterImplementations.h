@@ -74,10 +74,15 @@ struct IonBeamParameters : public Parameters
 	}
 
 	ParameterValue<float2> shift = ParameterValue(float2(0.0f, 0.0f), "shift in x and y", "%.4f, %.4f m");
-	ParameterValue<double> amplitude1 = ParameterValue(10.1, "amplitude 1", "%.4f");
+	ParameterValue<float2> angles = ParameterValue(float2(0.0f, 0.0f), "horizontal, vertical angle", "%.4f, %.4f rad");
+
+	// always one gaussian
+	ParameterValue<double> amplitude = ParameterValue(10.1, "amplitude", "%.4f");
+	ParameterValue<float2> sigma = ParameterValue(float2(9.5e-3f, 5.7e-3f), "sigmas (x,y)", "%.4f, %.4f m");
+
+	// maybe a second one
 	ParameterValue<double> amplitude2 = ParameterValue(8.1, "amplitude 2", "%.4f");
-	ParameterValue<float2> shape1 = ParameterValue(float2(9.5e-3f, 5.7e-3f), "shape 1 (x,y)", "%.4f, %.4f m");
-	ParameterValue<float2> shape2 = ParameterValue(float2(1.39e-3f, 2.15e-3f), "shape 2 (x,y)", "%.4f, %.4f m");
+	ParameterValue<float2> sigma2 = ParameterValue(float2(1.39e-3f, 2.15e-3f), "sigmas 2 (x,y)", "%.4f, %.4f m");
 
 private:
 	int GetSize() const override
@@ -93,6 +98,7 @@ struct OutputParameters : public Parameters
 		setName("analytical/fit distribution parameters");
 	}
 
+	ParameterValue<float2> fitRange = ParameterValue(float2(0.0f, 1.0f), "fit range", "%.4e, %.4e eV");
 	ParameterValue<double> fitDetuningEnergy = ParameterValue(1.0, "fit detuning energy", "%.6e eV");
 	ParameterValue<double> fitLongitudinalTemperature = ParameterValue(0.0005, "fit longitudinal kT", "%.2e eV");
 	ParameterValue<double> fitTransverseTemperature = ParameterValue(0.002, "fit transverse kT", "%.2e eV");
@@ -117,8 +123,8 @@ struct SimplificationParameter : public Parameters
 	}
 
 	// ion beam
-	ParameterValue<bool> singleGaussianIonBeam = ParameterValue(false, "using single gaussian ion beam", "%d");
-	ParameterValue<double> ionBeamRadius = ParameterValue(0.0010, "ion beam radius", "%.4f m");
+	//ParameterValue<bool> singleGaussianIonBeam = ParameterValue(false, "using single gaussian ion beam", "%d");
+	//ParameterValue<double> ionBeamRadius = ParameterValue(0.0010, "ion beam radius", "%.4f m");
 
 	// lab energies
 	ParameterValue<bool> uniformLabEnergies = ParameterValue(false, "use uniform lab energy", "%d");

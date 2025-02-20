@@ -4,6 +4,16 @@
 #include "AnalyticalDistribution.h"
 #include "Constants.h"
 
+double GetFWHM(TF1* function)
+{
+	double maxValue = function->GetMaximum();
+	double XofMax = function->GetMaximumX();
+	double xLeft = function->GetX(maxValue / 2, std::max(0.0, XofMax - 1), XofMax);
+	double xRight = function->GetX(maxValue / 2, XofMax, XofMax + 1);
+
+	return xRight - xLeft;
+}
+
 EnergyDistribution::EnergyDistribution()
 	: TH1D()
 {
@@ -116,7 +126,6 @@ void EnergyDistribution::SetupLabellingThings()
 	if (simplifyParams.uniformLabEnergies) tags += "uniform energy, ";
 	if (simplifyParams.sliceLabEnergies) tags += Form("energy sliced %.3f, ", simplifyParams.sliceToFill.get());
 	if (simplifyParams.cutOutZValues) tags += Form("z samples %.3f - %.3f, ", simplifyParams.cutOutRange.get().x, simplifyParams.cutOutRange.get().y);
-	if (simplifyParams.singleGaussianIonBeam) tags += "single ion gaus, ";
 	label = Form("%d: U drift = %.2fV, E_d = %.4f", index, labEnergiesParameter.driftTubeVoltage.get(),
 		eBeamParameter.detuningEnergy.get());
 
@@ -299,7 +308,7 @@ void EnergyDistribution::CalculateFWHM()
 	int index = std::distance(binValuesNormalised.begin(), maxValueIt);
 	double maxValue = *maxValueIt;
 	double energyOfMaxValue = binCenters.at(index);
-	std::cout << "maxvalue: " << maxValue << " index: " << index << std::endl;
+	//std::cout << "maxvalue: " << maxValue << " index: " << index << std::endl;
 	if (std::abs(energyOfMaxValue - eBeamParameter.detuningEnergy) > 1)
 	{
 		std::cout << "maximum value position and detuning energy do not match: " << energyOfMaxValue << " != " << eBeamParameter.detuningEnergy << std::endl;
@@ -319,9 +328,9 @@ void EnergyDistribution::CalculateFWHM()
 	{
 		if (energy < 0)
 		{
-			std::cout << "could not calculate FWHM, value did not go below half maximum" << std::endl;
-			outputParameter.FWHM = 0;
-			return;
+			std::cout << "left side value did not go below half maximum" << std::endl;
+			energyLeft = 0;
+			break;
 		}
 		if (Interpolate(energy) < maxValue / 2)
 		{
@@ -339,17 +348,12 @@ void EnergyDistribution::FitAnalyticalToPeak(const PeakFitSettings& settings)
 	double kt_trans = eBeamParameter.transverse_kT;
 	double kT_long = eBeamParameter.longitudinal_kT_estimate;
 
-	double peakWidthGuess = std::max(0.01, sqrt(pow((kt_trans * log(2)), 2) + 16 * log(2) * kT_long * detuningEnergy));
-	double energyMin = std::max(0.0, eBeamParameter.detuningEnergy - 1 * peakWidthGuess);
-	double energyMax = std::max(0.01, eBeamParameter.detuningEnergy + 1 * peakWidthGuess);
-	const int nParameter = 4;
-	std::cout << "peakWidthGuess: " << peakWidthGuess << ", energyMin: " << energyMin << ", energyMax: " << energyMax << std::endl;
-
-	//std::cout << "min: " << energyMin << " max: " << energyMax << std::endl;	
+	constexpr int nParameter = 4;
+	
 	// first parameter is a scaling factor
 	double initialGuess[nParameter] = { 1, detuningEnergy, kt_trans, kT_long };
 
-	TF1* fitFunction = new TF1("fit function", AnalyticalEnergyDistributionFit, energyMin, energyMax, nParameter);
+	TF1* fitFunction = new TF1("fit function", AnalyticalEnergyDistributionFit, settings.initialRange[0], settings.initialRange[1], nParameter);
 	fitFunction->SetParameters(initialGuess);
 	fitFunction->FixParameter(1, detuningEnergy);
 	fitFunction->FixParameter(2, kt_trans);
@@ -357,6 +361,22 @@ void EnergyDistribution::FitAnalyticalToPeak(const PeakFitSettings& settings)
 
 	for (int i = 0; i < settings.fitRounds; i++)
 	{
+		if (settings.adjustRange[i])
+		{
+			//double* parameter = fitFunction->GetParameters();
+			//double deltaE = sqrt(pow((parameter[2] * log(2)), 2) + 16 * log(2) * parameter[2] * parameter[1]);
+			//double fwhm = GetFWHM(fitFunction);
+			//std::cout << "fwhm gues: " << fwhm << std::endl;
+			///double peakWidthGuess = std::max(0.001, fwhm / 2);
+			double maxValue = fitFunction->GetMaximum();
+			double XofMax = fitFunction->GetMaximumX();
+			double energyMin = fitFunction->GetX(maxValue / 8, std::max(0.0, XofMax - 1), XofMax);   //std::max(0.0, fitFunction->GetMaximumX() - 1 * peakWidthGuess);
+			double energyMax = fitFunction->GetX(maxValue / 8, XofMax, XofMax + 1);     //std::max(0.002, fitFunction->GetMaximumX() + 1 * peakWidthGuess);
+			fitFunction->SetRange(energyMin, energyMax);
+
+			//std::cout << "Fit round " << i << ": peakWidthGuess: " << peakWidthGuess << ", energyMin : " << energyMin << ", energyMax : " << energyMax << std::endl;
+		}
+		
 		double* parameter = fitFunction->GetParameters();
 		//std::cout << parameter[1] << ", " << parameter[2] << ", " << parameter[3] << std::endl;
 		settings.freeDetuningEnergy[i] ? fitFunction->ReleaseParameter(1) : fitFunction->FixParameter(1, parameter[1]);
@@ -364,31 +384,32 @@ void EnergyDistribution::FitAnalyticalToPeak(const PeakFitSettings& settings)
 		settings.freekT_long[i] ? fitFunction->ReleaseParameter(3) : fitFunction->FixParameter(3, parameter[3]);
 		Fit(fitFunction, "QRN0");
 	}
-
-	double maxValue = fitFunction->GetMaximum();
-	double energyOfMax = fitFunction->GetMaximumX();
-	double xLeft = fitFunction->GetX(maxValue / 2, std::max(0.0, energyOfMax - 1), energyOfMax);
-	double xRight = fitFunction->GetX(maxValue / 2, energyOfMax, energyOfMax + 1);
+	
+	
 	//std::cout << "maxValue: " << maxValue << " maxValue / 2: " << maxValue / 2 << " energyOfMax: " << energyOfMax << std::endl;
 	//std::cout << "xLeft: " << xLeft << " xRight: " << xRight << std::endl;
 	//std::cout << "f(xLeft) = " << fitFunction->Eval(xLeft) << " f(xRight) = " << fitFunction->Eval(xRight) << std::endl;
 
+	// set all fit results
 	double* fitParameter = fitFunction->GetParameters();
+	double rangeMin, rangeMax;
+	fitFunction->GetRange(rangeMin, rangeMax);
+	outputParameter.fitRange = { (float)rangeMin, (float)rangeMax };
 	outputParameter.fitDetuningEnergy = fitParameter[1];
 	outputParameter.fitTransverseTemperature = fitParameter[2];
 	outputParameter.fitLongitudinalTemperature = fitParameter[3];
-	outputParameter.fitFWHM = xRight - xLeft;
+	outputParameter.fitFWHM = GetFWHM(fitFunction);
 	outputParameter.fitScalingFactor = fitParameter[0];
 	outputParameter.effectiveLength = fitParameter[0] * CSR::overlapLength;
 
 	// Fill distribution Fit data with these parameters
 	if (settings.showLimitedFit)
 	{
-		double energyStep = (energyMax - energyMin) / 200;
+		double energyStep = (rangeMax - rangeMin) / 200;
 		int i = 0;
 		while (i < 1e5)
 		{
-			double energy = energyMin + i * energyStep;
+			double energy = rangeMin + i * energyStep;
 			double value = AnalyticalEnergyDistributionFit(&energy, fitParameter);
 			if (value > 1e-1)
 			{
@@ -408,9 +429,9 @@ void EnergyDistribution::FitAnalyticalToPeak(const PeakFitSettings& settings)
 	}
 	else
 	{
-		double energyStep = (energyMax - energyMin) / 20000;
+		double energyStep = (rangeMax - rangeMin) / 20000;
 
-		for (double energy = energyMin; energy <= energyMax; energy += energyStep)
+		for (double energy = rangeMin; energy <= rangeMax; energy += energyStep)
 		{
 			double value = AnalyticalEnergyDistributionFit(&energy, fitParameter);
 			fitX.push_back(energy);

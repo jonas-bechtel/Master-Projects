@@ -60,6 +60,8 @@ private:
 	int endIndex = 1;
 	bool doAll = false;
 
+	bool oldTransverseAddition = false;
+
 	// save all sampled values in a file to load it again
 	bool loadSamples = true;
 
@@ -88,7 +90,7 @@ private:
 	float E_d = 10.0f;
 	float kT_long = 1e-4f;
 	float kT_trans = 0.002f;
-	float energyRange[2] = { 0.0f,1.0f };
+	float energyRange[2] = { 0.0f, 1.0f };
 	float energies[200];
 	float values[200];
 	float color[3] = { 1.0f, 0.0f, 0.0f};

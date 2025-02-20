@@ -71,27 +71,30 @@ void IonBeamWindow::ShowUI()
 void IonBeamWindow::ShowSettings()
 {
 	bool somethingChanged = false;
-	somethingChanged |= ImGui::Checkbox("use single gaussian", activeDist.simplifyParams.singleGaussianIonBeam);
-	ImGui::BeginDisabled(!activeDist.simplifyParams.singleGaussianIonBeam);
-	somethingChanged |= ImGui::InputDouble("ion beam radius / sigma in [m]", activeDist.simplifyParams.ionBeamRadius, 0.0f, 0.0f, "%.6f", ImGuiInputTextFlags_EnterReturnsTrue);
-	ImGui::EndDisabled();
+
+	ImGui::PushItemWidth(170.0f);
+	somethingChanged |= ImGui::InputFloat2("shift in x and y [m]", m_parameters.shift, "%.4f");
+	somethingChanged |= ImGui::InputFloat2("horizontal, vertical angles [rad]", m_parameters.angles, "%.4f");
 
 	ImGui::Separator();
-	ImGui::SetNextItemWidth(200.0f);
-	somethingChanged |= ImGui::InputFloat2("shift in x and y [m]", m_parameters.shift, "%.4f");
-	ImGui::BeginDisabled(activeDist.simplifyParams.singleGaussianIonBeam);
-	somethingChanged |= ImGui::InputDouble("amplitude 1", m_parameters.amplitude1, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
-	somethingChanged |= ImGui::InputDouble("amplitude 2", m_parameters.amplitude2, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
-	ImGui::SetNextItemWidth(200.0f);
-	somethingChanged |= ImGui::InputFloat2("sigmas 1 x and y [m]", m_parameters.shape1, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
-	ImGui::SetNextItemWidth(200.0f);
-	somethingChanged |= ImGui::InputFloat2("sigmas 2 x and y [m]", m_parameters.shape2, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+	ImGui::BeginDisabled(!useSecondGaus);
+	somethingChanged |= ImGui::InputDouble("amplitude", m_parameters.amplitude, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
 	ImGui::EndDisabled();
+	somethingChanged |= ImGui::InputFloat2("sigmas x and y [m]", m_parameters.sigma, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+	
+	ImGui::Separator();
+	somethingChanged |= ImGui::Checkbox("use second gaussian", &useSecondGaus);
+	ImGui::BeginDisabled(!useSecondGaus);
+	somethingChanged |= ImGui::InputDouble("amplitude 2", m_parameters.amplitude2, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+	somethingChanged |= ImGui::InputFloat2("sigmas 2 x and y [m]", m_parameters.sigma2, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+	ImGui::EndDisabled();
+	ImGui::Separator();
 
 	if (ImGui::SliderFloat("slice z", &SliceZ, 0.0f, 0.7f))
 	{
 		slice.FromTH3D(m_distribution, SliceZ);
 	}
+	ImGui::PopItemWidth();
 
 	if (somethingChanged)
 	{
@@ -161,24 +164,23 @@ void IonBeamWindow::FillHistogram(TH3D* hist)
 				// Calculate the coordinates for this bin
 				double x = hist->GetXaxis()->GetBinCenter(i);
 				double y = hist->GetYaxis()->GetBinCenter(j);
-				//double z = density->GetZaxis()->GetBinCenter(k);
+				double z = hist->GetZaxis()->GetBinCenter(k);
 
 				// apply shift of ion beam
 				x -= m_parameters.shift.get().x;
 				y -= m_parameters.shift.get().y;
 
+				// apply the angles with small angle approximation
+				x -= m_parameters.angles.get().x * z;
+				y -= m_parameters.angles.get().y * z;
+
 				double value = 0;
-				// Calculate the value using a single Gaussian distribution centered at z = 0
-				if (activeDist.simplifyParams.singleGaussianIonBeam)
+				value = m_parameters.amplitude * exp(-0.5 * ((x * x) / pow(m_parameters.sigma.get().x, 2) + (y * y) / pow(m_parameters.sigma.get().y, 2)));
+				if (useSecondGaus)
 				{
-					value = exp(-(x * x + y * y) / (2.0 * pow(activeDist.simplifyParams.ionBeamRadius, 2)));
+					value += m_parameters.amplitude2 * exp(-0.5 * ((x * x) / pow(m_parameters.sigma2.get().x, 2) + (y * y) / pow(m_parameters.sigma2.get().y, 2)));
 				}
-				// or use the double gaussian version
-				else
-				{
-					value = m_parameters.amplitude1 * exp(-0.5 * ((x * x) / pow(m_parameters.shape1.get().x, 2) + (y * y) / pow(m_parameters.shape1.get().y, 2))) +
-						m_parameters.amplitude2 * exp(-0.5 * ((x * x) / pow(m_parameters.shape2.get().x, 2) + (y * y) / pow(m_parameters.shape2.get().y, 2)));
-				}
+				
 				hist->SetBinContent(i, j, k, value);
 			}
 		}

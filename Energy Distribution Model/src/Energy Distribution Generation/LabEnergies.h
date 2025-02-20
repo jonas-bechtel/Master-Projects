@@ -62,8 +62,11 @@ private:
 	std::vector<LabEnergy> labEnergiesToLookAt;
 	int selectedIndex = -1;
 
+	bool interpolateEnergy = true;
+
 	// z value for the xy slice of the lab energies
 	float SliceZ = 0.0f;
+	bool showMarkers = false;
 
 };
 

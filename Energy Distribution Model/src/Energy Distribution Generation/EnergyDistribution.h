@@ -19,10 +19,13 @@ struct BinningSettings
 
 struct PeakFitSettings
 {
+	double initialRange[2] = {0.0, 100.0};
+
 	int fitRounds = 4;
-	bool freeDetuningEnergy[4] = { false, true, false, false };
-	bool freekT_long[4] = { true, false, true, true };
+	bool freeDetuningEnergy[4] = { true, false, true, true };
+	bool freekT_long[4] = { false, true, true, true };
 	bool freeKT_trans[4] = { false, false, false, false };
+	bool adjustRange[4] = { true, true, true, true };
 	bool showLimitedFit = true;
 };
 

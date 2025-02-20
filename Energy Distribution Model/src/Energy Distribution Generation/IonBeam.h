@@ -21,10 +21,9 @@ private:
 
 private:
 	IonBeamParameters& m_parameters;
+	bool useSecondGaus = false;
 
 	// ion beam to look at
-	//TH3D* m_distribution = nullptr;
-
 	std::vector<double> xAxis;
 	std::vector<double> yAxis;
 	std::vector<double> zAxis;
