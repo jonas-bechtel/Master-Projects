@@ -663,7 +663,8 @@ void EnergyDistributionManager::GenerateEnergyDistribution()
 
 		// calculate collision velocity vector and magnitude using a fixed ion beam velocity
 		double ionVelocityMagnitude = TMath::Sqrt(2 * activeDist.eBeamParameter.coolingEnergy * TMath::Qe() / PhysicalConstants::electronMass); // calc from cooling energy;
-		TVector3 ionVelocity(0, 0, ionVelocityMagnitude);
+		TVector3 ionVelocityDirection = ionBeam->GetDirection();
+		TVector3 ionVelocity = ionVelocityDirection* ionVelocityMagnitude;
 
 		double collisionVelocity = (finalElectronVelocity - ionVelocity).Mag();
 

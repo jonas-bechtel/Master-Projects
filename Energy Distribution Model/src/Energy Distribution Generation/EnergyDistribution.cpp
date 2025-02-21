@@ -477,21 +477,6 @@ void EnergyDistribution::CalculatePsisFromBinning(TH1D* crossSection)
 	}
 }
 
-double EnergyDistribution::CalculateTestRateCoefficient()
-{
-	if (collisionEnergies.empty()) return 0.0;
-	double rc = 0.0;
-	for (const double collisionEnergy : collisionEnergies)
-	{
-		double crossSectionValue = 1 / collisionEnergy;
-		double collosionVelocity = TMath::Sqrt(2 * collisionEnergy * TMath::Qe() / PhysicalConstants::electronMass);
-		rc += crossSectionValue * collosionVelocity;
-	}
-	rc /= collisionEnergies.size();
-
-	return rc;
-}
-
 std::string EnergyDistribution::String() const
 {
 	std::string string = //Form("# folder: %s\n", (folder.filename().string() + subFolder.filename().string()).c_str()) +

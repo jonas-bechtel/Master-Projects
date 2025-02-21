@@ -26,15 +26,6 @@ void ElectronBeamWindow::SetupDistribution(std::filesystem::path densityfile)
 	}
 }
 
-//TH3D* ElectronBeamWindow::GetDistribution()
-//{
-//	//if (activeDist.simplifyParams.gaussianElectronBeam || activeDist.simplifyParams.cylindricalElectronBeam)
-//	//{
-//	//	return generatedBeamDensity;
-//	//}
-//	return m_distribution;
-//}
-
 void ElectronBeamWindow::CalculateDetuningEnergy()
 {
 	m_parameters.detuningEnergy = pow(sqrt(activeDist.labEnergiesParameter.centerLabEnergy)
@@ -48,6 +39,8 @@ void ElectronBeamWindow::LoadDensityFile(std::filesystem::path file)
 		delete m_distribution;
 		m_distribution = FileHandler::GetInstance().LoadMatrixFile(file);
 		m_distribution = CutZerosFromDistribution(m_distribution);
+		if (mirrorAroundZ)
+			m_distribution = MirrorDistributionAtZ(m_distribution);
 
 		m_distribution->SetTitle("electron distribution");
 		m_distribution->SetName("electron distribution");
@@ -67,7 +60,9 @@ void ElectronBeamWindow::LoadToLookAt(std::filesystem::path file)
 
 		newBeam.fullHistogram = FileHandler::GetInstance().LoadMatrixFile(file);
 		newBeam.fullHistogram = CutZerosFromDistribution(newBeam.fullHistogram);
-		
+		if (mirrorAroundZ)
+			newBeam.fullHistogram = MirrorDistributionAtZ(newBeam.fullHistogram);
+
 		newBeam.fullHistogram->SetTitle("electron beam");
 		newBeam.fullHistogram->SetName("electron beam");
 
@@ -225,17 +220,6 @@ void ElectronBeamWindow::ShowSettings()
 		{
 			LoadToLookAt(file);
 		}
-	
-		//std::filesystem::path file = FileHandler::GetInstance().SelectFile();
-		//LoadDensityFile(file);
-		//PlotDistribution();
-		//
-		//ionBeam->SetupDistribution();
-		//ionBeam->PlotDistribution();
-		//ionBeam->PlotIonBeamProjections();
-		//
-		//mcmc->SetupDistribution();
-		//mcmc->PlotTargetDistribution();
 	}
 	ImGui::SameLine();
 	if (ImGui::Button("clear list"))
@@ -246,7 +230,7 @@ void ElectronBeamWindow::ShowSettings()
 		}
 	}
 	ImGui::SetNextItemWidth(200.0f);
-	if (ImGui::SliderFloat("slice z", &SliceZ, 0.0f, 0.7f))
+	if (ImGui::SliderFloat("slice z", &SliceZ, -0.7f, 0.7f))
 	{
 		if (selectedIndex >= 0)
 		{
@@ -259,6 +243,8 @@ void ElectronBeamWindow::ShowSettings()
 	ImGui::BeginDisabled(!increaseHist);
 	ImGui::InputInt("factor", &factor, 2);
 	ImGui::EndDisabled();
+
+	ImGui::Checkbox("mirror around z-axis", &mirrorAroundZ);
 
 	ImGui::SeparatorText("special beam shapes");
 	if (ImGui::Checkbox("gaussian", activeDist.simplifyParams.gaussianElectronBeam))
@@ -287,17 +273,10 @@ void ElectronBeamWindow::ShowSettings()
 		std::string radius = std::to_string(activeDist.simplifyParams.electronBeamRadius);
 		newBeam.label = shape + " beam, radius " + radius + " " + bend;
 		AddBeamToList(newBeam);
-
-		//ionBeam->SetupDistribution();
-		//ionBeam->PlotDistribution();
-		//ionBeam->PlotIonBeamProjections();
-		//
-		//mcmc->SetupDistribution();
-		//mcmc->PlotTargetDistribution();
 	}
 	ImGui::EndDisabled();
 
-	ImGui::Separator();
+	ImGui::SeparatorText("main parameter");
 	ImGui::Checkbox("use fixed longitudinal kT", activeDist.simplifyParams.fixedLongitudinalTemperature);
 	ImGui::BeginDisabled(!activeDist.simplifyParams.fixedLongitudinalTemperature);
 	ImGui::InputDouble("longitudinal kT [eV]", activeDist.eBeamParameter.longitudinal_kT_estimate);
@@ -312,8 +291,8 @@ void ElectronBeamWindow::ShowSettings()
 	ImGui::InputDouble("LLR", m_parameters.LLR);
 	ImGui::InputDouble("sigma lab energy [eV]", m_parameters.sigmaLabEnergy);
 	ImGui::EndDisabled();
-	ImGui::Separator();
 
+	ImGui::SeparatorText("arrow sliders");
 	ImGui::SetNextItemWidth(220.0f);
 	if (ImGui::SliderFloat("z", &sliderZ, -0.7f, 0.7f))
 	{
@@ -386,7 +365,7 @@ TH3D* ElectronBeamWindow::CutZerosFromDistribution(TH3D* input)
 	int minX = input->GetNbinsX(), maxX = 0;
 	int minY = input->GetNbinsY(), maxY = 0;
 	int minZ = 1;
-	int maxZ = input->GetNbinsY();
+	int maxZ = input->GetNbinsZ();
 
 	// Loop over all bins to find the first and last non-zero bins in both x and y
 	for (int i = 1; i <= input->GetNbinsX(); i++)
@@ -443,6 +422,56 @@ TH3D* ElectronBeamWindow::CutZerosFromDistribution(TH3D* input)
 	return output;
 }
 
+TH3D* ElectronBeamWindow::MirrorDistributionAtZ(TH3D* input)
+{
+	// Get bin counts
+	int nBinsX = input->GetNbinsX();
+	int nBinsY = input->GetNbinsY();
+	int nBinsZ = input->GetNbinsZ();
+
+	// Get axis ranges
+	double xMin = input->GetXaxis()->GetXmin();
+	double xMax = input->GetXaxis()->GetXmax();
+	double yMin = input->GetYaxis()->GetXmin();
+	double yMax = input->GetYaxis()->GetXmax();
+	double zMin = -input->GetZaxis()->GetXmax(); // Extend into negative Z
+	double zMax = input->GetZaxis()->GetXmax();
+
+	// Create mirrored histogram with double Z range
+	TH3D* mirrored = new TH3D(input->GetName(), input->GetTitle(),
+		nBinsX, xMin, xMax,
+		nBinsY, yMin, yMax,
+		2 * nBinsZ, zMin, zMax);
+
+	mirrored->GetXaxis()->SetTitle(input->GetXaxis()->GetTitle());
+	mirrored->GetYaxis()->SetTitle(input->GetYaxis()->GetTitle());
+	mirrored->GetZaxis()->SetTitle(input->GetZaxis()->GetTitle());
+
+	// Copy original data and mirror it
+	for (int i = 1; i <= nBinsX; i++) 
+	{
+		for (int j = 1; j <= nBinsY; j++) 
+		{
+			for (int k = 1; k <= nBinsZ; k++) 
+			{
+				double binContent = input->GetBinContent(i, j, k);
+				double z = input->GetZaxis()->GetBinCenter(k);
+
+				// Get bin indices in mirrored histogram
+				int k_neg = mirrored->GetZaxis()->FindBin(-z);
+				int k_pos = mirrored->GetZaxis()->FindBin(z);
+
+				// Fill both positive and negative Z bins
+				mirrored->SetBinContent(i, j, k_pos, binContent);
+				mirrored->SetBinContent(i, j, k_neg, binContent);
+			}
+		}
+	}
+
+	delete input;
+	return mirrored;
+}
+
 void ElectronBeamWindow::CreateLargeDistribution()
 {
 	int numberBinsX = m_distribution->GetNbinsX() * factor;
@@ -490,18 +519,18 @@ TH3D* ElectronBeamWindow::GenerateElectronBeamDensity()
 {
 	int nXBins = 100;
 	int nYBins = 100;
-	int nZBins = 100;
+	int nZBins = 200;
 
 	double xmin = -0.08;
 	double xmax = 0.08;
 	double ymin = -0.08;
 	double ymax = 0.08;
-	double zmin = 0.0;
+	double zmin = -0.7;
 	double zmax = 0.7;
 
 	TH3D* eBeam = new TH3D("generated densites", "generated densites", nXBins, xmin, xmax,
-																				nYBins, ymin, ymax,
-																				nZBins, zmin, zmax);
+																		nYBins, ymin, ymax,
+																		nZBins, zmin, zmax);
 
 	for (int i = 1; i <= nXBins; i++) 
 	{
@@ -537,59 +566,9 @@ TH3D* ElectronBeamWindow::GenerateElectronBeamDensity()
 			}
 		}
 	}
-	return eBeam;
+	TH3D* newBeam = CutZerosFromDistribution(eBeam);
+	return newBeam;
 }
-
-//void ElectronBeam::PlotDensitySlice()
-//{
-//	if (!m_distribution) return;
-//	if (densitySliceXY) delete densitySliceXY;
-//
-//	int z_bin = m_distribution->GetZaxis()->FindBin(SliceZ);
-//
-//	// Create a new TH2D histogram for the slice
-//	int n_bins_x = m_distribution->GetNbinsX();
-//	int n_bins_y = m_distribution->GetNbinsY();
-//	double x_min = m_distribution->GetXaxis()->GetXmin();
-//	double x_max = m_distribution->GetXaxis()->GetXmax();
-//	double y_min = m_distribution->GetYaxis()->GetXmin();
-//	double y_max = m_distribution->GetYaxis()->GetXmax();
-//
-//	densitySliceXY = new TH2D("Density Slice", Form("XY Slice at Z = %.2f", SliceZ),
-//		n_bins_x, x_min, x_max,
-//		n_bins_y, y_min, y_max);
-//
-//	// Fill the 2D histogram with the contents of the corresponding Z slice
-//	for (int x_bin = 1; x_bin <= n_bins_x; x_bin++)
-//	{
-//		for (int y_bin = 1; y_bin <= n_bins_y; y_bin++)
-//		{
-//			double content = m_distribution->GetBinContent(x_bin, y_bin, z_bin);
-//			densitySliceXY->SetBinContent(x_bin, y_bin, content);
-//		}
-//	}
-//
-//	densitySliceXY->SetContour(100);
-//
-//	m_mainCanvas->cd(1)->SetRightMargin(0.15);
-//	densitySliceXY->Draw("COLZ");
-//}
-
-//void ElectronBeamWindow::PlotGeneratedDensities()
-//{
-//	if (!generatedBeamDensity) return;
-//	if (generatedBeamDensitySmall) delete generatedBeamDensitySmall;
-//
-//	m_mainCanvas->cd(2);
-//	generatedBeamDensitySmall = (TH3D*)generatedBeamDensity->Rebin3D(s_rebinningFactors[0],
-//																	 s_rebinningFactors[1],
-//																	 s_rebinningFactors[2], "generated densities small");
-//
-//	generatedBeamDensitySmall->GetXaxis()->SetTitle("x-axis");
-//	generatedBeamDensitySmall->GetYaxis()->SetTitle("y-axis");
-//	generatedBeamDensitySmall->GetZaxis()->SetTitle("z-axis");
-//	generatedBeamDensitySmall->Draw("BOX2");
-//}
 
 void ElectronBeamWindow::PlotTrajectory()
 {
@@ -661,65 +640,6 @@ void ElectronBeamWindow::Plot3DBeam(TH3D* eBeam)
 
 	
 }
-
-//void ElectronBeam::PlotProjections()
-//{
-//	if (m_distribution)
-//	{
-//		delete electronBeamProjectionX;
-//		delete electronBeamProjectionY;
-//		delete electronBeamProjectionZ;
-//
-//		electronBeamProjectionX = m_distribution->ProjectionX();
-//		electronBeamProjectionY = m_distribution->ProjectionY();
-//		electronBeamProjectionZ = m_distribution->ProjectionZ();
-//
-//		electronBeamProjectionX->Scale(1 / electronBeamProjectionX->GetMaximum());
-//		electronBeamProjectionY->Scale(1 / electronBeamProjectionY->GetMaximum());
-//		electronBeamProjectionZ->Scale(1 / electronBeamProjectionZ->GetMaximum());
-//
-//		m_secondCanvas->cd(1);
-//		electronBeamProjectionX->Draw("hist");
-//
-//		m_secondCanvas->cd(2);
-//		electronBeamProjectionY->Draw("hist");
-//
-//		m_secondCanvas->cd(3);
-//		electronBeamProjectionZ->Draw("hist");
-//	}
-//	if (generatedBeamDensity)
-//	{
-//		delete generatedBeamProjectionX;
-//		delete generatedBeamProjectionY;
-//		delete generatedBeamProjectionZ;
-//
-//		generatedBeamProjectionX = generatedBeamDensity->ProjectionX();
-//		generatedBeamProjectionY = generatedBeamDensity->ProjectionY();
-//		generatedBeamProjectionZ = generatedBeamDensity->ProjectionZ();
-//
-//		delete bla;
-//		bla = generatedBeamDensity->Project3DProfile();
-//		m_secondCanvas->cd(5);
-//		bla->Draw();
-//
-//		generatedBeamProjectionX->Scale(1 / generatedBeamProjectionX->GetMaximum());
-//		generatedBeamProjectionY->Scale(1 / generatedBeamProjectionY->GetMaximum());
-//		generatedBeamProjectionZ->Scale(1 / generatedBeamProjectionZ->GetMaximum());
-//
-//		generatedBeamProjectionX->SetLineColor(kRed);
-//		generatedBeamProjectionY->SetLineColor(kRed);
-//		generatedBeamProjectionZ->SetLineColor(kRed);
-//
-//		m_secondCanvas->cd(1);
-//		generatedBeamProjectionX->Draw("Same hist");
-//
-//		m_secondCanvas->cd(2);
-//		generatedBeamProjectionY->Draw("Same hist");
-//
-//		m_secondCanvas->cd(3);
-//		generatedBeamProjectionZ->Draw("Same hist");
-//	}
-//}
 
 // returns the y value as function of z
 double ElectronBeamWindow::Trajectory(double z) const

@@ -47,7 +47,6 @@ struct EnergyDistribution : public TH1D
 	void CalculateFWHM();
 	void FitAnalyticalToPeak(const PeakFitSettings& settings);
 	void CalculatePsisFromBinning(TH1D* crossSection);
-	double CalculateTestRateCoefficient();
 
 	std::string String() const;
 	std::string Filename() const;

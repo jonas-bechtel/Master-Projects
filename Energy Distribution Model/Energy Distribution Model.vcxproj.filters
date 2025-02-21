@@ -96,6 +96,9 @@
     <ClCompile Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\general\RandomFunctions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Application.h">
@@ -192,6 +195,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Energy Distribution Generation\HeatMapData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\general\RandomFunctions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

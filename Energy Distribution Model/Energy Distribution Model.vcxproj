@@ -169,6 +169,7 @@
     <ClCompile Include="src\Energy Distribution Generation\ElectronBeam.cpp" />
     <ClCompile Include="src\Energy Distribution Generation\EnergyDistributionManager.cpp" />
     <ClCompile Include="src\general\FileHandler.cpp" />
+    <ClCompile Include="src\general\RandomFunctions.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Energy Distribution Generation\MCMC.cpp" />
     <ClCompile Include="src\pch.cpp">
@@ -263,6 +264,7 @@
     <ClInclude Include="src\general\FileHandler.h" />
     <ClInclude Include="src\Energy Distribution Generation\MCMC.h" />
     <ClInclude Include="src\general\ParameterImplementations.h" />
+    <ClInclude Include="src\general\RandomFunctions.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\general\Constants.h" />
     <ClInclude Include="src\Energy Distribution Generation\Point3D.h" />

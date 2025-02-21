@@ -8,9 +8,17 @@
 IonBeamWindow::IonBeamWindow()
 	: EnergyDistributionModule("Ion Beam", 0), m_parameters(activeDist.ionBeamParameter)
 {
-	m_distribution = new TH3D("hist to look at", "hist to look at", 100, -0.04, 0.04, 100, -0.04, 0.04, 100, 0.0, 0.7);
+	m_distribution = new TH3D("hist to look at", "hist to look at", 100, -0.04, 0.04, 100, -0.04, 0.04, 200, -0.7, 0.7);
 	UpdateDataToLookAt();
 	ionBeam = this;
+}
+
+TVector3 IonBeamWindow::GetDirection()
+{
+	float angleX = m_parameters.angles.get().x;
+	float angleY = m_parameters.angles.get().y;
+
+	return TVector3(angleX, angleY, 1).Unit();;
 }
 
 void IonBeamWindow::SetupDistribution(std::filesystem::path file)
@@ -81,16 +89,31 @@ void IonBeamWindow::ShowSettings()
 	somethingChanged |= ImGui::InputDouble("amplitude", m_parameters.amplitude, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
 	ImGui::EndDisabled();
 	somethingChanged |= ImGui::InputFloat2("sigmas x and y [m]", m_parameters.sigma, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
-	
+	if (ImGui::Button("Set Emittance Values"))
+	{
+		somethingChanged = true;
+		m_parameters.sigma.set({ 0.01044, 0.00455 });
+	}
+
 	ImGui::Separator();
 	somethingChanged |= ImGui::Checkbox("use second gaussian", &useSecondGaus);
 	ImGui::BeginDisabled(!useSecondGaus);
 	somethingChanged |= ImGui::InputDouble("amplitude 2", m_parameters.amplitude2, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
 	somethingChanged |= ImGui::InputFloat2("sigmas 2 x and y [m]", m_parameters.sigma2, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+	if (ImGui::Button("Set Lucias Values"))
+	{
+		somethingChanged = true;
+		m_parameters.amplitude.set(10.1);
+		m_parameters.amplitude2.set(8.1);
+		
+		m_parameters.sigma.set({ 9.5e-3f, 5.71e-3f });
+		m_parameters.sigma2.set({ 1.39e-3f, 2.15e-3f });
+
+	}
 	ImGui::EndDisabled();
 	ImGui::Separator();
 
-	if (ImGui::SliderFloat("slice z", &SliceZ, 0.0f, 0.7f))
+	if (ImGui::SliderFloat("slice z", &SliceZ, -0.7f, 0.7f))
 	{
 		slice.FromTH3D(m_distribution, SliceZ);
 	}

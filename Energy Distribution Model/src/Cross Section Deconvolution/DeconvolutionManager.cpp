@@ -276,14 +276,35 @@ void DeconvolutionManager::ShowPlots()
 		if (logX) ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
 		if (logY) ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
 		ImPlot::SetupLegend(ImPlotLocation_NorthEast);
+
 		int i = 0;
 		for (const RateCoefficient& rc : rateCoefficientList)
 		{
+			//ImVec4 color = ImPlot::GetColormapColor(i);
+			//ImPlot::PushStyleColor(ImPlotCol_Line, color);
+
 			ImGui::PushID(i++);
+			if (showSubfunctions)
+			{
+				ImPlot::PushColormap("Jet");
+				int j = 0;
+				int numberSubFunc = rc.psiSubfunctions.size();
+				for (const std::vector<double>& subFunction : rc.psiSubfunctions)
+				{
+					ImPlot::PushStyleColor(ImPlotCol_Line, ImPlot::SampleColormap(j / (float)numberSubFunc));
+					ImPlot::PlotLine(rc.label.c_str(), rc.detuningEnergies.data(), subFunction.data(), subFunction.size());
+					ImPlot::PopStyleColor();
+					j++;
+				}
+				ImPlot::PopColormap();
+			}
+
 			if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
 			ImPlot::PlotLine(rc.label.c_str(), rc.detuningEnergies.data(), rc.value.data(), rc.value.size());
 			ImPlot::PlotErrorBars(rc.label.c_str(), rc.detuningEnergies.data(), rc.value.data(), rc.error.data(), rc.error.size());
+			
 			ImGui::PopID();
+			
 		}
 
 		ImPlot::EndPlot();
@@ -296,6 +317,8 @@ void DeconvolutionManager::ShowPlots()
 	ImGui::Checkbox("show markers", &showMarkers);
 	ImGui::SameLine();
 	ImGui::Checkbox("show f_pl", &showBoltzmannConvolutionWindow);
+	ImGui::SameLine();
+	ImGui::Checkbox("show subfunctions", &showSubfunctions);
 
 	if (ImPlot::BeginPlot("cross section"))
 	{
@@ -578,14 +601,24 @@ void DeconvolutionManager::ConvolveInPlace(const CrossSection& cs, const EnergyD
 {
 	rc.value.clear();
 	rc.error.clear();
+	rc.value.resize(set.distributions.size());
+	rc.error.resize(set.distributions.size());
+	rc.psiSubfunctions.resize(cs.hist->GetNbinsX());
+	for (int i = 0; i < cs.hist->GetNbinsX(); i++)
+	{
+		rc.psiSubfunctions[i].resize(set.distributions.size());
+	}
+
+	int j = 0;
 	for (const EnergyDistribution& eDist : set.distributions)
 	{
-		rc.value.push_back(0);
-		rc.error.push_back(0);
 		for (int i = 0; i < eDist.psi.size(); i++)
 		{
-			rc.value.back() += eDist.psi[i] * cs.values[i];
+			double subValue = eDist.psi[i] * cs.values[i];
+			rc.value[j] += subValue;
+			rc.psiSubfunctions[i][j] = subValue;
 		}
+		j++;
 	}
 	rc.graph->Clear();
 	for (int i = 0; i < rc.detuningEnergies.size(); i++)
@@ -628,9 +661,6 @@ double DeconvolutionManager::ConvolveFit(double* x, double* params)
 	
 	for (int i = 0; i < distribution.psi.size(); i++)
 	{
-		//std::cout << i << " ";
-		//std::cout << distribution.GetPsis()[i] << " ";
-		//std::cout << params[i] << "\n";
 		sum += distribution.psi[i] * params[i] * params[i];
 	}
 	//std::cout << "sum " << sum << "\n";

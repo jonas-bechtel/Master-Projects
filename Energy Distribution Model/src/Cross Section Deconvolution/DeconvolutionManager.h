@@ -2,11 +2,10 @@
 #include "Module.h"
 #include "CrossSection.h"
 #include "RateCoefficient.h"
+#include "RandomFunctions.h"
 
 class DeconvolutionManager : public CrossSectionDeconvolutionModule
 {
-	//enum Binning { PaperBinning, ConstantBinning, FactorBinning, PaperFactorMix, Paper_FWHM };
-
 public:
 	DeconvolutionManager();
 
@@ -69,6 +68,7 @@ private:
 	bool logX = true;
 	bool logY = true;
 	bool showMarkers = false;
+	bool showSubfunctions = false;
 
 	// boltzmann distribution convolution window things
 	bool showBoltzmannConvolutionWindow = false;

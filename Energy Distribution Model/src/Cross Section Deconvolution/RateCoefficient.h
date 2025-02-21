@@ -18,6 +18,7 @@ public:
 	std::vector<double> detuningEnergies;
 	std::vector<double> value;
 	std::vector<double> error;
+	std::vector<std::vector<double>> psiSubfunctions;
 
 	// labelling things
 	std::string label = "mbrc";

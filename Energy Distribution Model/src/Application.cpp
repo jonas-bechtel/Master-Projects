@@ -264,7 +264,7 @@ void Application::ShowWindows()
     
 
     //ImGui::ShowDemoWindow();
-    //ImPlot::ShowDemoWindow();
+    ImPlot::ShowDemoWindow();
 
     // Handle ROOT events
     gSystem->ProcessEvents();

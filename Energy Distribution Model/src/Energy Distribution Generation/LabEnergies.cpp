@@ -11,16 +11,18 @@ LabEnergyWindow::LabEnergyWindow()
 
 double LabEnergyWindow::Get(double x, double y, double z)
 {
+	z = TMath::Abs(z);
+
 	int numberBinsX = m_distribution->GetXaxis()->GetNbins();
 	int numberBinsY = m_distribution->GetYaxis()->GetNbins();
 	int numberBinsZ = m_distribution->GetZaxis()->GetNbins();
 	
-	double x_modified = std::min(std::max(x, m_distribution->GetXaxis()->GetBinCenter(1)), m_distribution->GetXaxis()->GetBinCenter(numberBinsX) - 1e-4);
-	double y_modified = std::min(std::max(y, m_distribution->GetYaxis()->GetBinCenter(1)), m_distribution->GetYaxis()->GetBinCenter(numberBinsY) - 1e-4);
-	double z_modified = std::min(std::max(z, m_distribution->GetZaxis()->GetBinCenter(1)), m_distribution->GetZaxis()->GetBinCenter(numberBinsZ) - 1e-4);
+	double x_clamped = std::clamp(x, m_distribution->GetXaxis()->GetBinCenter(1), m_distribution->GetXaxis()->GetBinCenter(numberBinsX) - 1e-4);
+	double y_clamped = std::clamp(y, m_distribution->GetYaxis()->GetBinCenter(1), m_distribution->GetYaxis()->GetBinCenter(numberBinsY) - 1e-4);
+	double z_clamped = std::clamp(z, m_distribution->GetZaxis()->GetBinCenter(1), m_distribution->GetZaxis()->GetBinCenter(numberBinsZ) - 1e-4);
 
-	if(interpolateEnergy)
-		return m_distribution->Interpolate(x_modified, y_modified, z_modified);
+	if (interpolateEnergy)
+		return m_distribution->Interpolate(x_clamped, y_clamped, z_clamped);
 	else
 		return m_distribution->GetBinContent(m_distribution->FindBin(x, y, z));
 }

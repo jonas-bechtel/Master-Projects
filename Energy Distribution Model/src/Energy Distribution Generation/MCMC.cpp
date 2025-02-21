@@ -142,10 +142,6 @@ void MCMC_Window::ShowSettings()
 			mcmcData.label = eBeam->GetSelected()->label;
 
 			AddMCMCDataToList(mcmcData);
-
-			//PlotDistribution();
-			//PlotAutocorrelation();
-			//PlotProjections();
 		}
 		UpdateAutocorrelationData();
 	}
@@ -162,7 +158,7 @@ void MCMC_Window::ShowSettings()
 	ImGui::Checkbox("show autocorrelation", &showAutoCorrelationWindow);
 
 	ImGui::SetNextItemWidth(200.0f);
-	if (ImGui::SliderFloat("slice z", &SliceZ, 0.0f, 0.7f))
+	if (ImGui::SliderFloat("slice z", &SliceZ, -0.7f, 0.7f))
 	{
 		if (selectedIndex >= 0)
 		{

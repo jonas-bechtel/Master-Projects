@@ -8,6 +8,7 @@ class IonBeamWindow : public EnergyDistributionModule
 {
 public:
 	IonBeamWindow();
+	TVector3 GetDirection();
 	void SetupDistribution(std::filesystem::path file = "") override;
 	TH3D* MultiplyWithElectronDensities();
 

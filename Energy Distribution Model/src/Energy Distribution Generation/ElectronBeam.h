@@ -66,6 +66,7 @@ private:
 	TH3D* GenerateElectronBeamDensity();
 
 	TH3D* CutZerosFromDistribution(TH3D* input);
+	TH3D* MirrorDistributionAtZ(TH3D* input);
 	void CreateLargeDistribution();
 
 	TVector3 GetNormal(double z);
@@ -87,6 +88,8 @@ private:
 	// parameters to increase histogram resolution by interpolation
 	bool increaseHist = false;
 	int factor = 3;
+
+	bool mirrorAroundZ = true;
 
 	float sliderZ = 0;
 	float sliderY = 0;
