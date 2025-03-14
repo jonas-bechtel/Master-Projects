@@ -32,6 +32,18 @@ void MCMC_Window::SetupDistribution(std::filesystem::path file)
 	}	
 }
 
+void MCMC_Window::SetTargetDist(TH3D* target)
+{
+	delete targetDist;
+	targetDist = target;
+
+	if (!targetDist)
+	{
+		std::cout << "target dist was nullptr" << std::endl;
+		return;
+	}
+}
+
 std::vector<Point3D>& MCMC_Window::GetSamples()
 {
 	return chain;

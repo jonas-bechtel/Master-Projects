@@ -13,6 +13,8 @@ public:
 	std::vector<EnergyDistributionSet>& GetEnergyDistributionSets();
 	void GenerateEnergyDistribution();
 	void GenerateEnergyDistributionsFromFile(std::filesystem::path file);
+	void GenerateCoolingCurveFromFile(std::filesystem::path file);
+	void CalculateCoolingForce();
 
 	void ShowSetListWindow();
 private:
@@ -27,6 +29,7 @@ private:
 	void ShowAnalyticalParameterWindow();
 	void ShowPeakFitSettings();
 	void ShowBinningSettings();
+	void ShowCoolingForceWindow();
 
 	void CreateNewSet();
 	void RemoveSet(int setIndex);
@@ -77,6 +80,10 @@ private:
 	// fit options
 	bool showPeakFitSettings = false;
 	PeakFitSettings peakFitSettings;
+
+	// cooling force things
+	bool showCoolingForce = false;
+	float zValue = 0.0;
 	
 	// plot parameters
 	bool logX = true;

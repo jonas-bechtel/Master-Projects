@@ -26,6 +26,7 @@ struct ElectronBeamParameters : public Parameters
 	}
 
 	ParameterValue<double> detuningEnergy = ParameterValue(10.0, "detuning energy", "%.6e eV");
+	ParameterValue<double> detuningVelocity = ParameterValue(10.0, "detuning velocity", "%.2f m/s");
 
 	ParameterValue<double> transverse_kT = ParameterValue(2.0e-3, "transverse kT", "%.2e eV");
 	ParameterValue<double> longitudinal_kT_estimate = ParameterValue(0.0, "estimated longitudinal kT", "%.2e eV");

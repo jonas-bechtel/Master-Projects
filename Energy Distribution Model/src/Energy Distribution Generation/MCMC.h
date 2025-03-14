@@ -53,6 +53,7 @@ class MCMC_Window : public EnergyDistributionModule
 public:
 	MCMC_Window();
 	void SetupDistribution(std::filesystem::path file = "") override;
+	void SetTargetDist(TH3D* targeDist);
 	std::vector<Point3D>& GetSamples();
 	void SetParameter(MCMC_Parameters params);
 	void GenerateSamples();

@@ -40,6 +40,7 @@ public:
 	void SetupDistribution(std::filesystem::path densityfile = "") override;
 
 	void CalculateDetuningEnergy();
+	void CalculateDetuningVelocity();
 
 	double Trajectory(double z) const;
 
@@ -47,6 +48,7 @@ public:
 	TVector3 GetDirection(Point3D point);
 	double GetLongitudinal_kT(double labEnergy);
 	double GetTransverse_kT();
+	double GetDensity(Point3D point);
 
 	ElectronBeam* GetSelected();
 

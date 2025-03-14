@@ -35,4 +35,5 @@ struct HeatMapData
 		bottomLeft = { hist->GetXaxis()->GetBinLowEdge(1), hist->GetYaxis()->GetBinLowEdge(1) };
 		topRight = { hist->GetXaxis()->GetXmax(), hist->GetYaxis()->GetXmax()};
 	}
+	void Plot(std::string title) const;
 };

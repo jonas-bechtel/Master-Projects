@@ -99,6 +99,15 @@
     <ClCompile Include="src\general\RandomFunctions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Cooling Force\CoolingForceModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Cooling Force\CoolingForceData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\general\HeatMapData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Application.h">
@@ -119,7 +128,7 @@
     <ClInclude Include="src\general\Constants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Energy Distribution Generation\Point3D.h">
+    <ClInclude Include="src\general\Point3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Energy Distribution Generation\IonBeam.h">
@@ -194,10 +203,16 @@
     <ClInclude Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Energy Distribution Generation\HeatMapData.h">
+    <ClInclude Include="src\general\HeatMapData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\general\RandomFunctions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Cooling Force\CoolingForceModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Cooling Force\CoolingForceData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ParameterImplementations.h"
+#include "CoolingForceData.h"
 
 struct BinningSettings
 {
@@ -76,6 +77,9 @@ public:
 	// fitting things done by the Cross Section class
 	std::vector<double> psi;
 
+	// cooling force
+	CoolingForceData cfData;
+
 	// plot parameters
 	bool plotted = false;
 	bool showNormalisedByWidth = true;
@@ -92,22 +96,11 @@ struct SetInformation
 	std::vector<double> fitScalingFactor;
 	std::vector<double> fitFWHM;
 	std::vector<double> FWHM;
+	std::vector<double> detuningVelocity;
+	std::vector<double> longitudinalCoolingForce;
 	//std::vector<double> effectiveLength;
 
-	void AddDistributionValues(const EnergyDistribution& dist)
-	{
-		indeces.push_back(dist.index);
-		centerLabEnergy.push_back(dist.labEnergiesParameter.centerLabEnergy.get());
-		detuningEnergy.push_back(dist.eBeamParameter.detuningEnergy.get());
-
-		fitDetuningEnergy.push_back(dist.outputParameter.fitDetuningEnergy.get());
-		fitLongitudinalTemperature.push_back(dist.outputParameter.fitLongitudinalTemperature.get());
-		fitTransverseTemperature.push_back(dist.outputParameter.fitTransverseTemperature.get());
-		fitFWHM.push_back(dist.outputParameter.fitFWHM.get());
-		fitScalingFactor.push_back(dist.outputParameter.fitScalingFactor.get());
-		//effectiveLength.push_back(dist.outputParameter.effectiveLength.get());
-		FWHM.push_back(dist.outputParameter.FWHM.get());
-	}
+	void AddDistributionValues(const EnergyDistribution& dist);
 };
 
 struct EnergyDistributionSet

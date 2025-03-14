@@ -53,6 +53,8 @@ EnergyDistribution::EnergyDistribution(EnergyDistribution&& other) noexcept
 
 	psi = std::move(other.psi);
 
+	cfData = std::move(other.cfData);
+
 	plotted = other.plotted;
 	showNormalisedByWidth = other.showNormalisedByWidth;
 
@@ -88,6 +90,8 @@ EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other) no
 	index = std::move(other.index);
 
 	psi = std::move(other.psi);
+
+	cfData = std::move(other.cfData);
 
 	plotted = other.plotted;
 	showNormalisedByWidth = other.showNormalisedByWidth;
@@ -551,3 +555,19 @@ void EnergyDistributionSet::CalculatePsisFromBinning(TH1D* crossSection)
 	}
 }
 
+void SetInformation::AddDistributionValues(const EnergyDistribution& dist)
+{
+	indeces.push_back(dist.index);
+	centerLabEnergy.push_back(dist.labEnergiesParameter.centerLabEnergy.get());
+	detuningEnergy.push_back(dist.eBeamParameter.detuningEnergy.get());
+
+	fitDetuningEnergy.push_back(dist.outputParameter.fitDetuningEnergy.get());
+	fitLongitudinalTemperature.push_back(dist.outputParameter.fitLongitudinalTemperature.get());
+	fitTransverseTemperature.push_back(dist.outputParameter.fitTransverseTemperature.get());
+	fitFWHM.push_back(dist.outputParameter.fitFWHM.get());
+	fitScalingFactor.push_back(dist.outputParameter.fitScalingFactor.get());
+	//effectiveLength.push_back(dist.outputParameter.effectiveLength.get());
+	FWHM.push_back(dist.outputParameter.FWHM.get());
+	detuningVelocity.push_back(dist.eBeamParameter.detuningVelocity.get());
+	longitudinalCoolingForce.push_back(dist.cfData.forceZValue);
+}

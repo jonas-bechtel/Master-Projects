@@ -222,24 +222,11 @@ void LabEnergyWindow::ShowLabEnergyPlots()
 		}
 		if (showMarkers) ImPlot::PopStyleVar();
 
-		ImPlot::PushColormap(9);
 		if (selectedIndex >= 0)
 		{
 			const LabEnergy& sliceLE = labEnergiesToLookAt.at(selectedIndex);
-		
-			if (ImPlot::BeginPlot("XY Slice"))
-			{
-				ImPlot::SetupAxes("x", "y");
-				ImPlot::PlotHeatmap(sliceLE.label.c_str(), sliceLE.slice.values.data(), sliceLE.slice.nRows,
-					sliceLE.slice.nCols, sliceLE.slice.minValue, sliceLE.slice.maxValue, nullptr,
-					sliceLE.slice.bottomLeft, sliceLE.slice.topRight);
-				ImPlot::EndPlot();
-			}
-			ImGui::SameLine();
-			ImPlot::ColormapScale("##HeatScale", sliceLE.slice.minValue, sliceLE.slice.maxValue, ImVec2(100, -1));
-			
+			sliceLE.slice.Plot(sliceLE.label);
 		}
-		ImPlot::PopColormap();
 
 		ImPlot::EndSubplots();
 	}
@@ -249,7 +236,7 @@ void LabEnergyWindow::GenerateUniformLabEnergy()
 {
 	if (m_distribution) delete m_distribution;
 
-	m_distribution = new TH3D("uniform energies", "uniform energies", 100, -0.1, 0.1, 100, -0.1, 0.1, 100, 0, 0.65);
+	m_distribution = new TH3D("uniform energies", "uniform energies", 100, -0.1, 0.1, 100, -0.1, 0.1, 100, 0, 0.7);
 	for (int x = 1; x <= m_distribution->GetNbinsX(); x++)
 	{
 		for (int y = 1; y <= m_distribution->GetNbinsY(); y++)

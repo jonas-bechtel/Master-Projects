@@ -11,6 +11,7 @@ public:
 	TVector3 GetDirection();
 	void SetupDistribution(std::filesystem::path file = "") override;
 	TH3D* MultiplyWithElectronDensities();
+	std::vector<Point3D> GeneratePositions(int numberSamples);
 
 private:
 	void ShowUI() override;

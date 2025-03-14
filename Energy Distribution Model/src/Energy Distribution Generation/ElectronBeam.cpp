@@ -32,6 +32,13 @@ void ElectronBeamWindow::CalculateDetuningEnergy()
 		- sqrt(m_parameters.coolingEnergy), 2);
 }
 
+void ElectronBeamWindow::CalculateDetuningVelocity()
+{
+	double electronVel = TMath::Sqrt(2 * activeDist.labEnergiesParameter.centerLabEnergy * TMath::Qe() / PhysicalConstants::electronMass);
+	double ionVel = TMath::Sqrt(2 * activeDist.eBeamParameter.coolingEnergy * TMath::Qe() / PhysicalConstants::electronMass);
+	m_parameters.detuningVelocity = ionVel - electronVel;
+}
+
 void ElectronBeamWindow::LoadDensityFile(std::filesystem::path file)
 {
 	if (!file.empty())
@@ -105,7 +112,7 @@ void ElectronBeamWindow::RemoveBeamFromList(int index)
 
 TVector3 ElectronBeamWindow::GetDirection(double z)
 {
-	if(activeDist.simplifyParams.noElectronBeamBend)
+	if (activeDist.simplifyParams.noElectronBeamBend)
 		return TVector3(0, 0, 1);
 
 	double derivative = Derivative(z);
@@ -116,17 +123,17 @@ TVector3 ElectronBeamWindow::GetDirection(double z)
 TVector3 ElectronBeamWindow::GetDirection(Point3D point)
 {
 	ROOT::Math::Minimizer* minimizer = ROOT::Math::Factory::CreateMinimizer("Minuit2", "Migrad");
-	
+
 	// Define the function to minimize
 	ROOT::Math::Functor f([&](const double* z) { return DistancePointToTrajectoryOfZ(z[0], point); }, 1);
 	minimizer->SetFunction(f);
-	
+
 	// Set initial value and step size for z
-	double initial_z = point.z; 
+	double initial_z = point.z;
 	minimizer->SetVariable(0, "z", initial_z, 0.1);
-	
+
 	minimizer->Minimize();
-	
+
 	// Get the result
 	double resultingZ = minimizer->X()[0];
 
@@ -146,7 +153,7 @@ double ElectronBeamWindow::GetLongitudinal_kT(double labEnergy)
 	}
 
 	// intermediate unit is [J] final unit is [eV]
-	double A = (1. + TMath::Power((m_parameters.expansionFactor - 1.) / m_parameters.expansionFactor, 2.)) 
+	double A = (1. + TMath::Power((m_parameters.expansionFactor - 1.) / m_parameters.expansionFactor, 2.))
 		* (TMath::Power(TMath::K() * m_parameters.cathodeTemperature, 2.)) / (2. * TMath::Qe() * labEnergy);
 	double B = 2.544008e-27;
 	double C = m_parameters.LLR * TMath::Power(m_parameters.cathodeRadius, -2 / 3.) * TMath::Power(m_parameters.electronCurrent, 1 / 3.)
@@ -158,6 +165,22 @@ double ElectronBeamWindow::GetLongitudinal_kT(double labEnergy)
 double ElectronBeamWindow::GetTransverse_kT()
 {
 	return m_parameters.transverse_kT;
+}
+
+double ElectronBeamWindow::GetDensity(Point3D point)
+{
+	int numberBinsX = m_distribution->GetXaxis()->GetNbins();
+	int numberBinsY = m_distribution->GetYaxis()->GetNbins();
+	int numberBinsZ = m_distribution->GetZaxis()->GetNbins();
+
+	if (point.x < m_distribution->GetXaxis()->GetBinCenter(1) || point.x > (m_distribution->GetXaxis()->GetBinCenter(numberBinsX) - 1e-4) ||
+		point.y < m_distribution->GetYaxis()->GetBinCenter(1) || point.y > (m_distribution->GetYaxis()->GetBinCenter(numberBinsY) - 1e-4) ||
+		point.z < m_distribution->GetZaxis()->GetBinCenter(1) || point.z > (m_distribution->GetZaxis()->GetBinCenter(numberBinsZ) - 1e-4))
+	{
+		return 0;
+	}
+
+	return m_distribution->Interpolate(point.x, point.y, point.z);
 }
 
 ElectronBeam* ElectronBeamWindow::GetSelected()

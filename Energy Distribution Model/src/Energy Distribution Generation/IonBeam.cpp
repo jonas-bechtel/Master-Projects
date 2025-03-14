@@ -65,6 +65,27 @@ TH3D* IonBeamWindow::MultiplyWithElectronDensities()
 	return result;
 }
 
+std::vector<Point3D> IonBeamWindow::GeneratePositions(int numberSamples)
+{
+	std::vector<Point3D> positions;
+	positions.reserve(numberSamples);
+	TRandom3 generator(42);
+
+	if (!useSecondGaus)
+	{
+		for (int i = 0; i < numberSamples; i++)
+		{
+			double z = generator.Uniform(m_distribution->GetZaxis()->GetXmin(), m_distribution->GetZaxis()->GetXmax());
+			double x = generator.Gaus(m_parameters.shift.get().x + m_parameters.angles.get().x * z, m_parameters.sigma.get().x);
+			double y = generator.Gaus(m_parameters.shift.get().y + m_parameters.angles.get().y * z, m_parameters.sigma.get().y);
+			positions.emplace_back(x, y, z);
+		}
+	}
+
+	return positions;
+}
+
+
 void IonBeamWindow::ShowUI()
 {
 	if (ImGui::BeginChild("settings", ImVec2(300, -1), ImGuiChildFlags_ResizeX))
