@@ -3,6 +3,14 @@
 #include "ParameterImplementations.h"
 #include "CoolingForceData.h"
 
+using RNG_engine = std::mersenne_twister_engine<std::uint_fast64_t,
+	64, 312, 156, 31,
+	0xb5026f5aa96619e9, 29,
+	0x5555555555555555, 17,
+	0x71d67fffeda60000, 37,
+	0xfff7eee000000000, 43,
+	6364136223846793005>;
+
 struct BinningSettings
 {
 	float energyRange[2] = { 1e-6f, 100.0f };
@@ -16,6 +24,8 @@ struct BinningSettings
 	int binsAtPeak = 50;
 
 	bool increasePeakResolution = true;
+
+	void ShowWindow(bool& show);
 };
 
 struct PeakFitSettings
@@ -28,18 +38,38 @@ struct PeakFitSettings
 	bool freeKT_trans[4] = { false, false, false, false };
 	bool adjustRange[4] = { true, true, true, true };
 	bool showLimitedFit = true;
+
+	void ShowWindow(bool& show);
 };
 
-struct EnergyDistribution : public TH1D
+class EnergyDistribution : public TH1D
 {
+public:
 	EnergyDistribution();
 	~EnergyDistribution();
 
-	EnergyDistribution(const EnergyDistribution& other) = delete;// { std::cout << "using illegal copy constructor" << std::endl; }// = delete;
+	EnergyDistribution(const EnergyDistribution& other) = delete;
 	EnergyDistribution& operator=(const EnergyDistribution& other) = delete;
 	EnergyDistribution(EnergyDistribution&& other) noexcept;
 	EnergyDistribution& operator=(EnergyDistribution&& other) noexcept;
+
+	void Generate(std::filesystem::path descriptionFile, int index, const BinningSettings& binSettings, const PeakFitSettings& fitSettings);
+	void CalculatePsisFromBinning(TH1D* crossSection);
+	void Plot(bool showMarkers, bool showFit) const;
+
+	void SetPlot(bool plot);
+	void SetNormalised(bool normalised);
+
+	double GetDetuningEnergy();
+
+	void ShowListItem();
+
+	void SaveSamples(std::filesystem::path folder) const;
+	void SaveHist(std::filesystem::path folder) const;
+	void Load(std::filesystem::path& file, bool loadSamples);
 	
+private:
+	void CopyParameters();
 	void ResetDefaultValues();
 	void SetupLabellingThings();
 	void SetupBinning(const BinningSettings& binSettings);
@@ -47,12 +77,11 @@ struct EnergyDistribution : public TH1D
 	void RemoveEdgeZeros();
 	void CalculateFWHM();
 	void FitAnalyticalToPeak(const PeakFitSettings& settings);
-	void CalculatePsisFromBinning(TH1D* crossSection);
 
-	std::string String() const;
+	std::string HeaderString() const;
 	std::string Filename() const;
 
-public:
+private:
 	// actual distribution data
 	std::vector<double> collisionEnergies;
 	std::vector<double> binCenters;
@@ -61,13 +90,14 @@ public:
 	std::vector<double> fitX;
 	std::vector<double> fitY;
 
-	// all the things used to create it
+	// all the parameters used to create it
 	MCMC_Parameters mcmcParameter;
 	ElectronBeamParameters eBeamParameter;
 	IonBeamParameters ionBeamParameter;
 	LabEnergyParameters labEnergiesParameter;
+
+	// output stuff
 	OutputParameters outputParameter;
-	SimplificationParameter simplifyParams;
 
 	// additional labelling things
 	std::string label = "";
@@ -81,80 +111,23 @@ public:
 	CoolingForceData cfData;
 
 	// plot parameters
-	bool plotted = false;
+	bool showPlot = false;
 	bool showNormalisedByWidth = true;
+
+private:
+	// random number generation things
+	static std::mersenne_twister_engine<std::uint_fast64_t,
+		64, 312, 156, 31,
+		0xb5026f5aa96619e9, 29,
+		0x5555555555555555, 17,
+		0x71d67fffeda60000, 37,
+		0xfff7eee000000000, 43,
+		6364136223846793005> generator;
+
+	static std::normal_distribution<double> longitudinalNormalDistribution;
+	static std::normal_distribution<double> transverseNormalDistribution;
+
+	friend struct SetInformation;
+	friend class CrossSection;
+	friend class RateCoefficient;
 };
-
-struct SetInformation
-{
-	std::vector<int> indeces;
-	std::vector<double> centerLabEnergy;
-	std::vector<double> detuningEnergy;
-	std::vector<double> fitDetuningEnergy;
-	std::vector<double> fitLongitudinalTemperature;
-	std::vector<double> fitTransverseTemperature;
-	std::vector<double> fitScalingFactor;
-	std::vector<double> fitFWHM;
-	std::vector<double> FWHM;
-	std::vector<double> detuningVelocity;
-	std::vector<double> longitudinalCoolingForce;
-	//std::vector<double> effectiveLength;
-
-	void AddDistributionValues(const EnergyDistribution& dist);
-};
-
-struct EnergyDistributionSet
-{
-	EnergyDistributionSet()
-	{
-		distributions.reserve(100);
-		//std::cout << "calling EnergyDistSet default constructor" << std::endl;
-	}
-	EnergyDistributionSet(const EnergyDistributionSet& other) = delete;
-	EnergyDistributionSet& operator=(const EnergyDistributionSet& other) = delete;
-
-	EnergyDistributionSet(EnergyDistributionSet&& other) noexcept
-	{
-		distributions = std::move(other.distributions);
-		EdToDistMap = std::move(other.EdToDistMap);
-		info = std::move(other.info);
-		folder = std::move(other.folder);
-		subFolder = std::move(other.subFolder);
-
-		//std::cout << "calling EnergyDistSet move constructor" << std::endl;
-	}
-	EnergyDistributionSet& operator=(EnergyDistributionSet&& other) noexcept
-	{
-		distributions = std::move(other.distributions);
-		EdToDistMap = std::move(other.EdToDistMap);
-		info = std::move(other.info);
-		folder = std::move(other.folder);
-		subFolder = std::move(other.subFolder);
-
-		//std::cout << "calling EnergyDistSet move assignment op" << std::endl;
-		return *this;
-	}
-
-	void AddDistribution(EnergyDistribution&& distribution);
-	std::string Label()
-	{
-		return (folder / subFolder).string();
-	}
-	EnergyDistribution* FindByEd(double detuningEnergy);
-
-	void SetAllPlotted(bool plotted);
-	void SetAllShowNormalised(bool showNormalised);
-
-	void CalculatePsisFromBinning(TH1D* crossSection);
-	
-public:
-	std::vector<EnergyDistribution> distributions;
-	std::unordered_map<double, EnergyDistribution*> EdToDistMap;
-	SetInformation info;
-
-	std::filesystem::path folder = "Test";
-	std::filesystem::path subFolder = "subfolder";
-
-	bool plotInfo = false;
-};
-

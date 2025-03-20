@@ -44,7 +44,6 @@ struct ElectronBeamParameters : public Parameters
 
 	ParameterValue<Path> densityFile = ParameterValue(Path(""), "density file", "%s");
 
-	
 private:
 	int GetSize() const override
 	{
@@ -81,10 +80,6 @@ struct IonBeamParameters : public Parameters
 	ParameterValue<double> amplitude = ParameterValue(10.1, "amplitude", "%.4f");
 	ParameterValue<float2> sigma = ParameterValue(float2(9.5e-3f, 5.7e-3f), "sigmas (x,y)", "%.4f, %.4f m");
 
-	// maybe a second one
-	ParameterValue<double> amplitude2 = ParameterValue(8.1, "amplitude 2", "%.4f");
-	ParameterValue<float2> sigma2 = ParameterValue(float2(1.39e-3f, 2.15e-3f), "sigmas 2 (x,y)", "%.4f, %.4f m");
-
 private:
 	int GetSize() const override
 	{
@@ -116,37 +111,3 @@ private:
 	}
 };
 
-struct SimplificationParameter : public Parameters
-{
-	SimplificationParameter()
-	{
-		setName("simplification parameter");
-	}
-
-	// ion beam
-	//ParameterValue<bool> singleGaussianIonBeam = ParameterValue(false, "using single gaussian ion beam", "%d");
-	//ParameterValue<double> ionBeamRadius = ParameterValue(0.0010, "ion beam radius", "%.4f m");
-
-	// lab energies
-	ParameterValue<bool> uniformLabEnergies = ParameterValue(false, "use uniform lab energy", "%d");
-	ParameterValue<bool> sliceLabEnergies = ParameterValue(false, "use slice of lab energies", "%d");
-	ParameterValue<double> sliceToFill = ParameterValue(0.5, "z value of slice", "%.3f");
-	
-	// electron beam
-	ParameterValue<bool> gaussianElectronBeam = ParameterValue(false, "using gaussian e-beam shape", "%d");
-	ParameterValue<bool> cylindricalElectronBeam = ParameterValue(false, "using cylindrical e-beam shape", "%d");
-	ParameterValue<bool> noElectronBeamBend = ParameterValue(false, "exclude bend", "%d");
-	ParameterValue<bool> fixedLongitudinalTemperature = ParameterValue(false, "using fixed longitudial Temperature", "%d");
-	ParameterValue<double> electronBeamRadius = ParameterValue(0.003, "e-beam radius", "%.4f m");
-
-	// during generation
-	ParameterValue<bool> cutOutZValues = ParameterValue(false, "cut out z values", "%d");
-	ParameterValue<float2> cutOutRange = ParameterValue(float2(0.0f, 0.4f), "cut out range", "%.2f, %.2f m");
-
-
-private:
-	int GetSize() const override
-	{
-		return sizeof(*this);
-	}
-};

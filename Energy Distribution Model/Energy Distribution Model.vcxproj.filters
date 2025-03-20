@@ -21,10 +21,10 @@
     <ClCompile Include="src\Energy Distribution Generation\ElectronBeam.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Energy Distribution Generation\EnergyDistributionManager.cpp">
+    <ClCompile Include="src\Energy Distribution Generation\EnergyDistributionWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\general\FileHandler.cpp">
+    <ClCompile Include="src\utility\FileUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\main.cpp">
@@ -34,9 +34,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Energy Distribution Generation\IonBeam.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\general\Module.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vendor\tinyfiledialogs\tinyfiledialogs.c">
@@ -90,13 +87,10 @@
     <ClCompile Include="src\Cross Section Deconvolution\RateCoefficient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Cross Section Deconvolution\DeconvolutionManager.cpp">
+    <ClCompile Include="src\Cross Section Deconvolution\DeconvolutionWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\general\RandomFunctions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Cooling Force\CoolingForceModel.cpp">
@@ -105,7 +99,22 @@
     <ClCompile Include="src\Cooling Force\CoolingForceData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\general\HeatMapData.cpp">
+    <ClCompile Include="src\utility\HeatMapData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utility\ROOTCanvas.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Energy Distribution Generation\EnergyDistributionSet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\general\ParameterImplementations.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utility\PlotBeamData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Cross Section Deconvolution\BoltzmannDistribution.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -116,25 +125,22 @@
     <ClInclude Include="src\Energy Distribution Generation\ElectronBeam.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Energy Distribution Generation\EnergyDistributionManager.h">
+    <ClInclude Include="src\Energy Distribution Generation\EnergyDistributionWindow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\general\FileHandler.h">
+    <ClInclude Include="src\utility\FileUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Energy Distribution Generation\MCMC.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\general\Constants.h">
+    <ClInclude Include="src\utility\Constants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\general\Point3D.h">
+    <ClInclude Include="src\utility\Point3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Energy Distribution Generation\IonBeam.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\general\Module.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="vendor\tinyfiledialogs\tinyfiledialogs.h">
@@ -194,25 +200,31 @@
     <ClInclude Include="src\Cross Section Deconvolution\RateCoefficient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Cross Section Deconvolution\DeconvolutionManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Cross Section Deconvolution\CrossSectionManager.h">
+    <ClInclude Include="src\Cross Section Deconvolution\DeconvolutionWindow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\general\HeatMapData.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\general\RandomFunctions.h">
+    <ClInclude Include="src\utility\HeatMapData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Cooling Force\CoolingForceModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Cooling Force\CoolingForceData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utility\ROOTCanvas.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Energy Distribution Generation\EnergyDistributionSet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utility\PlotBeamData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Cross Section Deconvolution\BoltzmannDistribution.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

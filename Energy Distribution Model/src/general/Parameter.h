@@ -86,7 +86,15 @@ struct ParameterValue
 	}
 
 	// copy constructor
-	inline ParameterValue(const ParameterValue& other) = delete;
+	inline ParameterValue(const ParameterValue& other)
+	{
+		type = other.type;
+		name = other.name;
+		format = other.format;
+
+		T val = other.get();
+		new (&value) T(val);
+	}
 	// move constructor
 	inline ParameterValue(const ParameterValue&& other) = delete;
 	// move assignment operator
@@ -99,7 +107,9 @@ struct ParameterValue
 			type = other.type;
 			name = other.name;
 			format = other.format;
-			set(other.get());
+
+			T val = other.get();
+			new (&value) T(val);
 
 			//std::cout << "ParameterValue Copy assignment operator called" << std::endl;
 		}

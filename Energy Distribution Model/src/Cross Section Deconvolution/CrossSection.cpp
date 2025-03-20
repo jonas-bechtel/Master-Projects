@@ -2,33 +2,33 @@
 
 #include "CrossSection.h"
 #include "Constants.h"
-#include "RateCoefficient.h"
 #include "EnergyDistribution.h"
+#include "RateCoefficient.h"
+#include "EnergyDistributionSet.h"
+
+#include "FileUtils.h"
 
 CrossSection::CrossSection()
 {
 
 }
 
-void CrossSection::SetValues(double* newValues, bool square)
+TH1D* CrossSection::GetHist()
 {
-	for (int i = 0; i < values.size(); i++)
-	{
-		if (square)
-		{
-			hist->SetBinContent(i + 1, newValues[i] * newValues[i]);
-			values[i] = newValues[i] * newValues[i];
-		}
-		else
-		{
-			hist->SetBinContent(i + 1, newValues[i]);
-			values[i] = newValues[i];
-		}
-		
-	}
+	return hist;
 }
 
-void CrossSection::SetupBinning(CrossSectionBinningSettings binSettings, const RateCoefficient& rc)
+std::string CrossSection::GetLabel() const
+{
+	return label;
+}
+
+void CrossSection::SetLabel(std::string newLabel)
+{
+	label = newLabel;
+}
+
+void CrossSection::SetupBinning(const CrossSectionBinningSettings& binSettings, const RateCoefficient& rc)
 {
 	// first edge needs to be 0
 	std::vector<double> binEdges;
@@ -123,8 +123,12 @@ void CrossSection::SetupBinning(CrossSectionBinningSettings binSettings, const R
 	hist = new TH1D("cross section fit", "cross section fit", binEdges.size() - 1, binEdges.data());
 }
 
-void CrossSection::SetupInitialGuess(const RateCoefficient& rc, bool squareRoot)
+void CrossSection::SetupInitialGuess(const RateCoefficient& rc)
 {
+	if (!values.empty())
+	{
+		return;
+	}
 	values.clear();
 	values.reserve(hist->GetNbinsX());
 	errors.clear();
@@ -135,17 +139,70 @@ void CrossSection::SetupInitialGuess(const RateCoefficient& rc, bool squareRoot)
 		double energy = hist->GetBinCenter(i);
 		double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
 		double alpha = rc.graph->Eval(energy);
-		if (squareRoot)
-		{
-			values.push_back(sqrt(alpha / velocity));
-		}
-		else
-		{
-			values.push_back(alpha / velocity);
-		}
 		
-		initialGuess.push_back(alpha / velocity);
+		values.push_back(alpha / velocity);
+		
+		//initialGuess.push_back(alpha / velocity);
 		energies.push_back(energy);
+	}
+}
+
+void CrossSection::FitWithSVD(const RateCoefficient& rc, const EnergyDistributionSet& set)
+{
+	int n = set.distributions.size();
+	int p = hist->GetNbinsX();
+
+	Eigen::MatrixXd PsiMatrix(n, p);
+	Eigen::VectorXd alphaVector(n);
+
+	for (int i = 0; i < n; i++)
+	{
+		for (int j = 0; j < p; j++)
+		{
+			// fill matrix and vector with 0 if p > n
+			PsiMatrix(i, j) = set.distributions[i].psi[j];
+		}
+		alphaVector[i] = rc.value[i];
+	}
+
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd(PsiMatrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
+
+	// Solve using the pseudoinverse (x = A^+ * b), where A^+ is the Moore-Penrose pseudoinverse
+	Eigen::VectorXd result = svd.solve(alphaVector);
+
+	for (int i = 0; i < values.size(); i++)
+	{
+		hist->SetBinContent(i + 1, result[i]);
+		values[i] = result[i];
+	}
+}
+
+void CrossSection::FitWithROOT(const RateCoefficient& rc, const EnergyDistributionSet& set)
+{
+	TF1 fitFunction("fit function", 
+		[&rc, &set](double* x, double* p) 
+		{
+			return rc.ConvolveFit(x[0], p, set);
+		}, 
+		0, 100, hist->GetNbinsX());
+
+	//ROOT::Math::MinimizerOptions::SetDefaultMinimizer("GSL");
+
+	std::vector<double> squareRootValues;
+	squareRootValues.reserve(values.size());
+	for (double value : values)
+	{
+		squareRootValues.push_back(sqrt(value));
+	}
+	fitFunction.SetParameters(squareRootValues.data());
+	
+	rc.graph->Fit(&fitFunction, "RN");
+
+	double* result = fitFunction.GetParameters();
+	for (int i = 0; i < values.size(); i++)
+	{
+		hist->SetBinContent(i + 1, result[i] * result[i]);
+		values[i] = result[i] * result[i];
 	}
 }
 
@@ -181,5 +238,148 @@ void CrossSection::FillWithOneOverE(int scale)
 		energies.push_back(energy);
 		values.push_back(value);
 		hist->SetBinContent(i, value);
+	}
+	label = scale + std::string(" over E cs");
+}
+
+void CrossSection::Deconvolve(const RateCoefficient& rc, EnergyDistributionSet& set, const FittingOptions& fitSettings, const CrossSectionBinningSettings& binSettings)
+{
+	if (rc.value.size() != set.distributions.size())
+	{
+		std::cout << "sizes of rate coefficients and energy distributions dont match: " <<
+			rc.value.size() << " != " << set.distributions.size() << std::endl;
+	}
+	energyDistriubtionSetFolder = set.Label();
+	mergedBeamRateCoefficientFile = rc.label;
+	
+	SetupBinning(binSettings, rc);
+
+	set.CalculatePsisFromBinning(hist);
+	SetupInitialGuess(rc);
+
+	if (fitSettings.ROOT_fit)
+	{
+		FitWithROOT(rc, set);
+	}
+	else if (fitSettings.SVD_fit)
+	{
+		FitWithSVD(rc, set);
+	}
+}
+
+void CrossSection::Plot(bool showMarkers) const
+{
+	if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
+	ImPlot::PlotLine(label.c_str(), energies.data(), values.data(), values.size());
+	ImPlot::PlotErrorBars(label.c_str(), energies.data(), values.data(), errors.data(), errors.size());
+}
+
+void CrossSection::Load(std::filesystem::path& file)
+{
+	std::ifstream infile(file);
+
+	// Check if the file was successfully opened
+	if (!infile.is_open())
+	{
+		std::cerr << "Error: Could not open the file " << file << std::endl;
+		return;
+	}
+
+	std::string line;
+	// skip first line
+	std::getline(infile, line);
+	while (std::getline(infile, line))
+	{
+		std::vector<std::string> tokens = FileUtils::SplitLine(line, "\t");
+		energies.push_back(std::stod(tokens[0]));
+		values.push_back(std::stod(tokens[1]));
+		errors.push_back(std::stod(tokens[2]));
+	}
+
+	std::vector<double> binEdges = FileUtils::CalculateBinEdges(energies, false);
+
+	hist = new TH1D("cross section fit", "cross section fit", binEdges.size() - 1, binEdges.data());
+
+	for (int i = 1; i <= hist->GetNbinsX(); i++)
+	{
+		hist->SetBinContent(i, values.at(i - 1));
+		hist->SetBinError(i, errors.at(i - 1));
+	}
+}
+
+void CrossSection::Save() const
+{
+	// set the output filepath
+	std::filesystem::path file = FileUtils::GetCrossSectionFolder() / (label + ".dat");
+
+	// Create the directories if they don't exist
+	if (!std::filesystem::exists(file.parent_path()))
+	{
+		std::filesystem::create_directories(file.parent_path());
+	}
+
+	std::ofstream outfile(file);
+
+	if (!outfile.is_open())
+	{
+		std::cerr << "Error opening file" << std::endl;
+		return;
+	}
+	outfile << std::setprecision(std::numeric_limits<double>::digits10 + 1) << std::fixed;
+
+	outfile << "# Energy [eV]\tCross Section Value\terror\n";
+
+	for (int i = 0; i < energies.size(); i++)
+	{
+		outfile << energies[i] << "\t" << values[i] << "\t" << errors[i] << "\n";
+	}
+
+	outfile.close();
+}
+
+void FittingOptions::ShowWindow(bool& show)
+{
+	if (show && ImGui::Begin("Cross Section Fit settings", &show, ImGuiWindowFlags_NoDocking))
+	{
+		ImGui::Checkbox("ROOT fitting", &ROOT_fit);
+		ImGui::SameLine();
+		ImGui::Checkbox("SVD fitting", &SVD_fit);
+		//ImGui::Checkbox("GD fitting", &GD_fit);
+		//ImGui::InputInt("iterations", &iterations);
+		//ImGui::InputDouble("learning rate", &learningRate);
+
+		ImGui::End();
+	}
+}
+
+void CrossSectionBinningSettings::ShowWindow(bool& show)
+{
+	if (show && ImGui::Begin("Cross Section Binning settings", &show, ImGuiWindowFlags_NoDocking))
+	{
+		ImGui::Combo("binning options", (int*)&scheme, binningOptions, IM_ARRAYSIZE(binningOptions));
+
+		if (scheme == FactorBinning || scheme == PaperFactorMix)
+		{
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(100.0f);
+			ImGui::InputInt("number bins", &numberBins);
+		}
+		if (scheme == FactorBinning)
+		{
+			//ImGui::SameLine();
+			//ImGui::Checkbox("limit bin size", &limitBinSize);
+			//ImGui::SameLine();
+			//ImGui::BeginDisabled(!limitBinSize);
+			//ImGui::SetNextItemWidth(100.0f);
+			//ImGui::InputDouble("min bin size", &minBinSize, 0.0, 0.0, "%.1e");
+			//ImGui::EndDisabled();
+		}
+		if (scheme == PaperBinning)
+		{
+			ImGui::SameLine();
+			ImGui::InputInt("max ration", &maxRatio);
+			//ImGui::InputInt("factor", &binFactor);
+		}
+		ImGui::End();
 	}
 }

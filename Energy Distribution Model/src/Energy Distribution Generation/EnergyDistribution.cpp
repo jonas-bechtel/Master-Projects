@@ -1,8 +1,19 @@
 #include "pch.h"
-
 #include "EnergyDistribution.h"
+
+#include "ElectronBeam.h"
+#include "IonBeam.h"
+#include "LabEnergies.h"
+#include "MCMC.h"
+
 #include "AnalyticalDistribution.h"
 #include "Constants.h"
+#include "FileUtils.h"
+
+RNG_engine EnergyDistribution::generator = RNG_engine();
+
+std::normal_distribution<double> EnergyDistribution::longitudinalNormalDistribution = std::normal_distribution<double>();
+std::normal_distribution<double> EnergyDistribution::transverseNormalDistribution = std::normal_distribution<double>();
 
 double GetFWHM(TF1* function)
 {
@@ -43,7 +54,6 @@ EnergyDistribution::EnergyDistribution(EnergyDistribution&& other) noexcept
 	ionBeamParameter = other.ionBeamParameter;
 	labEnergiesParameter = other.labEnergiesParameter;
 	outputParameter = other.outputParameter;
-	simplifyParams = other.simplifyParams;
 
 	label = std::move(other.label);
 	tags = std::move(other.tags);
@@ -55,7 +65,7 @@ EnergyDistribution::EnergyDistribution(EnergyDistribution&& other) noexcept
 
 	cfData = std::move(other.cfData);
 
-	plotted = other.plotted;
+	showPlot = other.showPlot;
 	showNormalisedByWidth = other.showNormalisedByWidth;
 
 	other.ResetDefaultValues();
@@ -81,7 +91,6 @@ EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other) no
 	ionBeamParameter = other.ionBeamParameter;
 	labEnergiesParameter = other.labEnergiesParameter;
 	outputParameter = other.outputParameter;
-	simplifyParams = other.simplifyParams;
 
 	label = std::move(other.label);
 	tags = std::move(other.tags);
@@ -93,7 +102,7 @@ EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other) no
 
 	cfData = std::move(other.cfData);
 
-	plotted = other.plotted;
+	showPlot = other.showPlot;
 	showNormalisedByWidth = other.showNormalisedByWidth;
 
 	other.ResetDefaultValues();
@@ -103,12 +112,20 @@ EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other) no
 	return *this;
 }
 
+void EnergyDistribution::CopyParameters()
+{
+	mcmcParameter = MCMC::GetParameters();
+	eBeamParameter = ElectronBeam::GetParameters();
+	ionBeamParameter = IonBeam::GetParameters();
+	labEnergiesParameter = LabEnergy::GetParameters();
+}
+
 void EnergyDistribution::ResetDefaultValues()
 {
 	//std::cout << "binvalues size: " << binValues.size() << std::endl;
 	//folder = "Test";
 	index = 0;
-	plotted = false;
+	showPlot = false;
 	showNormalisedByWidth = true;
 }
 
@@ -116,26 +133,15 @@ void EnergyDistribution::SetupLabellingThings()
 {
 	if (!eBeamParameter.densityFile.get().empty() && !labEnergiesParameter.energyFile.get().empty())
 	{
-		//folder = eBeamParameter.densityFile.get().parent_path().parent_path();
-		//subFolder = Form("E_cool %.3feV I_e %.2eA", eBeamParameter.coolingEnergy.get(),
-		//	eBeamParameter.electronCurrent.get());
-
 		index = std::stoi(eBeamParameter.densityFile.get().filename().string().substr(0, 4));
 	}
 
-	if (simplifyParams.gaussianElectronBeam) tags += "e-gaus, ";
-	if (simplifyParams.cylindricalElectronBeam) tags += "e-cylinder, ";
-	if (simplifyParams.noElectronBeamBend) tags += "no bend, ";
-	if (simplifyParams.fixedLongitudinalTemperature) tags += "fixed kT||, ";
-	if (simplifyParams.uniformLabEnergies) tags += "uniform energy, ";
-	if (simplifyParams.sliceLabEnergies) tags += Form("energy sliced %.3f, ", simplifyParams.sliceToFill.get());
-	if (simplifyParams.cutOutZValues) tags += Form("z samples %.3f - %.3f, ", simplifyParams.cutOutRange.get().x, simplifyParams.cutOutRange.get().y);
+	tags += MCMC::GetTags();
+	tags += ElectronBeam::GetTags();
+	tags += LabEnergy::GetTags();
+	tags += IonBeam::GetTags();
 	label = Form("%d: U drift = %.2fV, E_d = %.4f", index, labEnergiesParameter.driftTubeVoltage.get(),
 		eBeamParameter.detuningEnergy.get());
-
-	//std::string histDescription = folder.filename().string() + " " + std::to_string(index);
-	//SetName(("Energy Distribution " + histDescription).c_str());
-	//SetTitle(("Energy Distribution " + histDescription).c_str());
 }
 
 void EnergyDistribution::SetupBinning(const BinningSettings& binSettings)
@@ -357,7 +363,7 @@ void EnergyDistribution::FitAnalyticalToPeak(const PeakFitSettings& settings)
 	// first parameter is a scaling factor
 	double initialGuess[nParameter] = { 1, detuningEnergy, kt_trans, kT_long };
 
-	TF1* fitFunction = new TF1("fit function", AnalyticalEnergyDistributionFit, settings.initialRange[0], settings.initialRange[1], nParameter);
+	TF1* fitFunction = new TF1("fit function", AnalyticalDistribution::FitFunction, settings.initialRange[0], settings.initialRange[1], nParameter);
 	fitFunction->SetParameters(initialGuess);
 	fitFunction->FixParameter(1, detuningEnergy);
 	fitFunction->FixParameter(2, kt_trans);
@@ -414,7 +420,7 @@ void EnergyDistribution::FitAnalyticalToPeak(const PeakFitSettings& settings)
 		while (i < 1e5)
 		{
 			double energy = rangeMin + i * energyStep;
-			double value = AnalyticalEnergyDistributionFit(&energy, fitParameter);
+			double value = AnalyticalDistribution::FitFunction(&energy, fitParameter);
 			if (value > 1e-1)
 			{
 				
@@ -437,7 +443,7 @@ void EnergyDistribution::FitAnalyticalToPeak(const PeakFitSettings& settings)
 
 		for (double energy = rangeMin; energy <= rangeMax; energy += energyStep)
 		{
-			double value = AnalyticalEnergyDistributionFit(&energy, fitParameter);
+			double value = AnalyticalDistribution::FitFunction(&energy, fitParameter);
 			fitX.push_back(energy);
 			fitY.push_back(value);
 		}
@@ -445,6 +451,130 @@ void EnergyDistribution::FitAnalyticalToPeak(const PeakFitSettings& settings)
 
 	std::cout << "fit array size: " << fitX.size() << std::endl;
 	fitFunction->Delete();
+}
+
+void EnergyDistribution::Generate(std::filesystem::path descriptionFile, int index, const BinningSettings& binSettings, const PeakFitSettings& fitSettings)
+{
+	// get all necessary modules
+	std::filesystem::path folder = descriptionFile.parent_path();
+
+	// get 3 parameters: U drift tube, electron current, center E lab if index is in file
+	std::array<float, 3> additionalParameter = FileUtils::GetParamtersFromDescriptionFileAtIndex(descriptionFile, index);
+
+	// if they are not found the index is not in the file
+	if (!additionalParameter[0])
+	{
+		std::cout << "index " << index << " is not in the file " << descriptionFile.filename() << std::endl;
+		return;
+	}
+	
+	// set read electron current and center lab energy
+	LabEnergy::SetDriftTubeVoltage(additionalParameter[0]);
+	LabEnergy::SetCenterEnergy(additionalParameter[2]);
+	ElectronBeam::SetElectronCurrent(additionalParameter[1]);
+	ElectronBeam::CalculateEstimateLongkT();
+	ElectronBeam::CalculateDetuningEnergy();
+	ElectronBeam::CalculateDetuningVelocity();
+
+	// full procedure to generate one energy distribution 
+	// 1. setup necessary distributions
+	std::filesystem::path densityfile = FileUtils::FindFileWithIndex(folder / "e-densities", index);
+	if (densityfile.empty())
+	{
+		std::cout << "density file not found: " << densityfile.filename() << std::endl;
+		return;
+	}
+	ElectronBeam::SetupDistribution(densityfile);
+
+	std::filesystem::path energyfile = FileUtils::FindFileWithIndex(folder / "lab-energies", index);
+	if (energyfile.empty())
+	{
+		std::cout << "energy file not found: " << energyfile.filename() << std::endl;
+		return;
+	}
+	LabEnergy::SetupDistribution(energyfile);
+
+	IonBeam::CreateFromReference(ElectronBeam::Get());
+
+	TH3D* ionElectronBeam = (TH3D*)ElectronBeam::Get()->Clone("ion electron beam");
+	ionElectronBeam->Multiply(IonBeam::Get());
+	MCMC::SetTargetDist(ionElectronBeam);
+
+	// 2. sample from this distribution
+	MCMC::GenerateSamples();
+
+	// final setup of current distribution
+	CopyParameters();
+	SetupLabellingThings();
+	SetupBinning(binSettings);
+
+	// 3. generate energy distribution
+	std::vector<Point3D> positionSamples = MCMC::GetSamples();
+	collisionEnergies.reserve(positionSamples.size());
+
+	if (positionSamples.empty())
+	{
+		std::cout << "no sampled positions were given\n";
+		return;
+	}
+
+	for (const Point3D& point : positionSamples)
+	{
+		double x = point.x;
+		double y = point.y;
+		double z = point.z;
+
+		// calculate velocity magnitude from lab energy given as matrix (TH3D) from outside
+		double labEnergy = LabEnergy::Get(x, y, z);
+		double electronVelocityMagnitude = TMath::Sqrt(2 * labEnergy * TMath::Qe() / PhysicalConstants::electronMass);
+
+		// determine direction of velocity based on beam trajectory function
+		TVector3 longitudinalDirection = ElectronBeam::GetDirection(point.z);
+		TVector3 transverseDirection = longitudinalDirection.Orthogonal();
+
+		// add random values to velocity in transverse and longitudinal directions:
+		// - calculate longitudinal kT, transverse kT is fixed
+		double long_kT = ElectronBeam::GetLongitudinal_kT(labEnergy);
+		double trans_kT = ElectronBeam::GetTransverse_kT();
+
+		// - use kT to calculate sigmas of gaussians
+		double longSigma = TMath::Sqrt(long_kT * TMath::Qe() / PhysicalConstants::electronMass);
+		double transSigma = TMath::Sqrt(trans_kT * TMath::Qe() / PhysicalConstants::electronMass);
+
+		// - sample from gaussians with these sigmas and add that to the electron velocity
+		longitudinalNormalDistribution = std::normal_distribution<double>(0, longSigma);
+		transverseNormalDistribution = std::normal_distribution<double>(0, transSigma);
+		double longitudinalAddition = longitudinalNormalDistribution(generator);
+		double transverseAdditionX = transverseNormalDistribution(generator);
+		double transverseAdditionY = transverseNormalDistribution(generator);
+
+		// we need a vector that is never in line with the longitudinalDirection
+		TVector3 helpVector = TVector3(1, 0, 0);
+		TVector3 transverseDirection1 = longitudinalDirection.Cross(helpVector);
+		TVector3 transverseDirection2 = longitudinalDirection.Cross(transverseDirection1);
+
+		TVector3 finalElectronVelocity = (electronVelocityMagnitude + longitudinalAddition) * longitudinalDirection
+			+ transverseAdditionX * transverseDirection1
+			+ transverseAdditionY * transverseDirection2;
+
+		// calculate collision velocity vector and magnitude using a fixed ion beam velocity
+		double ionVelocityMagnitude = TMath::Sqrt(2 * eBeamParameter.coolingEnergy * TMath::Qe() / PhysicalConstants::electronMass); // calc from cooling energy;
+		TVector3 ionVelocityDirection = IonBeam::GetDirection();
+		TVector3 ionVelocity = ionVelocityDirection * ionVelocityMagnitude;
+
+		TVector3 collisionVelocity = ionVelocity - finalElectronVelocity;
+		double collisionVelocityMagnitude = collisionVelocity.Mag();
+
+		// calculate collision energy [eV] and put it in a histogram
+		double collisionEnergy = 0.5 * PhysicalConstants::electronMass * pow(collisionVelocityMagnitude, 2) / TMath::Qe();
+		Fill(collisionEnergy);
+		collisionEnergies.push_back(collisionEnergy);
+	}
+
+	FillVectorsFromHist();
+	RemoveEdgeZeros();
+	CalculateFWHM();
+	FitAnalyticalToPeak(fitSettings);
 }
 
 void EnergyDistribution::CalculatePsisFromBinning(TH1D* crossSection)
@@ -481,7 +611,194 @@ void EnergyDistribution::CalculatePsisFromBinning(TH1D* crossSection)
 	}
 }
 
-std::string EnergyDistribution::String() const
+void EnergyDistribution::Plot(bool showMarkers, bool showFit) const
+{
+	if (!showPlot)
+	{
+		return;
+	}
+
+	if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
+
+	if (showNormalisedByWidth)
+	{
+		ImPlot::PlotLine(label.c_str(), binCenters.data(), binValuesNormalised.data(), binValuesNormalised.size());
+
+		ImVec4 color = ImPlot::GetLastItemColor();
+
+		if (showFit)
+		{
+			color.x *= 2;
+			color.y *= 2;
+			color.z *= 2;
+
+			// Plot the second line with a lighter color and dashed
+			ImPlot::SetNextLineStyle(ImVec4(color.x, color.y, color.z, color.w));
+			ImPlot::PlotLine("##", fitX.data(), fitY.data(), fitX.size(), ImPlotLineFlags_Segments);
+		}
+	}
+	else
+	{
+		ImPlot::PlotLine(label.c_str(), binCenters.data(), binValues.data(), binCenters.size());
+	}
+}
+
+void EnergyDistribution::SetPlot(bool plot)
+{
+	showPlot = plot;
+}
+
+void EnergyDistribution::SetNormalised(bool normalised)
+{
+	showNormalisedByWidth = normalised;
+}
+
+double EnergyDistribution::GetDetuningEnergy()
+{
+	return eBeamParameter.detuningEnergy;
+}
+
+void EnergyDistribution::ShowListItem()
+{
+	std::string labelTags = label;
+	if (!tags.empty())
+	{
+		labelTags += "\n";
+		labelTags += tags;
+	}
+
+	// Render each item as selectable
+	if (ImGui::Selectable(labelTags.c_str(), showPlot, ImGuiSelectableFlags_AllowItemOverlap))
+	{
+		showPlot = !showPlot;
+	}
+
+	if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+	{
+		ImGui::SetDragDropPayload("Analytical_Pars", &outputParameter, sizeof(OutputParameters));
+		ImGui::Text("dragging stuff");
+		ImGui::EndDragDropSource();
+	}
+
+	if (ImGui::BeginItemTooltip())
+	{
+		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+		ImGui::TextUnformatted(HeaderString().c_str());
+		ImGui::PopTextWrapPos();
+		ImGui::EndTooltip();
+	}
+
+	ImGui::SameLine();
+	ImGui::Checkbox("normalised", &showNormalisedByWidth);
+}
+
+void EnergyDistribution::SaveSamples(std::filesystem::path folder) const
+{
+	std::filesystem::path file = folder / (Filename() + ".samples");
+	std::ofstream outfile(file);
+
+	if (!outfile.is_open())
+	{
+		std::cerr << "Error opening file" << std::endl;
+		return;
+	}
+
+	outfile << HeaderString();
+
+	outfile << "# sampled collision energy values\n";
+	for (double energy : collisionEnergies)
+	{
+		outfile << energy << "\n";
+	}
+
+	outfile.close();
+}
+
+void EnergyDistribution::SaveHist(std::filesystem::path folder) const
+{
+	std::filesystem::path file = folder / (Filename() + ".asc");
+	std::ofstream outfile(file);
+
+	if (!outfile.is_open()) {
+		std::cerr << "Error opening file" << std::endl;
+		return;
+	}
+	outfile << HeaderString();
+
+	outfile << "# bin center [eV]\tbin value\tbin value normalised by bin width\n";
+	for (int i = 0; i < binCenters.size(); i++)
+	{
+		outfile << binCenters[i] << "\t";
+		outfile << binValues[i] << "\t";
+		outfile << binValuesNormalised[i] << "\n";
+	}
+
+	outfile.close();
+}
+
+void EnergyDistribution::Load(std::filesystem::path& file, bool loadSamples)
+{
+	// load the .asc file with the histogram data
+	std::ifstream histFile(file);
+
+	// Check if the file was successfully opened
+	if (!histFile.is_open())
+	{
+		std::cerr << "Error: Could not open the file " << file << std::endl;
+		return;
+	}
+
+	std::string header = FileUtils::GetHeaderFromFile(histFile);
+	
+	eBeamParameter.fromString(header);
+	ionBeamParameter.fromString(header);
+	labEnergiesParameter.fromString(header);
+	mcmcParameter.fromString(header);
+	outputParameter.fromString(header);
+
+	SetupLabellingThings();
+
+	std::string line;
+	while (std::getline(histFile, line))
+	{
+		std::vector<std::string> tokens = FileUtils::SplitLine(line, "\t");
+
+		binCenters.push_back(std::stod(tokens[0]));
+		binValues.push_back(std::stod(tokens[1]));
+		binValuesNormalised.push_back(std::stod(tokens[2]));
+	}
+	std::cout << "loaded file: " << file.filename();
+
+	// see if .samples file exist with collision energy data
+	if (loadSamples)
+	{
+		std::filesystem::path samplesFilename = file.replace_extension(".samples");
+		if (std::filesystem::exists(samplesFilename))
+		{
+			std::ifstream samplesFile(samplesFilename);
+
+			// Check if the file was successfully opened
+			if (!samplesFile.is_open())
+			{
+				std::cerr << "Error: Could not open the file " << samplesFilename << std::endl;
+				return;
+			}
+			// get header to get rid of it
+			FileUtils::GetHeaderFromFile(samplesFile);
+
+			collisionEnergies.reserve(mcmcParameter.numberSamples);
+
+			while (std::getline(samplesFile, line))
+			{
+				collisionEnergies.push_back(std::stod(line));
+			}
+			std::cout << "\tsamples file found";
+		}
+	}
+	std::cout << std::endl;
+}
+
+std::string EnergyDistribution::HeaderString() const
 {
 	std::string string = //Form("# folder: %s\n", (folder.filename().string() + subFolder.filename().string()).c_str()) +
 		eBeamParameter.toString() +
@@ -510,64 +827,75 @@ std::string EnergyDistribution::Filename() const
 	return string;
 }
 
-void EnergyDistributionSet::AddDistribution(EnergyDistribution&& distribution)
+void PeakFitSettings::ShowWindow(bool& show)
 {
-	info.AddDistributionValues(distribution);
-
-	// will call move Constructor
-	distributions.emplace_back(std::move(distribution));
-	EnergyDistribution& justMoved = distributions.back();
-	//std::cout << "E_d: " << justMoved.eBeamParameter.detuningEnergy << std::endl;
-	EdToDistMap[justMoved.eBeamParameter.detuningEnergy] = &justMoved;
-}
-
-EnergyDistribution* EnergyDistributionSet::FindByEd(double detuningEnergy)
-{
-	if (EdToDistMap.find(detuningEnergy) == EdToDistMap.end())
+	if (show && ImGui::Begin("Peak Fit Settings", &show, ImGuiWindowFlags_NoDocking))
 	{
-		std::cout << "no energy distribution with E_d = " << detuningEnergy << " was found\n";
-		return nullptr;
-	}
-	return EdToDistMap.at(detuningEnergy);
-}
+		ImGui::BeginDisabled(adjustRange[0]);
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputDouble("##", &initialRange[0], 0.0, 0.0, "%.4e");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputDouble("initial Range", &initialRange[1], 0.0, 0.0, "%.4e");
+		ImGui::EndDisabled();
 
-void EnergyDistributionSet::SetAllPlotted(bool plotted)
-{
-	for (EnergyDistribution& eDist : distributions)
-	{
-		eDist.plotted = plotted;
-	}
-}
-
-void EnergyDistributionSet::SetAllShowNormalised(bool showNormalised)
-{
-	for (EnergyDistribution& eDist : distributions)
-	{
-		eDist.showNormalisedByWidth = showNormalised;
+		//ImGui::SetNextItemWidth(160.0f);
+		ImGui::SliderInt("number fit rounds", &fitRounds, 1, 4);
+		for (int i = 0; i < fitRounds; i++)
+		{
+			ImGui::PushID(i);
+			ImGui::BeginGroup();
+			ImGui::Text(("fit " + std::to_string(i + 1)).c_str());
+			ImGui::Checkbox("free E_d", &freeDetuningEnergy[i]);
+			ImGui::Checkbox("free kT_long", &freekT_long[i]);
+			ImGui::Checkbox("free kT_trans", &freeKT_trans[i]);
+			ImGui::Checkbox("adjust range", &adjustRange[i]);
+			ImGui::EndGroup();
+			ImGui::SameLine();
+		}
+		ImGui::End();
 	}
 }
 
-void EnergyDistributionSet::CalculatePsisFromBinning(TH1D* crossSection)
+void BinningSettings::ShowWindow(bool& show)
 {
-	for (EnergyDistribution& eDist: distributions)
+	if (show && ImGui::Begin("Binning settings", &show, ImGuiWindowFlags_NoDocking))
 	{
-		eDist.CalculatePsisFromBinning(crossSection);
+		ImGui::SetNextItemWidth(150.0f);
+		ImGui::InputFloat2("energy range", energyRange, "%.1e");
+		ImGui::SameLine();
+		ImGui::Checkbox("more bins at peaks", &increasePeakResolution);
+
+		if (ImGui::Checkbox("factor binning", &factorBinning))
+		{
+			constantBinSize = !factorBinning;
+		}
+		ImGui::SameLine();
+		ImGui::BeginDisabled(!factorBinning);
+		ImGui::SetNextItemWidth(50.0f);
+		ImGui::InputInt("bins per decade", &binsPerDecade, 0);
+		ImGui::SameLine();
+		ImGui::BeginDisabled(!increasePeakResolution);
+		ImGui::SetNextItemWidth(50.0f);
+		ImGui::InputInt("bins at peak", &binsAtPeak, 0);
+		ImGui::EndDisabled();
+		ImGui::EndDisabled();
+
+		if (ImGui::Checkbox("constant bin size", &constantBinSize))
+		{
+			factorBinning = !constantBinSize;
+		}
+		ImGui::BeginDisabled(!constantBinSize);
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(80.0f);
+		ImGui::InputDouble("step size", &normalStepSize, 0, 0, "%.6f");
+		ImGui::SameLine();
+		ImGui::BeginDisabled(!increasePeakResolution);
+		ImGui::SetNextItemWidth(80.0f);
+		ImGui::InputDouble("peak step size", &peakStepSize, 0, 0, "%.6f");
+		ImGui::EndDisabled();
+		ImGui::EndDisabled();
+
+		ImGui::End();
 	}
-}
-
-void SetInformation::AddDistributionValues(const EnergyDistribution& dist)
-{
-	indeces.push_back(dist.index);
-	centerLabEnergy.push_back(dist.labEnergiesParameter.centerLabEnergy.get());
-	detuningEnergy.push_back(dist.eBeamParameter.detuningEnergy.get());
-
-	fitDetuningEnergy.push_back(dist.outputParameter.fitDetuningEnergy.get());
-	fitLongitudinalTemperature.push_back(dist.outputParameter.fitLongitudinalTemperature.get());
-	fitTransverseTemperature.push_back(dist.outputParameter.fitTransverseTemperature.get());
-	fitFWHM.push_back(dist.outputParameter.fitFWHM.get());
-	fitScalingFactor.push_back(dist.outputParameter.fitScalingFactor.get());
-	//effectiveLength.push_back(dist.outputParameter.effectiveLength.get());
-	FWHM.push_back(dist.outputParameter.FWHM.get());
-	detuningVelocity.push_back(dist.eBeamParameter.detuningVelocity.get());
-	longitudinalCoolingForce.push_back(dist.cfData.forceZValue);
 }

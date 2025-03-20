@@ -1,40 +1,25 @@
 #pragma once
 
-#include "Module.h"
 #include "Point3D.h"
 #include "HeatMapData.h"
+#include "ParameterImplementations.h"
 
-class IonBeamWindow : public EnergyDistributionModule
+namespace IonBeam
 {
-public:
-	IonBeamWindow();
+	IonBeamParameters GetParameters();
+	void Init();
+
+	void CreateFromReference(TH3D* reference);
+	void UpdateMainData();
+	void UpdatePlotData();
+
 	TVector3 GetDirection();
-	void SetupDistribution(std::filesystem::path file = "") override;
-	TH3D* MultiplyWithElectronDensities();
-	std::vector<Point3D> GeneratePositions(int numberSamples);
+	TH3D* Get();
+	std::string GetTags();
 
-private:
-	void ShowUI() override;
-	void ShowSettings();
+	void ShowWindow();
 	void ShowPlots();
+	void ShowParameterControls();
 
-	void FillHistogram(TH3D* hist);
-	void UpdateDataToLookAt();
-
-private:
-	IonBeamParameters& m_parameters;
-	bool useSecondGaus = false;
-
-	// ion beam to look at
-	std::vector<double> xAxis;
-	std::vector<double> yAxis;
-	std::vector<double> zAxis;
-
-	std::vector<double> projectionValuesX;
-	std::vector<double> projectionValuesY;
-	std::vector<double> projectionValuesZ;
-
-	HeatMapData slice;
-	float SliceZ = 0.0f;
-};
-
+	std::vector<Point3D> GeneratePositions(int numberSamples);
+}

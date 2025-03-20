@@ -16,6 +16,12 @@
 #include <tchar.h>
 
 #include "Application.h"
+#include "MCMC.h"
+#include "ElectronBeam.h"
+#include "IonBeam.h"
+#include "LabEnergies.h"
+#include "EnergyDistributionWindow.h"
+#include "DeconvolutionWindow.h"
 
 #ifdef _DEBUG
 #define DX12_ENABLE_DEBUG_LAYER
@@ -162,7 +168,6 @@ void Application::Run()
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         ShowWindows();
 
         // Rendering
@@ -226,11 +231,18 @@ void Application::Run()
 
 Application::Application()
 {
-    gStyle->SetOptStat(0);
+    MCMC::Init();
+    ElectronBeam::Init();
+    IonBeam::Init();
+    LabEnergy::Init();
+    EnergyDistributionWindow::Init();
+    DeconvolutionWindow::Init();
+    //gStyle->SetOptStat(0);
 }
    
 void Application::ShowWindows()
 {
+    //std::cout << "show windoes" << std::endl;
     ImGui::DockSpaceOverViewport();
 
     if (ImGui::Begin("Energy Distribution Generation Window"))
@@ -238,33 +250,24 @@ void Application::ShowWindows()
         ImGuiID dockspace_id = ImGui::GetID("e-dist generation");
         ImGui::DockSpace(dockspace_id);
 
-        mcmc.ShowWindow();
-        electronBeam.ShowWindow();
-        ionBeam.ShowWindow();
-        labEnergies.ShowWindow();
-        energyDistributionManager.ShowWindow();
+        MCMC::ShowWindow();
+        ElectronBeam::ShowWindow();
+        IonBeam::ShowWindow();
+        LabEnergy::ShowWindow();
+        EnergyDistributionWindow::ShowWindow();
 
-        //auto modules = Module::GetModuleMap();
-        //for (auto& [name, module] : modules)
-        //{
-        //    module->ShowWindow();
-        //}
     }
     if (ImGui::Begin("Cross Section Deconvolution Window"))
     {
         ImGuiID dockspace_id = ImGui::GetID("cs deconvolution");
         ImGui::DockSpace(dockspace_id);
 
-        energyDistributionManager.ShowSetListWindow();
-        deconvolutionManager.ShowRateCoefficientListWindow();
-        deconvolutionManager.ShowCrossSectionListWindow();
-        deconvolutionManager.ShowPlasmaRateListWindow();
-        deconvolutionManager.ShowWindow();
+        DeconvolutionWindow::ShowWindow();
     }
     
 
     //ImGui::ShowDemoWindow();
-    ImPlot::ShowDemoWindow();
+    //ImPlot::ShowDemoWindow();
 
     // Handle ROOT events
     gSystem->ProcessEvents();

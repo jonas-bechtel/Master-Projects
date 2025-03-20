@@ -5,310 +5,304 @@
 #include "MCMC.h"
 #include "EnergyDistribution.h"
 
-IonBeamWindow::IonBeamWindow()
-	: EnergyDistributionModule("Ion Beam", 0), m_parameters(activeDist.ionBeamParameter)
+namespace IonBeam
 {
-	m_distribution = new TH3D("hist to look at", "hist to look at", 100, -0.04, 0.04, 100, -0.04, 0.04, 200, -0.7, 0.7);
-	UpdateDataToLookAt();
-	ionBeam = this;
-}
+	static IonBeamParameters parameter;
 
-TVector3 IonBeamWindow::GetDirection()
-{
-	float angleX = m_parameters.angles.get().x;
-	float angleY = m_parameters.angles.get().y;
+	// 3D Hist with main data
+	static TH3D* beam;
+	static TH3D* beamSmall;
 
-	return TVector3(angleX, angleY, 1).Unit();;
-}
+	// optional parameters
+	static bool doubleGaussian;
+	static double amplitude2;
+	static float sigma2[2];
 
-void IonBeamWindow::SetupDistribution(std::filesystem::path file)
-{
-	TH3D* electronBeam = eBeam->GetDistribution();
+	// plotting data
+	static std::vector<double> xAxis;
+	static std::vector<double> yAxis;
+	static std::vector<double> zAxis;
 
-	if (!electronBeam) return;
+	static std::vector<double> projectionValuesX;
+	static std::vector<double> projectionValuesY;
+	static std::vector<double> projectionValuesZ;
 
-	if (m_distribution != electronBeam)
+	static HeatMapData slice;
+	static float SliceZ = 0.0f;
+
+	IonBeamParameters GetParameters()
 	{
-		delete m_distribution;
-		m_distribution = (TH3D*)electronBeam->Clone("ion density");
-		m_distribution->SetTitle("ion density");
-	}
-	m_distribution->Reset();
-	FillHistogram(m_distribution);
-}
-
-TH3D* IonBeamWindow::MultiplyWithElectronDensities()
-{
-	SetupDistribution();
-	TH3D* electronDensities = eBeam->GetDistribution();
-	if (!electronDensities)
-	{
-		std::cout << "no electron densities" << std::endl;
-		return nullptr;
-	}
-	if (!(electronDensities->GetNbinsX() == m_distribution->GetNbinsX()) ||
-		!(electronDensities->GetNbinsY() == m_distribution->GetNbinsY()) ||
-		!(electronDensities->GetNbinsZ() == m_distribution->GetNbinsZ())) 
-	{
-		std::cout << "Histograms must have the same binning and ranges!" << std::endl;
-		return nullptr;
+		return parameter;
 	}
 
-	TH3D* result = (TH3D*)electronDensities->Clone("e*ion density");
-	result->SetTitle("electron-ion density");
-	bool success = result->Multiply(m_distribution);
-	if (!success)
+	void Init()
 	{
-		std::cout << "multiplication failed" << std::endl;
+		beam = new TH3D("ion beam", "ion beam", 100, -0.04, 0.04, 100, -0.04, 0.04, 200, -0.7, 0.7);
+		UpdatePlotData();
 	}
 
-	return result;
-}
-
-std::vector<Point3D> IonBeamWindow::GeneratePositions(int numberSamples)
-{
-	std::vector<Point3D> positions;
-	positions.reserve(numberSamples);
-	TRandom3 generator(42);
-
-	if (!useSecondGaus)
+	void CreateFromReference(TH3D* reference)
 	{
-		for (int i = 0; i < numberSamples; i++)
+		if (!reference)
 		{
-			double z = generator.Uniform(m_distribution->GetZaxis()->GetXmin(), m_distribution->GetZaxis()->GetXmax());
-			double x = generator.Gaus(m_parameters.shift.get().x + m_parameters.angles.get().x * z, m_parameters.sigma.get().x);
-			double y = generator.Gaus(m_parameters.shift.get().y + m_parameters.angles.get().y * z, m_parameters.sigma.get().y);
-			positions.emplace_back(x, y, z);
+			std::cout << "ion beam reference is null" << std::endl;
 		}
-	}
 
-	return positions;
-}
-
-
-void IonBeamWindow::ShowUI()
-{
-	if (ImGui::BeginChild("settings", ImVec2(300, -1), ImGuiChildFlags_ResizeX))
-	{
-		ShowSettings();
-		ImGui::EndChild();
-	}
-	ImGui::SameLine();
-	ShowPlots();
-}
-
-void IonBeamWindow::ShowSettings()
-{
-	bool somethingChanged = false;
-
-	ImGui::PushItemWidth(170.0f);
-	somethingChanged |= ImGui::InputFloat2("shift in x and y [m]", m_parameters.shift, "%.4f");
-	somethingChanged |= ImGui::InputFloat2("horizontal, vertical angles [rad]", m_parameters.angles, "%.4f");
-
-	ImGui::Separator();
-	ImGui::BeginDisabled(!useSecondGaus);
-	somethingChanged |= ImGui::InputDouble("amplitude", m_parameters.amplitude, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
-	ImGui::EndDisabled();
-	somethingChanged |= ImGui::InputFloat2("sigmas x and y [m]", m_parameters.sigma, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
-	if (ImGui::Button("Set Emittance Values"))
-	{
-		somethingChanged = true;
-		m_parameters.sigma.set({ 0.01044, 0.00455 });
-	}
-
-	ImGui::Separator();
-	somethingChanged |= ImGui::Checkbox("use second gaussian", &useSecondGaus);
-	ImGui::BeginDisabled(!useSecondGaus);
-	somethingChanged |= ImGui::InputDouble("amplitude 2", m_parameters.amplitude2, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
-	somethingChanged |= ImGui::InputFloat2("sigmas 2 x and y [m]", m_parameters.sigma2, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
-	if (ImGui::Button("Set Lucias Values"))
-	{
-		somethingChanged = true;
-		m_parameters.amplitude.set(10.1);
-		m_parameters.amplitude2.set(8.1);
+		delete beam;
+		beam = (TH3D*)reference->Clone("ion density");
+		beam->SetTitle("ion density");
 		
-		m_parameters.sigma.set({ 9.5e-3f, 5.71e-3f });
-		m_parameters.sigma2.set({ 1.39e-3f, 2.15e-3f });
-
+		beam->Reset();
+		UpdateMainData();
 	}
-	ImGui::EndDisabled();
-	ImGui::Separator();
 
-	if (ImGui::SliderFloat("slice z", &SliceZ, -0.7f, 0.7f))
+	void UpdateMainData()
 	{
-		slice.FromTH3D(m_distribution, SliceZ);
-	}
-	ImGui::PopItemWidth();
+		int nXBins = beam->GetXaxis()->GetNbins();
+		int nYBins = beam->GetYaxis()->GetNbins();
+		int nZBins = beam->GetZaxis()->GetNbins();
 
-	if (somethingChanged)
-	{
-		UpdateDataToLookAt();
-		//SetupDistribution();
-		//mcmc->SetupDistribution();
-		//
-		//PlotDistribution();
-		//mcmc->PlotTargetDistribution();
-
-		//PlotIonBeamProjections();
-	}
-}
-
-void IonBeamWindow::ShowPlots()
-{
-	if (ImPlot::BeginSubplots("##labenergy subplots", 2, 3, ImVec2(-1, -1), ImPlotSubplotFlags_ShareItems))
-	{
-		if (ImPlot::BeginPlot("Projection X"))
+		for (int i = 1; i <= nXBins; i++) 
 		{
-			ImPlot::PlotLine("", xAxis.data(), projectionValuesX.data(), xAxis.size());
-			ImPlot::EndPlot();
-		}
-
-		if (ImPlot::BeginPlot("Projection Y"))
-		{
-			ImPlot::PlotLine("", yAxis.data(), projectionValuesY.data(), yAxis.size());
-			
-			ImPlot::EndPlot();
-		}
-
-		if (ImPlot::BeginPlot("Projection Z"))
-		{
-			
-			ImPlot::PlotLine("", zAxis.data(), projectionValuesZ.data(), zAxis.size());
-			
-			ImPlot::EndPlot();
-		}
-
-		ImPlot::PushColormap(9);
-		if (ImPlot::BeginPlot("XY Slice"))
-		{
-			ImPlot::SetupAxes("x", "y");
-			ImPlot::PlotHeatmap("", slice.values.data(), slice.nRows,
-				slice.nCols, slice.minValue, slice.maxValue, nullptr,
-				slice.bottomLeft, slice.topRight);
-			ImPlot::EndPlot();
-		}
-		ImGui::SameLine();
-		ImPlot::ColormapScale("##HeatScale", slice.minValue, slice.maxValue, ImVec2(100, -1));
-
-		ImPlot::PopColormap();
-
-		ImPlot::EndSubplots();
-	}
-}
-
-void IonBeamWindow::FillHistogram(TH3D* hist)
-{
-	int nXBins = hist->GetXaxis()->GetNbins();
-	int nYBins = hist->GetYaxis()->GetNbins();
-	int nZBins = hist->GetZaxis()->GetNbins();
-
-	for (int i = 1; i <= nXBins; i++) {
-		for (int j = 1; j <= nYBins; j++) {
-			for (int k = 1; k <= nZBins; k++) {
-				// Calculate the coordinates for this bin
-				double x = hist->GetXaxis()->GetBinCenter(i);
-				double y = hist->GetYaxis()->GetBinCenter(j);
-				double z = hist->GetZaxis()->GetBinCenter(k);
-
-				// apply shift of ion beam
-				x -= m_parameters.shift.get().x;
-				y -= m_parameters.shift.get().y;
-
-				// apply the angles with small angle approximation
-				x -= m_parameters.angles.get().x * z;
-				y -= m_parameters.angles.get().y * z;
-
-				double value = 0;
-				value = m_parameters.amplitude * exp(-0.5 * ((x * x) / pow(m_parameters.sigma.get().x, 2) + (y * y) / pow(m_parameters.sigma.get().y, 2)));
-				if (useSecondGaus)
+			for (int j = 1; j <= nYBins; j++)
+			{
+				for (int k = 1; k <= nZBins; k++) 
 				{
-					value += m_parameters.amplitude2 * exp(-0.5 * ((x * x) / pow(m_parameters.sigma2.get().x, 2) + (y * y) / pow(m_parameters.sigma2.get().y, 2)));
+					// Calculate the coordinates for this bin
+					double x = beam->GetXaxis()->GetBinCenter(i);
+					double y = beam->GetYaxis()->GetBinCenter(j);
+					double z = beam->GetZaxis()->GetBinCenter(k);
+
+					// apply shift of ion beam
+					x -= parameter.shift.get().x;
+					y -= parameter.shift.get().y;
+
+					// apply the angles with small angle approximation
+					x -= parameter.angles.get().x * z;
+					y -= parameter.angles.get().y * z;
+
+					double value = 0;
+					value = parameter.amplitude * exp(-0.5 * ((x * x) / pow(parameter.sigma.get().x, 2) + (y * y) / pow(parameter.sigma.get().y, 2)));
+					
+					if (doubleGaussian)
+					{
+						value += amplitude2 * exp(-0.5 * ((x * x) / pow(sigma2[0], 2) + (y * y) / pow(sigma2[1], 2)));
+					}
+
+					beam->SetBinContent(i, j, k, value);
 				}
-				
-				hist->SetBinContent(i, j, k, value);
 			}
 		}
 	}
+
+	void UpdatePlotData()
+	{
+		xAxis.clear();
+		yAxis.clear();
+		zAxis.clear();
+
+		projectionValuesX.clear();
+		projectionValuesY.clear();
+		projectionValuesZ.clear();
+
+		beam->Reset();
+		UpdateMainData();
+
+		xAxis.reserve(beam->GetNbinsX());
+		yAxis.reserve(beam->GetNbinsY());
+		zAxis.reserve(beam->GetNbinsZ());
+
+		projectionValuesX.reserve(beam->GetNbinsX());
+		projectionValuesY.reserve(beam->GetNbinsY());
+		projectionValuesZ.reserve(beam->GetNbinsZ());
+
+		for (int i = 1; i <= beam->GetNbinsX(); i++)
+		{
+			xAxis.push_back(beam->GetXaxis()->GetBinCenter(i));
+		}
+		for (int i = 1; i <= beam->GetNbinsY(); i++)
+		{
+			yAxis.push_back(beam->GetYaxis()->GetBinCenter(i));
+		}
+		for (int i = 1; i <= beam->GetNbinsZ(); i++)
+		{
+			zAxis.push_back(beam->GetZaxis()->GetBinCenter(i));
+		}
+
+		TH1D* projectionX = beam->ProjectionX();
+		TH1D* projectionY = beam->ProjectionY();
+		TH1D* projectionZ = beam->ProjectionZ();
+
+		for (int i = 1; i <= projectionX->GetNbinsX(); i++)
+		{
+			projectionValuesX.push_back(projectionX->GetBinContent(i));
+		}
+		for (int i = 1; i <= projectionY->GetNbinsX(); i++)
+		{
+			projectionValuesY.push_back(projectionY->GetBinContent(i));
+		}
+		for (int i = 1; i <= projectionZ->GetNbinsX(); i++)
+		{
+			projectionValuesZ.push_back(projectionZ->GetBinContent(i));
+		}
+
+		delete projectionX;
+		delete projectionY;
+		delete projectionZ;
+
+		slice.FromTH3D(beam, SliceZ);
+	}
+
+	void ShowWindow()
+	{
+		if (ImGui::Begin("Ion Beam"))
+		{
+			if (ImGui::BeginChild("settings", ImVec2(300, -1), ImGuiChildFlags_ResizeX))
+			{
+				ShowParameterControls();
+				ImGui::Separator();
+
+				if (ImGui::SliderFloat("slice z", &SliceZ, -0.7f, 0.7f))
+				{
+					slice.FromTH3D(beam, SliceZ);
+				}
+
+				ImGui::EndChild();
+			}
+			ImGui::SameLine();
+			ShowPlots();
+
+			ImGui::End();
+		}
+	}
+
+	void ShowPlots()
+	{
+		if (ImPlot::BeginSubplots("##ion beam subplots", 2, 3, ImVec2(-1, -1), ImPlotSubplotFlags_ShareItems))
+		{
+			if (ImPlot::BeginPlot("Projection X"))
+			{
+				ImPlot::PlotLine("", xAxis.data(), projectionValuesX.data(), xAxis.size());
+				ImPlot::EndPlot();
+			}
+
+			if (ImPlot::BeginPlot("Projection Y"))
+			{
+				ImPlot::PlotLine("", yAxis.data(), projectionValuesY.data(), yAxis.size());
+
+				ImPlot::EndPlot();
+			}
+
+			if (ImPlot::BeginPlot("Projection Z"))
+			{
+
+				ImPlot::PlotLine("", zAxis.data(), projectionValuesZ.data(), zAxis.size());
+
+				ImPlot::EndPlot();
+			}
+
+			slice.Plot("");
+
+			ImPlot::EndSubplots();
+		}
+	}
+
+	void ShowParameterControls()
+	{
+		bool somethingChanged = false;
+
+		ImGui::BeginGroup();
+
+		ImGui::PushItemWidth(170.0f);
+
+		somethingChanged |= ImGui::InputFloat2("shift in x and y [m]", parameter.shift, "%.4f");
+		somethingChanged |= ImGui::InputFloat2("horizontal, vertical angles [rad]", parameter.angles, "%.4f");
+
+		ImGui::Separator();
+		ImGui::BeginDisabled(!doubleGaussian);
+		somethingChanged |= ImGui::InputDouble("amplitude", parameter.amplitude, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+		ImGui::EndDisabled();
+		somethingChanged |= ImGui::InputFloat2("sigmas x and y [m]", parameter.sigma, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+		
+		if (ImGui::Button("Set Emittance Values"))
+		{
+			somethingChanged = true;
+			parameter.sigma.set({ 0.01044, 0.00455 });
+		}
+
+		ImGui::Separator();
+		somethingChanged |= ImGui::Checkbox("use second gaussian", &doubleGaussian);
+		ImGui::BeginDisabled(!doubleGaussian);
+		somethingChanged |= ImGui::InputDouble("amplitude 2", &amplitude2, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+		somethingChanged |= ImGui::InputFloat2("sigmas 2 x and y [m]", sigma2, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+		
+		if (ImGui::Button("Set Lucias Values"))
+		{
+			somethingChanged = true;
+			parameter.amplitude.set(10.1);
+			amplitude2 = 8.1;
+
+			parameter.sigma.set({ 9.5e-3f, 5.71e-3f });
+			sigma2[0] = 1.39e-3f;
+			sigma2[1] = 2.15e-3f;
+
+		}
+
+		ImGui::EndDisabled();
+		
+		if (somethingChanged)
+		{
+			UpdatePlotData();
+		}
+
+		ImGui::PopItemWidth();
+		ImGui::EndGroup();
+	}
+
+	std::vector<Point3D> GeneratePositions(int numberSamples)
+	{
+		std::vector<Point3D> positions;
+		positions.reserve(numberSamples);
+
+		auto now = std::chrono::system_clock::now();       
+		auto seconds = now.time_since_epoch().count();
+
+		TRandom3 generator(seconds);
+
+		if (!doubleGaussian)
+		{
+			for (int i = 0; i < numberSamples; i++)
+			{
+				double z = generator.Uniform(beam->GetZaxis()->GetXmin(), beam->GetZaxis()->GetXmax());
+				double x = generator.Gaus(parameter.shift.get().x + parameter.angles.get().x * z, parameter.sigma.get().x);
+				double y = generator.Gaus(parameter.shift.get().y + parameter.angles.get().y * z, parameter.sigma.get().y);
+				positions.emplace_back(x, y, z);
+			}
+		}
+
+		return positions;
+	}
+
+	TVector3 GetDirection()
+	{
+		float angleX = parameter.angles.get().x;
+		float angleY = parameter.angles.get().y;
+
+		return TVector3(angleX, angleY, 1).Unit();
+	}
+
+	TH3D* Get()
+	{
+		return beam;
+	}
+
+	std::string GetTags()
+	{
+		std::string tags = "";
+		if (doubleGaussian) tags += "ion-2gaus, ";
+		
+		return tags;
+	}
 }
 
-void IonBeamWindow::UpdateDataToLookAt()
-{
-	xAxis.clear();
-	yAxis.clear();
-	zAxis.clear();
-
-	projectionValuesX.clear();
-	projectionValuesY.clear();
-	projectionValuesZ.clear();
-
-	//slice.clear();
-
-	m_distribution->Reset();
-	FillHistogram(m_distribution);
-
-	xAxis.reserve(m_distribution->GetNbinsX());
-	yAxis.reserve(m_distribution->GetNbinsY());
-	zAxis.reserve(m_distribution->GetNbinsZ());
-
-	projectionValuesX.reserve(m_distribution->GetNbinsX());
-	projectionValuesY.reserve(m_distribution->GetNbinsY());
-	projectionValuesZ.reserve(m_distribution->GetNbinsZ());
-
-	for (int i = 1; i <= m_distribution->GetNbinsX(); i++)
-	{
-		xAxis.push_back(m_distribution->GetXaxis()->GetBinCenter(i));
-	}
-	for (int i = 1; i <= m_distribution->GetNbinsY(); i++)
-	{
-		yAxis.push_back(m_distribution->GetYaxis()->GetBinCenter(i));
-	}
-	for (int i = 1; i <= m_distribution->GetNbinsZ(); i++)
-	{
-		zAxis.push_back(m_distribution->GetZaxis()->GetBinCenter(i));
-	}
-
-	TH1D* projectionX = m_distribution->ProjectionX();
-	TH1D* projectionY = m_distribution->ProjectionY();
-	TH1D* projectionZ = m_distribution->ProjectionZ();
-
-	for (int i = 1; i <= projectionX->GetNbinsX(); i++)
-	{
-		projectionValuesX.push_back(projectionX->GetBinContent(i));
-	}
-	for (int i = 1; i <= projectionY->GetNbinsX(); i++)
-	{
-		projectionValuesY.push_back(projectionY->GetBinContent(i));
-	}
-	for (int i = 1; i <= projectionZ->GetNbinsX(); i++)
-	{
-		projectionValuesZ.push_back(projectionZ->GetBinContent(i));
-	}
-
-	delete projectionX;
-	delete projectionY;
-	delete projectionZ;
-
-	slice.FromTH3D(m_distribution, SliceZ);
-}
-
-//void IonBeamWindow::PlotIonBeamProjections()
-//{
-//	if (!m_distribution) return;
-//
-//	delete ionBeamProjectionX;
-//	delete ionBeamProjectionY;
-//	delete ionBeamProjectionZ;
-//
-//	m_secondCanvas->cd(1);
-//	ionBeamProjectionX = m_distribution->ProjectionX();
-//	ionBeamProjectionX->Draw();
-//
-//	m_secondCanvas->cd(2);
-//	ionBeamProjectionY = m_distribution->ProjectionY();
-//	ionBeamProjectionY->Draw();
-//
-//	m_secondCanvas->cd(3);
-//	ionBeamProjectionZ = m_distribution->ProjectionZ();
-//	ionBeamProjectionZ->Draw();
-//}
 

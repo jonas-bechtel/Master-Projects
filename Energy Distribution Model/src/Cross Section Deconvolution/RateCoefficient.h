@@ -1,17 +1,33 @@
 #pragma once
-#include "Module.h"
 
-struct RateCoefficient
+class CrossSection;
+class EnergyDistributionSet;
+
+class RateCoefficient
 {
+public:
 	RateCoefficient();
 	RateCoefficient(const RateCoefficient& other) = delete;
 	RateCoefficient& operator=(const RateCoefficient& other) = delete;
 	RateCoefficient(RateCoefficient&& other) = default;
 	RateCoefficient& operator=(RateCoefficient&& other) = default;
 
-	int GetIndexOfDetuningEnergy(double Ed);
-	
-public:
+	void SetLabel(std::string label);
+	std::string GetLabel();
+
+	void Convolve(const CrossSection& cs, EnergyDistributionSet& set);
+	double ConvolveFit(double Ed, double* csBins, const EnergyDistributionSet& set) const;
+
+	void Plot(bool showMarkers) const;
+	void PlotSubfunctions() const;
+
+	void Load(std::filesystem::path& file);
+	void Save() const;
+
+private:
+	int GetIndexOfDetuningEnergy(double Ed) const;
+
+private:
 	// main data
 	TGraph* graph = new TGraph();
 
@@ -22,10 +38,11 @@ public:
 
 	// labelling things
 	std::string label = "mbrc";
-	std::filesystem::path file;
 	std::filesystem::path energyDistriubtionSetFolder;
 	std::filesystem::path crossSectionFile;
 
 	bool measured = true;
+
+	friend class CrossSection;
 };
 

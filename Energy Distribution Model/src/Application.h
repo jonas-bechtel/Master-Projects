@@ -1,9 +1,5 @@
 #pragma once
 
-#include "MCMC.h"
-#include "EnergyDistributionManager.h"
-#include "DeconvolutionManager.h"
-
 class Application
 {
 public:
@@ -14,15 +10,7 @@ private:
 	void ShowWindows();
 
 private:
-	TApplication app = TApplication("app", nullptr, nullptr);
-
-	ElectronBeamWindow electronBeam;
-	IonBeamWindow ionBeam;
-	MCMC_Window mcmc;
-	LabEnergyWindow labEnergies;
-	EnergyDistributionManager energyDistributionManager;
-
-	DeconvolutionManager deconvolutionManager;
+	//TApplication app = TApplication("app", nullptr, nullptr);
 
 };
 

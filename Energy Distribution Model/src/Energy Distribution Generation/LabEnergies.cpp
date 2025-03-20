@@ -1,379 +1,290 @@
 #include "pch.h"
 
 #include "LabEnergies.h"
-#include "FileHandler.h"
+#include "FileUtils.h"
 
-LabEnergyWindow::LabEnergyWindow()
-	: EnergyDistributionModule("Lab Energies", 0), m_parameters(activeDist.labEnergiesParameter)
+namespace LabEnergy
 {
-	labEnergies = this;
-}
+	LabEnergyParameters parameters;
 
-double LabEnergyWindow::Get(double x, double y, double z)
-{
-	z = TMath::Abs(z);
+	// 3D Hist with main data
+	static TH3D* hist;
 
-	int numberBinsX = m_distribution->GetXaxis()->GetNbins();
-	int numberBinsY = m_distribution->GetYaxis()->GetNbins();
-	int numberBinsZ = m_distribution->GetZaxis()->GetNbins();
-	
-	double x_clamped = std::clamp(x, m_distribution->GetXaxis()->GetBinCenter(1), m_distribution->GetXaxis()->GetBinCenter(numberBinsX) - 1e-4);
-	double y_clamped = std::clamp(y, m_distribution->GetYaxis()->GetBinCenter(1), m_distribution->GetYaxis()->GetBinCenter(numberBinsY) - 1e-4);
-	double z_clamped = std::clamp(z, m_distribution->GetZaxis()->GetBinCenter(1), m_distribution->GetZaxis()->GetBinCenter(numberBinsZ) - 1e-4);
+	// optional parameters
+	static bool uniformLabEnergies = false;
+	static bool interpolateEnergy = true;
 
-	if (interpolateEnergy)
-		return m_distribution->Interpolate(x_clamped, y_clamped, z_clamped);
-	else
-		return m_distribution->GetBinContent(m_distribution->FindBin(x, y, z));
-}
+	// plotting things
+	static std::vector<PlotBeamData> plotEnergies;
+	static int selectedIndex = -1;
 
-void LabEnergyWindow::SetupDistribution(std::filesystem::path energyfile)
-{
+	// z value for the xy slice of the lab energies
+	static float SliceZ = 0.0f;
+	static bool showMarkers = false;
 
-	if (activeDist.simplifyParams.uniformLabEnergies && m_parameters.centerLabEnergy)
+	void Init()
 	{
-		GenerateUniformLabEnergy();
 	}
-	else
-	{
-		LoadLabEnergyFile(energyfile);
 
-		if (activeDist.simplifyParams.sliceLabEnergies)
+	double Get(double x, double y, double z)
+	{
+		z = TMath::Abs(z);
+
+		int numberBinsX = hist->GetXaxis()->GetNbins();
+		int numberBinsY = hist->GetYaxis()->GetNbins();
+		int numberBinsZ = hist->GetZaxis()->GetNbins();
+
+		double x_clamped = std::clamp(x, hist->GetXaxis()->GetBinCenter(1), hist->GetXaxis()->GetBinCenter(numberBinsX) - 1e-4);
+		double y_clamped = std::clamp(y, hist->GetYaxis()->GetBinCenter(1), hist->GetYaxis()->GetBinCenter(numberBinsY) - 1e-4);
+		double z_clamped = std::clamp(z, hist->GetZaxis()->GetBinCenter(1), hist->GetZaxis()->GetBinCenter(numberBinsZ) - 1e-4);
+
+		if (interpolateEnergy)
+			return hist->Interpolate(x_clamped, y_clamped, z_clamped);
+		else
+			return hist->GetBinContent(hist->FindBin(x, y, z));
+	}
+
+	LabEnergyParameters GetParameters()
+	{
+		return parameters;
+	}
+
+	double GetCenterLabEnergy()
+	{
+		return parameters.centerLabEnergy;
+	}
+
+	void SetDriftTubeVoltage(double voltage)
+	{
+		parameters.driftTubeVoltage = voltage;
+	}
+
+	void SetCenterEnergy(double energy)
+	{
+		parameters.centerLabEnergy = energy;
+	}
+
+	std::string GetTags()
+	{
+		std::string tags = "";
+		if (uniformLabEnergies) tags += "uniform energy, ";
+		if (!interpolateEnergy) tags += "no energy interpolation, ";
+
+		return tags;
+	}
+
+	void SetupDistribution(std::filesystem::path energyfile)
+	{
+		delete hist;
+		if (uniformLabEnergies && parameters.centerLabEnergy)
 		{
-			FillEnergiesWithXY_Slice();
+			hist = GenerateLabEnergies();
+		}
+		else
+		{
+			hist = LoadLabEnergyFile(energyfile);
 		}
 	}
-	
-}
 
-void LabEnergyWindow::LoadLabEnergyFile(std::filesystem::path file)
-{
-	if (!file.empty())
+	TH3D* LoadLabEnergyFile(std::filesystem::path file)
 	{
-		delete m_distribution;
-		m_distribution = FileHandler::GetInstance().LoadMatrixFile(file);
-		m_distribution->SetTitle("lab energies");
-		m_distribution->SetName("lab energies");
+		if (!file.empty())
+		{
+			TH3D* result = FileUtils::LoadMatrixFile(file);
+			result->SetTitle("lab energies");
+			result->SetName("lab energies");
 
-		m_parameters.energyFile.set(file);
+			parameters.energyFile.set(file);
+
+			return result;
+		}
+		return nullptr;
 	}
-}
 
-void LabEnergyWindow::LoadToLookAt(std::filesystem::path file)
-{
-	if (!file.empty())
+	TH3D* GenerateLabEnergies()
 	{
-		LabEnergy newLabEnergy;
+		TH3D* result = new TH3D("uniform energies", "uniform energies", 100, -0.1, 0.1, 100, -0.1, 0.1, 100, 0, 0.7);
+		for (int x = 1; x <= result->GetNbinsX(); x++)
+		{
+			for (int y = 1; y <= result->GetNbinsY(); y++)
+			{
+				for (int z = 1; z <= result->GetNbinsZ(); z++)
+				{
+					result->SetBinContent(x, y, z, parameters.centerLabEnergy);
+				}
+			}
+		}
+		return result;
+	}
 
-		newLabEnergy.fullHistogram = FileHandler::GetInstance().LoadMatrixFile(file);
-		newLabEnergy.fullHistogram->SetTitle("lab energies");
-		newLabEnergy.fullHistogram->SetName("lab energies");
-		newLabEnergy.FillData(eBeam);
-		newLabEnergy.label = file.parent_path().parent_path().filename().string() + ": index " + std::stoi(file.filename().string().substr(0, 4));
+	void SelectedItemChanged()
+	{
+		PlotBeamData& newlySelected = plotEnergies.at(selectedIndex);
+		newlySelected.UpdateSlice(SliceZ);
+	}
 
-		labEnergiesToLookAt.push_back(std::move(newLabEnergy));
-		if (labEnergiesToLookAt.size() == 1)
+	void AddBeamToList(PlotBeamData& beamData)
+	{
+		plotEnergies.push_back(std::move(beamData));
+		if (plotEnergies.size() == 1)
 		{
 			selectedIndex = 0;
-			LabEnergy& first = labEnergiesToLookAt.at(0);
-			first.slice.FromTH3D(first.fullHistogram, SliceZ);
+			SelectedItemChanged();
 		}
 	}
-}
 
-void LabEnergyWindow::RemoveBeamFromList(int index)
-{
-	labEnergiesToLookAt.erase(labEnergiesToLookAt.begin() + index);
-	selectedIndex = std::min(selectedIndex, (int)labEnergiesToLookAt.size() - 1);
-
-	if (selectedIndex >= 0)
+	void RemoveBeamFromList(int index)
 	{
-		LabEnergy& newSelected = labEnergiesToLookAt.at(selectedIndex);
-		newSelected.slice.FromTH3D(newSelected.fullHistogram, SliceZ);
-	}
-}
+		plotEnergies.erase(plotEnergies.begin() + index);
+		selectedIndex = std::min(selectedIndex, (int)plotEnergies.size() - 1);
 
-void LabEnergyWindow::ShowUI()
-{
-	ImGui::BeginGroup();
-	ShowList();
-	ShowSettings();
-	ImGui::EndGroup();
-
-	ImGui::SameLine();
-
-	ShowLabEnergyPlots();
-}
-
-void LabEnergyWindow::ShowList()
-{
-	if (ImGui::BeginListBox("##lab energies", ImVec2(250.0f, 400.0f)))
-	{
-		for (int i = 0; i < labEnergiesToLookAt.size(); i++)
+		if (selectedIndex >= 0)
 		{
-			ImGui::PushID(i);
-			LabEnergy& le = labEnergiesToLookAt.at(i);
+			SelectedItemChanged();
+		}
+	}
 
-			if (ImGui::Selectable(le.label.c_str(), i == selectedIndex, ImGuiSelectableFlags_AllowItemOverlap))
+	void ShowWindow()
+	{
+		if (ImGui::Begin("Lab energy Window"))
+		{
+			if (ImGui::BeginChild("left side", ImVec2(300, -1), ImGuiChildFlags_ResizeX))
 			{
-				selectedIndex = i;
-				le.slice.FromTH3D(le.fullHistogram, SliceZ);
+				ShowList();
+
+				if (ImGui::Button("Load lab energies"))
+				{
+					std::vector<std::filesystem::path> files = FileUtils::SelectFiles(FileUtils::GetDataFolder());
+					for (const std::filesystem::path& file : files)
+					{
+						TH3D* hist = LoadLabEnergyFile(file);
+
+						PlotBeamData newEnergy(hist);
+						std::string index = file.filename().string().substr(0, 4);
+						std::string label = file.parent_path().parent_path().filename().string() + ": index " + index;
+						newEnergy.SetLabel(label);
+
+						AddBeamToList(newEnergy);
+					}
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("clear list"))
+				{
+					for (int i = plotEnergies.size() - 1; i >= 0; i--)
+					{
+						RemoveBeamFromList(i);
+					}
+				}
+
+				ImGui::SetNextItemWidth(200.0f);
+				if (ImGui::SliderFloat("slice z", &SliceZ, 0.0f, 0.7f))
+				{
+					if (selectedIndex >= 0)
+					{
+						PlotBeamData& energy = plotEnergies.at(selectedIndex);
+						energy.UpdateSlice(SliceZ);
+					}
+				}
+
+				ImGui::Checkbox("show markers", &showMarkers);
+
+				ShowParameterControls();
+
+				ImGui::EndChild();
 			}
-			
+
 			ImGui::SameLine();
-			if (ImGui::SmallButton("x"))
+			ShowPlots();
+
+			ImGui::End();
+		}
+	}
+
+	void ShowList()
+	{
+		if (ImGui::BeginListBox("##lab energies", ImVec2(-1, 400.0f)))
+		{
+			for (int i = 0; i < plotEnergies.size(); i++)
 			{
-				RemoveBeamFromList(i);
+				ImGui::PushID(i);
+				PlotBeamData& le = plotEnergies.at(i);
+
+				if (ImGui::Selectable(le.GetLabel().c_str(), i == selectedIndex, ImGuiSelectableFlags_AllowItemOverlap))
+				{
+					selectedIndex = i;
+					SelectedItemChanged();
+				}
+
+				ImGui::SameLine();
+				if (ImGui::SmallButton("x"))
+				{
+					RemoveBeamFromList(i);
+				}
+				ImGui::PopID();
 			}
-			ImGui::PopID();
-		}
-		ImGui::EndListBox();
-	}
-}
-
-void LabEnergyWindow::ShowSettings()
-{
-	if (ImGui::Button("Load lab energies"))
-	{
-		std::vector<std::filesystem::path> files = FileHandler::GetInstance().SelectFiles();
-		for (const std::filesystem::path& file : files)
-		{
-			LoadToLookAt(file);
-		}
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("clear list"))
-	{
-		for (int i = labEnergiesToLookAt.size() - 1; i >= 0; i--)
-		{
-			RemoveBeamFromList(i);
+			ImGui::EndListBox();
 		}
 	}
 
-	ImGui::SetNextItemWidth(200.0f);
-	if (ImGui::SliderFloat("slice z", &SliceZ, 0.0f, 0.7f))
+	void ShowParameterControls()
 	{
-		if (selectedIndex >= 0)
-		{
-			LabEnergy& le = labEnergiesToLookAt.at(selectedIndex);
-			le.slice.FromTH3D(le.fullHistogram, SliceZ);
-		}
+		ImGui::BeginGroup();
+
+		ImGui::Checkbox("interpolate", &interpolateEnergy);
+		ImGui::Checkbox("uniform energies", &uniformLabEnergies);
+		ImGui::EndGroup();
 	}
 
-	ImGui::Checkbox("interpolate", &interpolateEnergy);
-
-	ImGui::Checkbox("show markers", &showMarkers);
-
-	ImGui::Separator();
-	ImGui::BeginDisabled(activeDist.simplifyParams.sliceLabEnergies);
-	ImGui::Checkbox("uniform energies", activeDist.simplifyParams.uniformLabEnergies);
-	ImGui::EndDisabled();
-
-	ImGui::BeginDisabled(activeDist.simplifyParams.uniformLabEnergies);
-	ImGui::Checkbox("fill energies with slice", activeDist.simplifyParams.sliceLabEnergies);
-	ImGui::EndDisabled();
-	ImGui::SameLine();
-	ImGui::BeginDisabled(!activeDist.simplifyParams.sliceLabEnergies);
-	ImGui::SetNextItemWidth(70.0f);
-	ImGui::InputDouble("##z slice", activeDist.simplifyParams.sliceToFill, 0,0, "%.3f");
-	ImGui::EndDisabled();
-}
-
-void LabEnergyWindow::ShowLabEnergyPlots()
-{
-	if(ImPlot::BeginSubplots("##labenergy subplots", 2, 3, ImVec2(-1, -1), ImPlotSubplotFlags_ShareItems))
+	void ShowPlots()
 	{
-		if (showMarkers) ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Square);
-		if (ImPlot::BeginPlot("Projection X"))
+		if (ImPlot::BeginSubplots("##labenergy subplots", 2, 3, ImVec2(-1, -1), ImPlotSubplotFlags_ShareItems))
 		{
-			for (const LabEnergy& labEnergy : labEnergiesToLookAt)
+			if (showMarkers) ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Square);
+
+			if (ImPlot::BeginPlot("Projection X"))
 			{
-				ImPlot::PlotLine(labEnergy.label.c_str(), labEnergy.xAxis.data(), labEnergy.projectionValuesX.data(), labEnergy.xAxis.size());
+				for (const PlotBeamData& energy : plotEnergies)
+				{
+					energy.PlotProjectionX();
+				}
+				ImPlot::EndPlot();
 			}
-			ImPlot::EndPlot();
-		}
 
-		if (ImPlot::BeginPlot("Projection Y"))
-		{
-			for (const LabEnergy& labEnergy : labEnergiesToLookAt)
+			if (ImPlot::BeginPlot("Projection Y"))
 			{
-				ImPlot::PlotLine(labEnergy.label.c_str(), labEnergy.yAxis.data(), labEnergy.projectionValuesY.data(), labEnergy.yAxis.size());
+				for (const PlotBeamData& energy : plotEnergies)
+				{
+					energy.PlotProjectionY();
+				}
+				ImPlot::EndPlot();
 			}
-			ImPlot::EndPlot();
-		}
 
-		if (ImPlot::BeginPlot("Projection Z"))
-		{
-			for (const LabEnergy& labEnergy : labEnergiesToLookAt)
+			if (ImPlot::BeginPlot("Projection Z"))
 			{
-				ImPlot::PlotLine(labEnergy.label.c_str(), labEnergy.zAxis.data(), labEnergy.projectionValuesZ.data(), labEnergy.zAxis.size());
+				for (const PlotBeamData& energy : plotEnergies)
+				{
+					energy.PlotProjectionZ();
+				}
+				ImPlot::EndPlot();
 			}
-			ImPlot::EndPlot();
-		}
 
-		if (ImPlot::BeginPlot("Inside/Outside"))
-		{
-			for (const LabEnergy& labEnergy : labEnergiesToLookAt)
+			if (ImPlot::BeginPlot("Inside/Outside"))
 			{
-				ImPlot::PlotLine(labEnergy.label.c_str(), labEnergy.zAxis.data(), labEnergy.labEnergyInside.data(), labEnergy.zAxis.size());
-				ImPlot::PlotLine(labEnergy.label.c_str(), labEnergy.zAxis.data(), labEnergy.labEnergyOutside.data(), labEnergy.zAxis.size(), ImPlotLineFlags_Segments);
+				for (const PlotBeamData& energy : plotEnergies)
+				{
+					energy.PlotInsideOutsideValue();
+				}
+				ImPlot::EndPlot();
 			}
-			ImPlot::EndPlot();
-		}
-		if (showMarkers) ImPlot::PopStyleVar();
+			if (showMarkers) ImPlot::PopStyleVar();
 
-		if (selectedIndex >= 0)
-		{
-			const LabEnergy& sliceLE = labEnergiesToLookAt.at(selectedIndex);
-			sliceLE.slice.Plot(sliceLE.label);
-		}
-
-		ImPlot::EndSubplots();
-	}
-}
-
-void LabEnergyWindow::GenerateUniformLabEnergy()
-{
-	if (m_distribution) delete m_distribution;
-
-	m_distribution = new TH3D("uniform energies", "uniform energies", 100, -0.1, 0.1, 100, -0.1, 0.1, 100, 0, 0.7);
-	for (int x = 1; x <= m_distribution->GetNbinsX(); x++)
-	{
-		for (int y = 1; y <= m_distribution->GetNbinsY(); y++)
-		{
-			for (int z = 1; z <= m_distribution->GetNbinsZ(); z++)
+			if (selectedIndex >= 0)
 			{
-				m_distribution->SetBinContent(x, y, z, m_parameters.centerLabEnergy);
+				const PlotBeamData& sliceLE = plotEnergies.at(selectedIndex);
+				sliceLE.PlotSlice();
 			}
+
+			ImPlot::EndSubplots();
 		}
 	}
-}
-
-void LabEnergyWindow::FillEnergiesWithXY_Slice()
-{
-	if (!m_distribution) return;
-
-	int z_bin = m_distribution->GetZaxis()->FindBin(activeDist.simplifyParams.sliceToFill);
-
-	TH3D* temp = (TH3D*)m_distribution->Clone("slice filled energies");
-
-	for (int x = 1; x <= temp->GetNbinsX(); x++)
-	{
-		for (int y = 1; y <= temp->GetNbinsY(); y++)
-		{
-			for (int z = 1; z <= temp->GetNbinsZ(); z++)
-			{
-				double value = m_distribution->GetBinContent(x, y, z_bin);
-				temp->SetBinContent(x, y, z, value);
-			}
-		}
-	}
-	delete m_distribution;
-	m_distribution = temp;
-}
-
-void LabEnergy::FillData(const ElectronBeamWindow* eBeam)
-{
-	xAxis.reserve(fullHistogram->GetNbinsX());
-	yAxis.reserve(fullHistogram->GetNbinsY());
-	zAxis.reserve(fullHistogram->GetNbinsZ());
-
-	projectionValuesX.reserve(fullHistogram->GetNbinsX());
-	projectionValuesY.reserve(fullHistogram->GetNbinsY());
-	projectionValuesZ.reserve(fullHistogram->GetNbinsZ());
-
-	for (int i = 1; i <= fullHistogram->GetNbinsX(); i++)
-	{
-		xAxis.push_back(fullHistogram->GetXaxis()->GetBinCenter(i));
-	}
-	for (int i = 1; i <= fullHistogram->GetNbinsY(); i++)
-	{
-		yAxis.push_back(fullHistogram->GetYaxis()->GetBinCenter(i));
-	}
-	for (int i = 1; i <= fullHistogram->GetNbinsZ(); i++)
-	{
-		zAxis.push_back(fullHistogram->GetZaxis()->GetBinCenter(i));
-	}
-
-	TH1D* projectionX = fullHistogram->ProjectionX();
-	TH1D* projectionY = fullHistogram->ProjectionY();
-	TH1D* projectionZ = fullHistogram->ProjectionZ();
-
-	for (int i = 1; i <= projectionX->GetNbinsX(); i++)
-	{
-		projectionValuesX.push_back(projectionX->GetBinContent(i));
-	}
-	for (int i = 1; i <= projectionY->GetNbinsX(); i++)
-	{
-		projectionValuesY.push_back(projectionY->GetBinContent(i));
-	}
-	for (int i = 1; i <= projectionZ->GetNbinsX(); i++)
-	{
-		projectionValuesZ.push_back(projectionZ->GetBinContent(i));
-	}
-
-	delete projectionX;
-	delete projectionY;
-	delete projectionZ;
-
-	int binInCenterX = fullHistogram->GetNbinsX() / 2;
-	for (int i = 1; i <= fullHistogram->GetNbinsZ(); i++)
-	{
-		double zValue = fullHistogram->GetZaxis()->GetBinCenter(i);
-		int binInCenterY = fullHistogram->GetYaxis()->FindBin(eBeam->Trajectory(zValue));
-
-		double energyValueIn = fullHistogram->GetBinContent(binInCenterX, binInCenterY, i);
-		double energyValueOut = fullHistogram->GetBinContent(1, 1, i);
-
-		labEnergyInside.push_back(energyValueIn);
-		labEnergyOutside.push_back(energyValueOut);
-	}
-}
-
-LabEnergy::LabEnergy(LabEnergy&& other) noexcept
-{
-	fullHistogram = other.fullHistogram;
-	other.fullHistogram = nullptr;
-
-	xAxis = std::move(other.xAxis);
-	yAxis = std::move(other.yAxis);
-	zAxis = std::move(other.zAxis);
-
-	projectionValuesX = std::move(other.projectionValuesX);
-	projectionValuesY = std::move(other.projectionValuesY);
-	projectionValuesZ = std::move(other.projectionValuesZ);
-
-	slice = std::move(other.slice);
-
-	labEnergyInside = std::move(other.labEnergyInside);
-	labEnergyOutside = std::move(other.labEnergyOutside);
-
-	label = std::move(other.label);
-	//std::cout << "Lab energy move Constructor" << std::endl;
-}
-
-LabEnergy& LabEnergy::operator=(LabEnergy&& other) noexcept
-{
-	if (this == &other) return *this;
-
-	delete fullHistogram;
-	fullHistogram = other.fullHistogram;
-	other.fullHistogram = nullptr;
-
-	xAxis = std::move(other.xAxis);
-	yAxis = std::move(other.yAxis);
-	zAxis = std::move(other.zAxis);
-
-	projectionValuesX = std::move(other.projectionValuesX);
-	projectionValuesY = std::move(other.projectionValuesY);
-	projectionValuesZ = std::move(other.projectionValuesZ);
-
-	slice = std::move(other.slice);
-
-	labEnergyInside = std::move(other.labEnergyInside);
-	labEnergyOutside = std::move(other.labEnergyOutside);
-
-	label = std::move(other.label);
-	//std::cout << "Lab energy move assignemnt" << std::endl;
-	return *this;
 }

@@ -1,103 +1,57 @@
 #pragma once
 
-#include "Module.h"
 #include "Point3D.h"
-#include "HeatMapData.h"
 
-struct ElectronBeam
+#include "PlotBeamData.h"
+#include "ParameterImplementations.h"
+
+namespace ElectronBeam
 {
-	TH3D* fullHistogram = nullptr;
-	std::vector<double> xAxis;
-	std::vector<double> yAxis;
-	std::vector<double> zAxis;
+	void Init();
 
-	std::vector<double> projectionValuesX;
-	std::vector<double> projectionValuesY;
-	std::vector<double> projectionValuesZ;
+	void SetupDistribution(std::filesystem::path densityfile);
 
-	HeatMapData slice;
-
-	std::string label;
-
-	void FillData();
-
-	ElectronBeam() {}
-	ElectronBeam(const ElectronBeam& other) = delete;
-	ElectronBeam& operator=(const ElectronBeam& other) = delete;
-	ElectronBeam(ElectronBeam&& other) noexcept;
-	ElectronBeam& operator=(ElectronBeam&& other) noexcept;
-	~ElectronBeam()
-	{
-		//std::cout << "deleting " << fullHistogram << std::endl;
-		delete fullHistogram;
-	}
-};
-
-class ElectronBeamWindow : public EnergyDistributionModule
-{
-public:
-	ElectronBeamWindow();
-	void SetupDistribution(std::filesystem::path densityfile = "") override;
-
-	void CalculateDetuningEnergy();
-	void CalculateDetuningVelocity();
-
-	double Trajectory(double z) const;
-
+	TH3D* Get();
 	TVector3 GetDirection(double z);
-	TVector3 GetDirection(Point3D point);
+
+	ElectronBeamParameters GetParameters();
 	double GetLongitudinal_kT(double labEnergy);
 	double GetTransverse_kT();
 	double GetDensity(Point3D point);
 
-	ElectronBeam* GetSelected();
+	void SetElectronCurrent(double current);
 
-private:
-	void ShowUI() override;
+	std::string GetTags();
+
+	void CalculateDetuningEnergy();
+	void CalculateDetuningVelocity();
+	void CalculateEstimateLongkT();
+
+	void ShowWindow();
 	void ShowList();
-	void ShowSettings();
-	void ShowElectronBeamPlots();
+	void ShowPlots();
+	void ShowParameterControls();
+	void PlotTrajectory();
 
-	void LoadDensityFile(std::filesystem::path file);
-	void LoadToLookAt(std::filesystem::path file);
-
-	void SelectedItemChanged();
-	void AddBeamToList(ElectronBeam& eBeam);
-	void RemoveBeamFromList(int index);
-
+	TH3D* LoadDensityFile(std::filesystem::path file);
 	TH3D* GenerateElectronBeamDensity();
+
+	PlotBeamData* GetSelected();
+	std::string GetSelectedBeamLabel();
+	void SelectedItemChanged();
+	void AddBeamToList(PlotBeamData& eBeam);
+	void RemoveBeamFromList(int index);
 
 	TH3D* CutZerosFromDistribution(TH3D* input);
 	TH3D* MirrorDistributionAtZ(TH3D* input);
-	void CreateLargeDistribution();
+	TH3D* CreateLargeDistribution(TH3D* input);
 
+	double Trajectory(double z);
 	TVector3 GetNormal(double z);
-	
-	double Derivative(double z) const;
-	double DistancePointToTrajectoryOfZ(double z, Point3D point);
+	double Derivative(double z);
+	//double DistancePointToTrajectoryOfZ(double z, Point3D point);
+}
 
-	void PlotTrajectory();
-	void Plot3DBeam(TH3D* eBeam);
-
-private:
-	ElectronBeamParameters& m_parameters;
-
-	TH3D* m_distributionSmall = nullptr;
-
-	std::vector<ElectronBeam> eBeamsToLookAt;
-	int selectedIndex = -1;
-
-	// parameters to increase histogram resolution by interpolation
-	bool increaseHist = false;
-	int factor = 3;
-
-	bool mirrorAroundZ = true;
-
-	float sliderZ = 0;
-	float sliderY = 0;
-
-	float SliceZ = 0.0f;
-};
 
 
 

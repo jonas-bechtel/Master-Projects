@@ -1,72 +1,34 @@
 #pragma once
-
-#include "Module.h"
+#include "Point3D.h"
 #include "HeatMapData.h"
+#include "ROOTCanvas.h"
+#include "PlotBeamData.h"
+#include "ParameterImplementations.h"
 
-struct LabEnergy
+namespace LabEnergy
 {
-	TH3D* fullHistogram = nullptr;
-	std::vector<double> xAxis;
-	std::vector<double> yAxis;
-	std::vector<double> zAxis;
+	void Init();
 
-	std::vector<double> projectionValuesX;
-	std::vector<double> projectionValuesY;
-	std::vector<double> projectionValuesZ;
-
-	HeatMapData slice;
-
-	std::vector<double> labEnergyInside;
-	std::vector<double> labEnergyOutside;
-
-	std::string label;
-
-	void FillData(const ElectronBeamWindow* eBeam);
-
-	LabEnergy() {}
-	LabEnergy(const LabEnergy& other) = delete;
-	LabEnergy& operator=(const LabEnergy& other) = delete;
-	LabEnergy(LabEnergy&& other) noexcept;
-	LabEnergy& operator=(LabEnergy&& other) noexcept;
-	~LabEnergy()
-	{
-		//std::cout << "deleting " << fullHistogram << std::endl;
-		delete fullHistogram;
-	}
-};
-
-class LabEnergyWindow : public EnergyDistributionModule
-{
-public:
-	LabEnergyWindow();
 	double Get(double x, double y, double z);
-	void SetupDistribution(std::filesystem::path energyfile = "") override;
+	LabEnergyParameters GetParameters();
+	double GetCenterLabEnergy();
+	void SetDriftTubeVoltage(double voltage);
+	void SetCenterEnergy(double energy);
 
-private:
-	void ShowUI() override;
-	void ShowList();
-	void ShowSettings();
-	void ShowLabEnergyPlots();
+	std::string GetTags();
 
-	void LoadLabEnergyFile(std::filesystem::path file);
-	void LoadToLookAt(std::filesystem::path file);
+	void SetupDistribution(std::filesystem::path energyfile);
 
+	TH3D* LoadLabEnergyFile(std::filesystem::path file);
+	TH3D* GenerateLabEnergies();
+
+	void SelectedItemChanged();
+	void AddBeamToList(PlotBeamData& beamData);
 	void RemoveBeamFromList(int index);
 
-	void GenerateUniformLabEnergy();
-	void FillEnergiesWithXY_Slice();
-
-private:
-	LabEnergyParameters& m_parameters;
-
-	std::vector<LabEnergy> labEnergiesToLookAt;
-	int selectedIndex = -1;
-
-	bool interpolateEnergy = true;
-
-	// z value for the xy slice of the lab energies
-	float SliceZ = 0.0f;
-	bool showMarkers = false;
-
-};
+	void ShowWindow();
+	void ShowList();
+	void ShowParameterControls();
+	void ShowPlots();
+}
 
