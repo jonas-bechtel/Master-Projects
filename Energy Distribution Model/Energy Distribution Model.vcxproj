@@ -156,12 +156,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Cooling Force\CoolingForceCurve.cpp" />
+    <ClCompile Include="src\Cooling Force\CoolingForceWindow.cpp" />
     <ClCompile Include="src\Cross Section Deconvolution\BoltzmannDistribution.cpp" />
     <ClCompile Include="src\utility\PlotBeamData.cpp" />
     <ClCompile Include="src\Energy Distribution Generation\EnergyDistributionSet.cpp" />
     <ClCompile Include="src\general\ParameterImplementations.cpp" />
     <ClCompile Include="src\utility\ROOTCanvas.cpp" />
-    <ClCompile Include="src\Cooling Force\CoolingForceData.cpp" />
+    <ClCompile Include="src\Cooling Force\CoolingForceValue.cpp" />
     <ClCompile Include="src\Cooling Force\CoolingForceModel.cpp" />
     <ClCompile Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.cpp" />
     <ClCompile Include="src\Cross Section Deconvolution\DeconvolutionWindow.cpp" />
@@ -252,11 +254,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Cooling Force\CoolingForceCurve.h" />
+    <ClInclude Include="src\Cooling Force\CoolingForceWindow.h" />
     <ClInclude Include="src\Cross Section Deconvolution\BoltzmannDistribution.h" />
     <ClInclude Include="src\utility\PlotBeamData.h" />
     <ClInclude Include="src\Energy Distribution Generation\EnergyDistributionSet.h" />
     <ClInclude Include="src\utility\ROOTCanvas.h" />
-    <ClInclude Include="src\Cooling Force\CoolingForceData.h" />
+    <ClInclude Include="src\Cooling Force\CoolingForceValue.h" />
     <ClInclude Include="src\Cooling Force\CoolingForceModel.h" />
     <ClInclude Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.h" />
     <ClInclude Include="src\Cross Section Deconvolution\DeconvolutionWindow.h" />

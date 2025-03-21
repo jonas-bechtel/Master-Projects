@@ -17,7 +17,7 @@ namespace ElectronBeam
 	ElectronBeamParameters GetParameters();
 	double GetLongitudinal_kT(double labEnergy);
 	double GetTransverse_kT();
-	double GetDensity(Point3D point);
+	double GetDensity(const Point3D& point);
 
 	void SetElectronCurrent(double current);
 

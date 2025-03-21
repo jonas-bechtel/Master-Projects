@@ -17,7 +17,7 @@ namespace EnergyDistributionWindow
 	void ShowSettings();
 	void ShowTabs();
 	void ShowPlot();
-	void ShowAllParamtersWindow();
+	void ShowAllParametersWindow();
 
 	void ShowSetInformationWindow();
 	void ShowSetList();

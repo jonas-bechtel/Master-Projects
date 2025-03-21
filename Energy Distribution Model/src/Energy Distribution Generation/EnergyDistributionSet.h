@@ -36,8 +36,8 @@ public:
 	EnergyDistributionSet(const EnergyDistributionSet& other) = delete;
 	EnergyDistributionSet& operator=(const EnergyDistributionSet& other) = delete;
 
-	EnergyDistributionSet(EnergyDistributionSet&& other) noexcept;
-	EnergyDistributionSet& operator=(EnergyDistributionSet&& other) noexcept;
+	EnergyDistributionSet(EnergyDistributionSet&& other) = default;
+	EnergyDistributionSet& operator=(EnergyDistributionSet&& other) = default;
 
 	void AddDistribution(EnergyDistribution&& distribution);
 	void RemoveDistribution(int index);

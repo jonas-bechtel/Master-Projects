@@ -160,6 +160,8 @@ namespace IonBeam
 			if (ImGui::BeginChild("settings", ImVec2(300, -1), ImGuiChildFlags_ResizeX))
 			{
 				ShowParameterControls();
+				ImGui::SeparatorText("cooling force specific options");
+				ShowCoolingForceParameterControls();
 				ImGui::Separator();
 
 				if (ImGui::SliderFloat("slice z", &SliceZ, -0.7f, 0.7f))
@@ -195,7 +197,6 @@ namespace IonBeam
 
 			if (ImPlot::BeginPlot("Projection Z"))
 			{
-
 				ImPlot::PlotLine("", zAxis.data(), projectionValuesZ.data(), zAxis.size());
 
 				ImPlot::EndPlot();
@@ -259,10 +260,20 @@ namespace IonBeam
 		ImGui::EndGroup();
 	}
 
-	std::vector<Point3D> GeneratePositions(int numberSamples)
+	void ShowCoolingForceParameterControls()
+	{
+		ImGui::BeginGroup();
+		ImGui::PushItemWidth(170.0f);
+		ImGui::InputInt("number samples", parameter.numberSamples);
+		ImGui::InputInt("charge", parameter.charge);
+		ImGui::PopItemWidth();
+		ImGui::EndGroup();
+	}
+
+	std::vector<Point3D> GeneratePositions()
 	{
 		std::vector<Point3D> positions;
-		positions.reserve(numberSamples);
+		positions.reserve(parameter.numberSamples);
 
 		auto now = std::chrono::system_clock::now();       
 		auto seconds = now.time_since_epoch().count();
@@ -271,7 +282,7 @@ namespace IonBeam
 
 		if (!doubleGaussian)
 		{
-			for (int i = 0; i < numberSamples; i++)
+			for (int i = 0; i < parameter.numberSamples; i++)
 			{
 				double z = generator.Uniform(beam->GetZaxis()->GetXmin(), beam->GetZaxis()->GetXmax());
 				double x = generator.Gaus(parameter.shift.get().x + parameter.angles.get().x * z, parameter.sigma.get().x);
@@ -289,6 +300,11 @@ namespace IonBeam
 		float angleY = parameter.angles.get().y;
 
 		return TVector3(angleX, angleY, 1).Unit();
+	}
+
+	int GetCharge()
+	{
+		return parameter.charge;
 	}
 
 	TH3D* Get()

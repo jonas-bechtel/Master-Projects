@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ParameterImplementations.h"
-#include "CoolingForceData.h"
+#include "CoolingForceValue.h"
 
 using RNG_engine = std::mersenne_twister_engine<std::uint_fast64_t,
 	64, 312, 156, 31,
@@ -78,7 +78,7 @@ private:
 	void CalculateFWHM();
 	void FitAnalyticalToPeak(const PeakFitSettings& settings);
 
-	std::string HeaderString() const;
+	std::string GetHeaderString() const;
 	std::string Filename() const;
 
 private:
@@ -108,13 +108,12 @@ private:
 	std::vector<double> psi;
 
 	// cooling force
-	CoolingForceData cfData;
+	CoolingForceValue cfData;
 
 	// plot parameters
 	bool showPlot = false;
 	bool showNormalisedByWidth = true;
 
-private:
 	// random number generation things
 	static std::mersenne_twister_engine<std::uint_fast64_t,
 		64, 312, 156, 31,

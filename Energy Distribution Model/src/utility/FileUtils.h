@@ -23,7 +23,7 @@ namespace FileUtils
 	std::vector<std::string> SplitLine(std::string& line, const std::string& delimiter);
 	std::filesystem::path FindFileWithIndex(const std::filesystem::path& folder, int index);
 	int GetMaxIndex(std::filesystem::path energiesFile);
-	std::array<float, 3> GetParamtersFromDescriptionFileAtIndex(const std::filesystem::path& descriptionFile, int index);
+	std::array<float, 3> GetParametersFromDescriptionFileAtIndex(const std::filesystem::path& descriptionFile, int index);
 	std::vector<double> CalculateBinEdges(const std::vector<double>& binCenters, bool uniformDistances = true);
 }
 

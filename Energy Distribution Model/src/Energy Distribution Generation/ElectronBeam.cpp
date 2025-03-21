@@ -105,7 +105,7 @@ namespace ElectronBeam
 		return parameter.transverse_kT;
 	}
 
-	double GetDensity(Point3D point)
+	double GetDensity(const Point3D& point)
 	{
 		int numberBinsX = beam->GetXaxis()->GetNbins();
 		int numberBinsY = beam->GetYaxis()->GetNbins();

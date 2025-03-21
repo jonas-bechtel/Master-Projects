@@ -14,12 +14,14 @@ namespace IonBeam
 	void UpdatePlotData();
 
 	TVector3 GetDirection();
+	int GetCharge();
 	TH3D* Get();
 	std::string GetTags();
 
 	void ShowWindow();
 	void ShowPlots();
 	void ShowParameterControls();
+	void ShowCoolingForceParameterControls();
 
-	std::vector<Point3D> GeneratePositions(int numberSamples);
+	std::vector<Point3D> GeneratePositions();
 }

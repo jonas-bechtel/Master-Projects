@@ -300,7 +300,7 @@ void EnergyDistributionSet::Load(std::filesystem::path& infolder, bool loadSampl
 			AddDistribution(std::move(newDist));
 		}
 	}
-	folder = infolder.parent_path().filename();
+	folder = infolder.parent_path().parent_path().filename() / infolder.parent_path().filename();
 	subFolder = infolder.filename();
 }
 
@@ -308,26 +308,26 @@ EnergyDistributionSet::EnergyDistributionSet()
 {
 	distributions.reserve(100);
 }
-
-EnergyDistributionSet::EnergyDistributionSet(EnergyDistributionSet&& other) noexcept
-{
-	distributions = std::move(other.distributions);
-	EdToDistMap = std::move(other.EdToDistMap);
-	info = std::move(other.info);
-	folder = std::move(other.folder);
-	subFolder = std::move(other.subFolder);
-}
-
-EnergyDistributionSet& EnergyDistributionSet::operator=(EnergyDistributionSet&& other) noexcept
-{
-	distributions = std::move(other.distributions);
-	EdToDistMap = std::move(other.EdToDistMap);
-	info = std::move(other.info);
-	folder = std::move(other.folder);
-	subFolder = std::move(other.subFolder);
-
-	return *this;
-}
+//
+//EnergyDistributionSet::EnergyDistributionSet(EnergyDistributionSet&& other) noexcept
+//{
+//	distributions = std::move(other.distributions);
+//	EdToDistMap = std::move(other.EdToDistMap);
+//	info = std::move(other.info);
+//	folder = std::move(other.folder);
+//	subFolder = std::move(other.subFolder);
+//}
+//
+//EnergyDistributionSet& EnergyDistributionSet::operator=(EnergyDistributionSet&& other) noexcept
+//{
+//	distributions = std::move(other.distributions);
+//	EdToDistMap = std::move(other.EdToDistMap);
+//	info = std::move(other.info);
+//	folder = std::move(other.folder);
+//	subFolder = std::move(other.subFolder);
+//
+//	return *this;
+//}
 
 std::string EnergyDistributionSet::Label()
 {

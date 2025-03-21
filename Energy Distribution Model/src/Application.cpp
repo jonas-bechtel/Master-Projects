@@ -21,6 +21,7 @@
 #include "IonBeam.h"
 #include "LabEnergies.h"
 #include "EnergyDistributionWindow.h"
+#include "CoolingForceWindow.h"
 #include "DeconvolutionWindow.h"
 
 #ifdef _DEBUG
@@ -236,6 +237,7 @@ Application::Application()
     IonBeam::Init();
     LabEnergy::Init();
     EnergyDistributionWindow::Init();
+    CoolingForceWindow::Init();
     DeconvolutionWindow::Init();
     //gStyle->SetOptStat(0);
 }
@@ -255,6 +257,7 @@ void Application::ShowWindows()
         IonBeam::ShowWindow();
         LabEnergy::ShowWindow();
         EnergyDistributionWindow::ShowWindow();
+        CoolingForceWindow::ShowWindow();
 
     }
     if (ImGui::Begin("Cross Section Deconvolution Window"))

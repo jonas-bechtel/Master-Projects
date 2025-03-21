@@ -96,7 +96,7 @@
     <ClCompile Include="src\Cooling Force\CoolingForceModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Cooling Force\CoolingForceData.cpp">
+    <ClCompile Include="src\Cooling Force\CoolingForceValue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\utility\HeatMapData.cpp">
@@ -115,6 +115,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Cross Section Deconvolution\BoltzmannDistribution.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Cooling Force\CoolingForceWindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Cooling Force\CoolingForceCurve.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -212,7 +218,7 @@
     <ClInclude Include="src\Cooling Force\CoolingForceModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Cooling Force\CoolingForceData.h">
+    <ClInclude Include="src\Cooling Force\CoolingForceValue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\utility\ROOTCanvas.h">
@@ -225,6 +231,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Cross Section Deconvolution\BoltzmannDistribution.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Cooling Force\CoolingForceWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Cooling Force\CoolingForceCurve.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

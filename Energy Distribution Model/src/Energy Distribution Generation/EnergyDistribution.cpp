@@ -57,13 +57,10 @@ EnergyDistribution::EnergyDistribution(EnergyDistribution&& other) noexcept
 
 	label = std::move(other.label);
 	tags = std::move(other.tags);
-	//folder = std::move(other.folder);
-	//subFolder = std::move(other.subFolder);
+	
 	index = std::move(other.index);
 
 	psi = std::move(other.psi);
-
-	cfData = std::move(other.cfData);
 
 	showPlot = other.showPlot;
 	showNormalisedByWidth = other.showNormalisedByWidth;
@@ -122,8 +119,6 @@ void EnergyDistribution::CopyParameters()
 
 void EnergyDistribution::ResetDefaultValues()
 {
-	//std::cout << "binvalues size: " << binValues.size() << std::endl;
-	//folder = "Test";
 	index = 0;
 	showPlot = false;
 	showNormalisedByWidth = true;
@@ -459,7 +454,7 @@ void EnergyDistribution::Generate(std::filesystem::path descriptionFile, int ind
 	std::filesystem::path folder = descriptionFile.parent_path();
 
 	// get 3 parameters: U drift tube, electron current, center E lab if index is in file
-	std::array<float, 3> additionalParameter = FileUtils::GetParamtersFromDescriptionFileAtIndex(descriptionFile, index);
+	std::array<float, 3> additionalParameter = FileUtils::GetParametersFromDescriptionFileAtIndex(descriptionFile, index);
 
 	// if they are not found the index is not in the file
 	if (!additionalParameter[0])
@@ -683,7 +678,7 @@ void EnergyDistribution::ShowListItem()
 	if (ImGui::BeginItemTooltip())
 	{
 		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-		ImGui::TextUnformatted(HeaderString().c_str());
+		ImGui::TextUnformatted(GetHeaderString().c_str());
 		ImGui::PopTextWrapPos();
 		ImGui::EndTooltip();
 	}
@@ -703,7 +698,7 @@ void EnergyDistribution::SaveSamples(std::filesystem::path folder) const
 		return;
 	}
 
-	outfile << HeaderString();
+	outfile << GetHeaderString();
 
 	outfile << "# sampled collision energy values\n";
 	for (double energy : collisionEnergies)
@@ -723,7 +718,7 @@ void EnergyDistribution::SaveHist(std::filesystem::path folder) const
 		std::cerr << "Error opening file" << std::endl;
 		return;
 	}
-	outfile << HeaderString();
+	outfile << GetHeaderString();
 
 	outfile << "# bin center [eV]\tbin value\tbin value normalised by bin width\n";
 	for (int i = 0; i < binCenters.size(); i++)
@@ -798,19 +793,14 @@ void EnergyDistribution::Load(std::filesystem::path& file, bool loadSamples)
 	std::cout << std::endl;
 }
 
-std::string EnergyDistribution::HeaderString() const
+std::string EnergyDistribution::GetHeaderString() const
 {
-	std::string string = //Form("# folder: %s\n", (folder.filename().string() + subFolder.filename().string()).c_str()) +
+	std::string string = 
 		eBeamParameter.toString() +
 		labEnergiesParameter.toString() +
 		ionBeamParameter.toString() +
 		mcmcParameter.toString() +
 		outputParameter.toString();
-
-	//if (folder.filename().string() == "Test")
-	//{
-	//	string += simplifyParams.toString();
-	//}
 
 	return string;
 }

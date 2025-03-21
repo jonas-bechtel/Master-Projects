@@ -271,7 +271,7 @@ namespace FileUtils
         return maxIndex;
     }
 
-    std::array<float, 3> GetParamtersFromDescriptionFileAtIndex(const std::filesystem::path& descriptionFile, int index)
+    std::array<float, 3> GetParametersFromDescriptionFileAtIndex(const std::filesystem::path& descriptionFile, int index)
     {
         std::array<float, 3> parameter = { 0, 0, 0 };
 
