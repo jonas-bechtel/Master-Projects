@@ -218,7 +218,11 @@ namespace AnalyticalDistribution
 
 	void ShowWindow(bool& show)
 	{
-		if (show && ImGui::Begin("Analytical parameters", &show, ImGuiWindowFlags_NoDocking))
+		if (!show)
+		{
+			return;
+		}
+		if (ImGui::Begin("Analytical parameters", &show, ImGuiWindowFlags_NoDocking))
 		{
 			ImGui::BeginGroup();
 			bool changed = false;
@@ -250,8 +254,8 @@ namespace AnalyticalDistribution
 				ImGui::EndDragDropTarget();
 			}
 
-			ImGui::End();
 		}
+		ImGui::End();
 	}
 
 	void Update()

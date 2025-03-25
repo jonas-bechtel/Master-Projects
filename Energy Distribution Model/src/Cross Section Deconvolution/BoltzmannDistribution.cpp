@@ -49,7 +49,11 @@ namespace BoltzmannDistribution
 
 	void ShowWindow(bool& show, CrossSection* currentCS)
 	{
-		if (show && ImGui::Begin("plasma rate convolution extra window", &show, ImGuiWindowFlags_NoDocking))
+		if (!show)
+		{
+			return;
+		}
+		if (ImGui::Begin("plasma rate convolution extra window", &show, ImGuiWindowFlags_NoDocking))
 		{
 			bool changed = false;
 
@@ -62,7 +66,7 @@ namespace BoltzmannDistribution
 			{
 				Update(currentCS);
 			}
-			ImGui::End();
 		}
+		ImGui::End();
 	}
 }

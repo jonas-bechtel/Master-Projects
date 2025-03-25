@@ -14,7 +14,7 @@ private:
 	void Hide();
 	
 private:
-	bool m_shown = false;
+	bool m_shown = true;
 
 	static TApplication app;
 };

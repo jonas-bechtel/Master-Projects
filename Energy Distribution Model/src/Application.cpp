@@ -137,7 +137,7 @@ void Application::Run()
     //io.Fonts->AddFontDefault();
     //io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    io.Fonts->AddFontFromFileTTF("vendor/imgui_plot/fonts/Roboto-Medium.ttf", 16.0f);
+    io.Fonts->AddFontFromFileTTF("vendor/imgui/misc/fonts/Roboto-Medium.ttf", 16.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != nullptr);
@@ -232,6 +232,10 @@ void Application::Run()
 
 Application::Application()
 {
+    //std::cout << "canvas test " << std::endl;
+    //TCanvas c = TCanvas("bla", "bla", 100, 100);
+    //c.Divide(2, 1);
+    //std::cout << "done " << std::endl;
     MCMC::Init();
     ElectronBeam::Init();
     IonBeam::Init();
@@ -260,13 +264,17 @@ void Application::ShowWindows()
         CoolingForceWindow::ShowWindow();
 
     }
+    ImGui::End();
+
     if (ImGui::Begin("Cross Section Deconvolution Window"))
     {
         ImGuiID dockspace_id = ImGui::GetID("cs deconvolution");
         ImGui::DockSpace(dockspace_id);
 
         DeconvolutionWindow::ShowWindow();
+
     }
+    ImGui::End();
     
 
     //ImGui::ShowDemoWindow();

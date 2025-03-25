@@ -120,8 +120,8 @@ namespace EnergyDistributionWindow
 			ShowAllParametersWindow();
 			ShowSetInformationWindow();
 
-			ImGui::End();
 		}
+		ImGui::End();
 	}
 
 	void ShowSettings()
@@ -197,8 +197,8 @@ namespace EnergyDistributionWindow
 			ImGui::Text("(max Index: %d)", maxIndex);
 			ImGui::EndDisabled();
 
-			ImGui::EndChild();
 		}
+		ImGui::EndChild();
 	}
 
 	void ShowTabs()
@@ -266,8 +266,8 @@ namespace EnergyDistributionWindow
 			ImGui::Checkbox("load samples", &loadSamples);
 			ImGui::SameLine();
 			ImGui::Checkbox("show set information", &showSetInformation);
-			ImGui::EndChild();
 		}
+		ImGui::EndChild();
 	}
 
 	void ShowPlot()
@@ -311,45 +311,51 @@ namespace EnergyDistributionWindow
 
 	void ShowAllParametersWindow()
 	{
-		if (showAllParamsWindow && ImGui::Begin("all parameters", &showAllParamsWindow, ImGuiWindowFlags_NoDocking))
+		if (!showAllParamsWindow)
+		{
+			return;
+		}
+		if (ImGui::Begin("all parameters", &showAllParamsWindow, ImGuiWindowFlags_NoDocking))
 		{
 			ImGuiChildFlags flags = ImGuiChildFlags_ResizeX | ImGuiChildFlags_Border;
 			if (ImGui::BeginChild("mcmc", ImVec2(100, -1), flags))
 			{
 				ImGui::SeparatorText("MCMC parameter");
 				MCMC::ShowParameterControls();
-				ImGui::EndChild();
 			}
+			ImGui::EndChild();
 			ImGui::SameLine();
 			if (ImGui::BeginChild("labe", ImVec2(100, -1), flags))
 			{
 				ImGui::SeparatorText("Lab Energy parameter");
 				LabEnergy::ShowParameterControls();
-				ImGui::EndChild();
 			}
+			ImGui::EndChild();
 			ImGui::SameLine();
 			if (ImGui::BeginChild("ebeam", ImVec2(100, -1), flags))
 			{
 				ImGui::SeparatorText("Electron Beam parameter");
 				ElectronBeam::ShowParameterControls();
-				ImGui::EndChild();
 			}
+			ImGui::EndChild();
 			ImGui::SameLine();
 			if (ImGui::BeginChild("ibeam", ImVec2(100, -1), flags))
 			{
 				ImGui::SeparatorText("Ion Beam parameter");
 				IonBeam::ShowParameterControls();
-				ImGui::EndChild();
 			}
-			
-			
-			ImGui::End();
+			ImGui::EndChild();
 		}
+		ImGui::End();
 	}
 
 	void ShowSetInformationWindow()
 	{
-		if (showSetInformation && ImGui::Begin("Set Information", &showSetInformation, ImGuiWindowFlags_NoDocking))
+		if (!showSetInformation)
+		{
+			return;
+		}
+		if (ImGui::Begin("Set Information", &showSetInformation, ImGuiWindowFlags_NoDocking))
 		{
 			ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX;
 			if (ImGui::BeginChild("Selection", ImVec2(100, -1), flags))
@@ -364,8 +370,8 @@ namespace EnergyDistributionWindow
 
 				ImGui::Checkbox("log X", &infoPlotsLogX);
 				ImGui::Checkbox("log Y", &infoPlotsLogY);
-				ImGui::EndChild();
 			}
+			ImGui::EndChild();
 			ImGui::SameLine();
 
 			int i = 0;
@@ -459,8 +465,8 @@ namespace EnergyDistributionWindow
 			
 				ImPlot::EndSubplots();
 			}
-			ImGui::End();
 		}
+		ImGui::End();
 	}
 
 	void ShowSetList()
@@ -511,8 +517,8 @@ namespace EnergyDistributionWindow
 				}
 			}
 
-			ImGui::EndChild();
 		}
+		ImGui::EndChild();
 	}
 }
 

@@ -4,7 +4,7 @@
 #include "LabEnergies.h"
 #include "Constants.h"
 #include "FileUtils.h"
-#include "ROOTCanvas.h"
+#include "ROOTcanvas.h"
 #include "HeatMapData.h"
 
 namespace ElectronBeam
@@ -28,7 +28,7 @@ namespace ElectronBeam
 	static bool mirrorAroundZ = true;
 
 	// plotting data
-	static ROOTCanvas canvas("electron beam canvas","electron beam canvas", 1200, 500);
+	static ROOTCanvas* canvas = nullptr;
 
 	static std::vector<PlotBeamData> plotBeams;
 	static int selectedIndex = -1;
@@ -41,7 +41,8 @@ namespace ElectronBeam
 
 	void Init()
 	{
-		canvas.Divide(2, 1);
+		canvas = new ROOTCanvas("electron beam", "electron beam", 1200, 500);
+		canvas->Divide(2, 1);
 		PlotTrajectory();
 
 		CalculateDetuningEnergy();
@@ -186,7 +187,7 @@ namespace ElectronBeam
 		PlotBeamData& newlySelected = plotBeams.at(selectedIndex);
 		newlySelected.UpdateSlice(SliceZ);
 
-		if (canvas.IsShown()) newlySelected.Plot3D(canvas, 2);
+		if (canvas->IsShown()) newlySelected.Plot3D(*canvas, 2);
 	}
 
 	void AddBeamToList(PlotBeamData& eBeam)
@@ -438,7 +439,7 @@ namespace ElectronBeam
 
 	void PlotTrajectory()
 	{
-		canvas.cd(1);
+		canvas->cd(1);
 
 		const int N = 1000;
 		double zValues[N];
@@ -559,7 +560,7 @@ namespace ElectronBeam
 				ImGui::Separator();
 				ShowParameterControls();
 				ImGui::Separator();
-				canvas.MakeShowHideButton();
+				canvas->MakeShowHideButton();
 				PlotBeamData::ShowRebinningFactorsInput();
 
 				ImGui::SeparatorText("arrow sliders");
@@ -573,17 +574,16 @@ namespace ElectronBeam
 				{
 					PlotTrajectory();
 				}
-
-				ImGui::EndChild();
 			}
+			ImGui::EndChild();
 
 			ImGui::SameLine();
 
 			ShowPlots();
 
-			ImGui::End();
 		}
-		canvas.Render();
+		ImGui::End();
+		canvas->Render();
 	}
 
 	void ShowList()

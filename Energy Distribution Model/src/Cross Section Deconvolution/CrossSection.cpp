@@ -1,5 +1,7 @@
 #include "pch.h"
 
+#include "Eigen/Dense"
+
 #include "CrossSection.h"
 #include "Constants.h"
 #include "EnergyDistribution.h"
@@ -339,7 +341,11 @@ void CrossSection::Save() const
 
 void FittingOptions::ShowWindow(bool& show)
 {
-	if (show && ImGui::Begin("Cross Section Fit settings", &show, ImGuiWindowFlags_NoDocking))
+	if (!show)
+	{
+		return;
+	}
+	if (ImGui::Begin("Cross Section Fit settings", &show, ImGuiWindowFlags_NoDocking))
 	{
 		ImGui::Checkbox("ROOT fitting", &ROOT_fit);
 		ImGui::SameLine();
@@ -348,13 +354,17 @@ void FittingOptions::ShowWindow(bool& show)
 		//ImGui::InputInt("iterations", &iterations);
 		//ImGui::InputDouble("learning rate", &learningRate);
 
-		ImGui::End();
 	}
+	ImGui::End();
 }
 
 void CrossSectionBinningSettings::ShowWindow(bool& show)
 {
-	if (show && ImGui::Begin("Cross Section Binning settings", &show, ImGuiWindowFlags_NoDocking))
+	if (!show)
+	{
+		return;
+	}
+	if (ImGui::Begin("Cross Section Binning settings", &show, ImGuiWindowFlags_NoDocking))
 	{
 		ImGui::Combo("binning options", (int*)&scheme, binningOptions, IM_ARRAYSIZE(binningOptions));
 
@@ -380,6 +390,110 @@ void CrossSectionBinningSettings::ShowWindow(bool& show)
 			ImGui::InputInt("max ration", &maxRatio);
 			//ImGui::InputInt("factor", &binFactor);
 		}
-		ImGui::End();
 	}
+	ImGui::End();
 }
+
+
+
+//void CrossSectionManager::FitWithSVD()
+//{
+//	// solve Ax = b with SVD
+//
+//	EnergyDistributionManager* model = (EnergyDistributionManager*)Window::Get("Energy Distribution Manager");
+//	std::vector<EnergyDistribution>& energyDistributionList = model->GetEnergyDistributions();
+//
+//	if (model->GetEnergyDistributions().empty())
+//	{
+//		std::cout << "no energy distributions\n";
+//		return;
+//	}
+//
+//	SetupFitCrossSectionHist();
+//	CalculatePsis();
+//
+//	binValuesFit.clear();
+//	binCentersFit.clear();
+//	binValuesFit.reserve(crossSectionFit->GetNbinsX());
+//	binCentersFit.reserve(crossSectionFit->GetNbinsX());
+//
+//	std::vector<int> parameterIndeces;
+//	for (int i = 0; i < crossSectionFit->GetNbinsX(); i++)
+//	{
+//		parameterIndeces.push_back(i);
+//	}
+//	int nZeros = 10;
+//
+//	TMatrixD PsiMatrix;
+//	TVectorD alphaVector;
+//	int p = parameterIndeces.size(); // crossSectionFit->GetNbinsX();
+//	std::vector<double> parameterResult;
+//	parameterResult.resize(p);
+//
+//	while (nZeros > 0)
+//	{
+//		int n = energyDistributionList.size();
+//		int p2 = parameterIndeces.size();
+//
+//		std::cout << "n: " << n << " p2: " << p2 << std::endl;
+//		PsiMatrix.Clear();
+//		alphaVector.Clear();
+//
+//		// matrix A is all the p Psis for all the n distributions, n >= p is required so the rest is filled with 0
+//		PsiMatrix.ResizeTo(std::max(n, p2), p2);
+//		// vector b with all the rate coeffictions
+//		alphaVector.ResizeTo(std::max(n, p2));
+//
+//		// fill matrix and vector
+//		for (int i = 0; i < std::max(n, p2); i++)
+//		{
+//			for (int j = 0; j < p2; j++)
+//			{
+//				// fill matrix and vector with 0 if p > n
+//				if (i >= n)
+//				{
+//					PsiMatrix[i][j] = 0;
+//				}
+//				else
+//				{
+//					PsiMatrix[i][j] = energyDistributionList[i].psi[parameterIndeces[j]];
+//				}
+//			}
+//			if (i >= n)
+//			{
+//				alphaVector[i] = 0;
+//			}
+//			else
+//			{
+//				alphaVector[i] = energyDistributionList[i].rateCoefficient;
+//			}
+//		}
+//
+//		alphaVector.Print();
+//
+//		TDecompSVD decomp(PsiMatrix);
+//		// solve for x, result is put into input vector
+//		decomp.Solve(alphaVector);
+//
+//		alphaVector.Print();
+//
+//		// remove all negative parameters
+//		nZeros = 0;
+//		for (int i = p2 - 1; i >= 0; i--)
+//		{
+//			if (alphaVector[parameterIndeces[i]] < 0)
+//			{
+//				parameterResult[parameterIndeces[i]] = 0;
+//				parameterIndeces.erase(parameterIndeces.begin() + i);
+//				nZeros++;
+//			}
+//			else
+//			{
+//				parameterResult[parameterIndeces[i]] = alphaVector[parameterIndeces[i]];
+//			}
+//		}
+//		std::cout << "zeros: " << nZeros << std::endl;
+//	}
+//
+//	FillFitPlots(parameterResult.data());
+//}

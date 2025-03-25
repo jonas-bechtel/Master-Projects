@@ -3,17 +3,28 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+Energy Distribution Model/screenshots
+Energy Distribution Model/output
+
 # data Files
 *.asc
 *.samples
 *.dat
 
-# screenshots
-*.PNG
-*.png
-
 *.toml
 *.txt
+
+# Binaries
+**/bin/
+bin-int/
+
+# Visual Studio files and folder
+.vs/
+**.sln
+**.vcxproj
+**.vcxproj.filters
+**.vcxproj.user
+**.csproj
 
 # User-specific files
 *.rsuser

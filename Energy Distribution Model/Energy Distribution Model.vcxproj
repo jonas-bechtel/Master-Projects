@@ -1,14 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -19,50 +11,27 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{2039FE55-8CFB-31E0-D5AB-C06C41AD0ABE}</ProjectGuid>
+    <IgnoreWarnCompileDuplicatedFilename>true</IgnoreWarnCompileDuplicatedFilename>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{32d3198d-b68d-4394-bb42-895edf0ad99a}</ProjectGuid>
-    <RootNamespace>test</RootNamespace>
+    <RootNamespace>Energy Distribution Model</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>Energy Distribution Model</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-  </ImportGroup>
-  <ImportGroup Label="Shared">
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -71,227 +40,133 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)src\utility;$(ProjectDir)src\Cooling Force;$(ProjectDir)src\Energy Distribution Generation;$(ProjectDir)src\Cross Section Deconvolution;$(ProjectDir)src\general;$(ProjectDir)vendor\tinyfiledialogs;$(ProjectDir)vendor\imgui_plot;$(ROOT_DIR)include;$(ProjectDir)vendor\eigen-3.4.0;C:\libtorch-win-shared-with-deps-2.5.1+cpu\libtorch\include;C:\libtorch-win-shared-with-deps-2.5.1+cpu\libtorch\include\torch\csrc\api\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <PreprocessToFile>false</PreprocessToFile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\libtorch-win-shared-with-deps-2.5.1+cpu\libtorch\lib;$(ROOT_DIR)lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3d12.lib;d3dcompiler.lib;dxgi.lib;libCore.lib;libRIO.lib;libHist.lib;libGpad.lib;libGraf.lib;libGraf3d.lib;libMatrix.lib;libMathCore.lib;libPhysics.lib;torch.lib;torch_cpu.lib;c10.lib;OpenCL.lib;Comdlg32.lib;Ole32.lib;user32.lib;shell32.lib</AdditionalDependencies>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)src\utility;$(ProjectDir)src\Cooling Force;$(ProjectDir)src\Energy Distribution Generation;$(ProjectDir)src\Cross Section Deconvolution;$(ProjectDir)src\general;$(ProjectDir)vendor\tinyfiledialogs;$(ProjectDir)vendor\imgui_plot;$(ROOT_DIR)include;$(ProjectDir)vendor\eigen-3.4.0;C:\libtorch-win-shared-with-deps-2.5.1+cpu\libtorch\include;C:\libtorch-win-shared-with-deps-2.5.1+cpu\libtorch\include\torch\csrc\api\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <PreprocessToFile>false</PreprocessToFile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\libtorch-win-shared-with-deps-2.5.1+cpu\libtorch\lib;$(ROOT_DIR)lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3d12.lib;d3dcompiler.lib;dxgi.lib;libCore.lib;libRIO.lib;libHist.lib;libGpad.lib;libGraf.lib;libGraf3d.lib;libMatrix.lib;libMathCore.lib;libPhysics.lib;torch.lib;torch_cpu.lib;c10.lib;OpenCL.lib;Comdlg32.lib;Ole32.lib;user32.lib;shell32.lib</AdditionalDependencies>
-    </Link>
-  </ItemDefinitionGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>..\bin\Debug-windows-x86_64\Energy Distribution Model\</OutDir>
+    <IntDir>..\bin-int\Debug-windows-x86_64\Energy Distribution Model\</IntDir>
+    <TargetName>Energy Distribution Model</TargetName>
+    <TargetExt>.exe</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>..\bin\Release-windows-x86_64\Energy Distribution Model\</OutDir>
+    <IntDir>..\bin-int\Release-windows-x86_64\Energy Distribution Model\</IntDir>
+    <TargetName>Energy Distribution Model</TargetName>
+    <TargetExt>.exe</TargetExt>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)src\utility;$(ProjectDir)src\Cooling Force;$(ProjectDir)src\Energy Distribution Generation;$(ProjectDir)src\Cross Section Deconvolution;$(ProjectDir)src\general;$(ProjectDir)vendor\tinyfiledialogs;$(ProjectDir)vendor\imgui_plot;$(ROOT_DIR)include;$(ProjectDir)vendor\eigen-3.4.0;C:\libtorch-win-shared-with-deps-2.5.1+cpu\libtorch\include;C:\libtorch-win-shared-with-deps-2.5.1+cpu\libtorch\include\torch\csrc\api\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <PreprocessToFile>false</PreprocessToFile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <AdditionalIncludeDirectories>src;src\Cooling Force;src\Cross Section Deconvolution;src\Energy Distribution Generation;src\general;src\utility;vendor\imgui;vendor\imgui\backends;vendor\implot;vendor\eigen;vendor\tinyfiledialogs;..\..\..\..\root_v6.32.04\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+      <MinimalRebuild>false</MinimalRebuild>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <ExternalWarningLevel>Level3</ExternalWarningLevel>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\libtorch-win-shared-with-deps-2.5.1+cpu\libtorch\lib;$(ROOT_DIR)lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3d12.lib;d3dcompiler.lib;dxgi.lib;libCore.lib;libRIO.lib;libHist.lib;libGpad.lib;libGraf.lib;libGraf3d.lib;libMatrix.lib;libMathCore.lib;libPhysics.lib;torch.lib;torch_cpu.lib;c10.lib;Comdlg32.lib;Ole32.lib;user32.lib;shell32.lib</AdditionalDependencies>
+      <AdditionalDependencies>libCore.lib;libRIO.lib;libHist.lib;libGpad.lib;libGraf.lib;libGraf3d.lib;libMatrix.lib;libMathCore.lib;libPhysics.lib;d3d12.lib;d3dcompiler.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\..\..\root_v6.32.04\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)src\utility;$(ProjectDir)src\Cooling Force;$(ProjectDir)src\Energy Distribution Generation;$(ProjectDir)src\Cross Section Deconvolution;$(ProjectDir)src\general;$(ProjectDir)vendor\tinyfiledialogs;$(ProjectDir)vendor\imgui_plot;$(ROOT_DIR)include;$(ProjectDir)vendor\eigen-3.4.0;C:\libtorch-win-shared-with-deps-2.5.1+cpu\libtorch\include;C:\libtorch-win-shared-with-deps-2.5.1+cpu\libtorch\include\torch\csrc\api\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <PreprocessToFile>false</PreprocessToFile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <AdditionalIncludeDirectories>src;src\Cooling Force;src\Cross Section Deconvolution;src\Energy Distribution Generation;src\general;src\utility;vendor\imgui;vendor\imgui\backends;vendor\implot;vendor\eigen;vendor\tinyfiledialogs;..\..\..\..\root_v6.32.04\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Full</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <ExternalWarningLevel>Level3</ExternalWarningLevel>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\libtorch-win-shared-with-deps-2.5.1+cpu\libtorch\lib;$(ROOT_DIR)lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3d12.lib;d3dcompiler.lib;dxgi.lib;libCore.lib;libRIO.lib;libHist.lib;libGpad.lib;libGraf.lib;libGraf3d.lib;libMatrix.lib;libMathCore.lib;libPhysics.lib;torch.lib;torch_cpu.lib;c10.lib;Comdlg32.lib;Ole32.lib;user32.lib;shell32.lib</AdditionalDependencies>
+      <AdditionalDependencies>libCore.lib;libRIO.lib;libHist.lib;libGpad.lib;libGraf.lib;libGraf3d.lib;libMatrix.lib;libMathCore.lib;libPhysics.lib;d3d12.lib;d3dcompiler.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\..\..\root_v6.32.04\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\Cooling Force\CoolingForceCurve.cpp" />
-    <ClCompile Include="src\Cooling Force\CoolingForceWindow.cpp" />
-    <ClCompile Include="src\Cross Section Deconvolution\BoltzmannDistribution.cpp" />
-    <ClCompile Include="src\utility\PlotBeamData.cpp" />
-    <ClCompile Include="src\Energy Distribution Generation\EnergyDistributionSet.cpp" />
-    <ClCompile Include="src\general\ParameterImplementations.cpp" />
-    <ClCompile Include="src\utility\ROOTCanvas.cpp" />
-    <ClCompile Include="src\Cooling Force\CoolingForceValue.cpp" />
-    <ClCompile Include="src\Cooling Force\CoolingForceModel.cpp" />
-    <ClCompile Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.cpp" />
-    <ClCompile Include="src\Cross Section Deconvolution\DeconvolutionWindow.cpp" />
-    <ClCompile Include="src\Cross Section Deconvolution\RateCoefficient.cpp" />
-    <ClCompile Include="src\Energy Distribution Generation\AnalyticalDistribution.cpp" />
-    <ClCompile Include="src\Cross Section Deconvolution\CrossSection.cpp" />
-    <ClCompile Include="src\Energy Distribution Generation\EnergyDistribution.cpp" />
-    <ClCompile Include="src\Energy Distribution Generation\LabEnergies.cpp" />
-    <ClCompile Include="src\utility\HeatMapData.cpp" />
-    <ClCompile Include="src\Energy Distribution Generation\IonBeam.cpp" />
-    <ClCompile Include="src\Application.cpp" />
-    <ClCompile Include="src\Energy Distribution Generation\ElectronBeam.cpp" />
-    <ClCompile Include="src\Energy Distribution Generation\EnergyDistributionWindow.cpp" />
-    <ClCompile Include="src\utility\FileUtils.cpp" />
-    <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\Energy Distribution Generation\MCMC.cpp" />
-    <ClCompile Include="src\pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui_plot\imgui.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui_plot\imgui_demo.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui_plot\imgui_draw.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui_plot\imgui_impl_dx12.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui_plot\imgui_impl_win32.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui_plot\imgui_tables.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui_plot\imgui_widgets.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui_plot\implot.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui_plot\implot_demo.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui_plot\implot_items.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vendor\tinyfiledialogs\tinyfiledialogs.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
+    <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\Cooling Force\CoolingForceCurve.h" />
+    <ClInclude Include="src\Cooling Force\CoolingForceModel.h" />
+    <ClInclude Include="src\Cooling Force\CoolingForceValue.h" />
     <ClInclude Include="src\Cooling Force\CoolingForceWindow.h" />
     <ClInclude Include="src\Cross Section Deconvolution\BoltzmannDistribution.h" />
-    <ClInclude Include="src\utility\PlotBeamData.h" />
-    <ClInclude Include="src\Energy Distribution Generation\EnergyDistributionSet.h" />
-    <ClInclude Include="src\utility\ROOTCanvas.h" />
-    <ClInclude Include="src\Cooling Force\CoolingForceValue.h" />
-    <ClInclude Include="src\Cooling Force\CoolingForceModel.h" />
-    <ClInclude Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.h" />
+    <ClInclude Include="src\Cross Section Deconvolution\CrossSection.h" />
     <ClInclude Include="src\Cross Section Deconvolution\DeconvolutionWindow.h" />
+    <ClInclude Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.h" />
     <ClInclude Include="src\Cross Section Deconvolution\RateCoefficient.h" />
     <ClInclude Include="src\Energy Distribution Generation\AnalyticalDistribution.h" />
-    <ClInclude Include="src\utility\HeatMapData.h" />
-    <ClInclude Include="src\general\Parameter.h" />
-    <ClInclude Include="src\Cross Section Deconvolution\CrossSection.h" />
-    <ClInclude Include="src\Energy Distribution Generation\EnergyDistribution.h" />
-    <ClInclude Include="src\Energy Distribution Generation\LabEnergies.h" />
-    <ClInclude Include="src\Energy Distribution Generation\IonBeam.h" />
-    <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\Energy Distribution Generation\ElectronBeam.h" />
+    <ClInclude Include="src\Energy Distribution Generation\EnergyDistribution.h" />
+    <ClInclude Include="src\Energy Distribution Generation\EnergyDistributionSet.h" />
     <ClInclude Include="src\Energy Distribution Generation\EnergyDistributionWindow.h" />
-    <ClInclude Include="src\utility\FileUtils.h" />
+    <ClInclude Include="src\Energy Distribution Generation\IonBeam.h" />
+    <ClInclude Include="src\Energy Distribution Generation\LabEnergies.h" />
     <ClInclude Include="src\Energy Distribution Generation\MCMC.h" />
+    <ClInclude Include="src\general\Parameter.h" />
     <ClInclude Include="src\general\ParameterImplementations.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\utility\Constants.h" />
+    <ClInclude Include="src\utility\FileUtils.h" />
+    <ClInclude Include="src\utility\HeatMapData.h" />
+    <ClInclude Include="src\utility\PlotBeamData.h" />
     <ClInclude Include="src\utility\Point3D.h" />
-    <ClInclude Include="vendor\imgui_plot\imconfig.h" />
-    <ClInclude Include="vendor\imgui_plot\imgui.h" />
-    <ClInclude Include="vendor\imgui_plot\imgui_impl_dx12.h" />
-    <ClInclude Include="vendor\imgui_plot\imgui_impl_win32.h" />
-    <ClInclude Include="vendor\imgui_plot\imgui_internal.h" />
-    <ClInclude Include="vendor\imgui_plot\implot.h" />
-    <ClInclude Include="vendor\imgui_plot\implot_internal.h" />
-    <ClInclude Include="vendor\imgui_plot\imstb_rectpack.h" />
-    <ClInclude Include="vendor\imgui_plot\imstb_textedit.h" />
-    <ClInclude Include="vendor\imgui_plot\imstb_truetype.h" />
-    <ClInclude Include="vendor\tinyfiledialogs\tinyfiledialogs.h" />
+    <ClInclude Include="src\utility\ROOTCanvas.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\Cooling Force\CoolingForceCurve.cpp" />
+    <ClCompile Include="src\Cooling Force\CoolingForceModel.cpp" />
+    <ClCompile Include="src\Cooling Force\CoolingForceValue.cpp" />
+    <ClCompile Include="src\Cooling Force\CoolingForceWindow.cpp" />
+    <ClCompile Include="src\Cross Section Deconvolution\BoltzmannDistribution.cpp" />
+    <ClCompile Include="src\Cross Section Deconvolution\CrossSection.cpp" />
+    <ClCompile Include="src\Cross Section Deconvolution\DeconvolutionWindow.cpp" />
+    <ClCompile Include="src\Cross Section Deconvolution\PlasmaRateCoefficient.cpp" />
+    <ClCompile Include="src\Cross Section Deconvolution\RateCoefficient.cpp" />
+    <ClCompile Include="src\Energy Distribution Generation\AnalyticalDistribution.cpp" />
+    <ClCompile Include="src\Energy Distribution Generation\ElectronBeam.cpp" />
+    <ClCompile Include="src\Energy Distribution Generation\EnergyDistribution.cpp" />
+    <ClCompile Include="src\Energy Distribution Generation\EnergyDistributionSet.cpp" />
+    <ClCompile Include="src\Energy Distribution Generation\EnergyDistributionWindow.cpp" />
+    <ClCompile Include="src\Energy Distribution Generation\IonBeam.cpp" />
+    <ClCompile Include="src\Energy Distribution Generation\LabEnergies.cpp" />
+    <ClCompile Include="src\Energy Distribution Generation\MCMC.cpp" />
+    <ClCompile Include="src\general\ParameterImplementations.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\utility\FileUtils.cpp" />
+    <ClCompile Include="src\utility\HeatMapData.cpp" />
+    <ClCompile Include="src\utility\PlotBeamData.cpp" />
+    <ClCompile Include="src\utility\ROOTCanvas.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="vendor\imgui\imgui.vcxproj">
+      <Project>{0098A80F-6CAC-D0C0-352E-7420A101CDF1}</Project>
+    </ProjectReference>
+    <ProjectReference Include="vendor\implot\implot.vcxproj">
+      <Project>{5A62C004-4604-EBDA-2FBF-FE2E1B00722B}</Project>
+    </ProjectReference>
+    <ProjectReference Include="vendor\tinyfiledialogs\tinyfiledialogs.vcxproj">
+      <Project>{ECFD3B54-5889-A918-619A-2C0DCDA40519}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -819,7 +819,11 @@ std::string EnergyDistribution::Filename() const
 
 void PeakFitSettings::ShowWindow(bool& show)
 {
-	if (show && ImGui::Begin("Peak Fit Settings", &show, ImGuiWindowFlags_NoDocking))
+	if (!show)
+	{
+		return;
+	}
+	if (ImGui::Begin("Peak Fit Settings", &show, ImGuiWindowFlags_NoDocking))
 	{
 		ImGui::BeginDisabled(adjustRange[0]);
 		ImGui::SetNextItemWidth(100.0f);
@@ -843,13 +847,17 @@ void PeakFitSettings::ShowWindow(bool& show)
 			ImGui::EndGroup();
 			ImGui::SameLine();
 		}
-		ImGui::End();
 	}
+	ImGui::End();
 }
 
 void BinningSettings::ShowWindow(bool& show)
 {
-	if (show && ImGui::Begin("Binning settings", &show, ImGuiWindowFlags_NoDocking))
+	if (!show)
+	{
+		return;
+	}
+	if (ImGui::Begin("Binning settings", &show, ImGuiWindowFlags_NoDocking))
 	{
 		ImGui::SetNextItemWidth(150.0f);
 		ImGui::InputFloat2("energy range", energyRange, "%.1e");
@@ -886,6 +894,6 @@ void BinningSettings::ShowWindow(bool& show)
 		ImGui::EndDisabled();
 		ImGui::EndDisabled();
 
-		ImGui::End();
 	}
+	ImGui::End();
 }

@@ -5,6 +5,9 @@
 
 int main(int argc, char** argv) 
 {
+    //TApplication ROOTapp = TApplication("app1", nullptr, nullptr);
+    //TApplication ROOTapp2 = TApplication("app1", nullptr, nullptr);
+   
     Application app;
     app.Run();
     //try

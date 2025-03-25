@@ -108,8 +108,8 @@ namespace DeconvolutionWindow
 			fitSettings.ShowWindow(showFitSettingsWindow);
 
 			ShowPlasmaRateWindow();
-			ImGui::End();
 		}
+		ImGui::End();
 	}
 
 	void ShowSettings()
@@ -146,8 +146,8 @@ namespace DeconvolutionWindow
 				cs.Save();
 				AddCrossSectionToList(cs);
 			}
-			ImGui::EndChild();
 		}
+		ImGui::EndChild();
 		
 		ImGui::SameLine();
 		if (ImGui::BeginChild("ConvolveSettings", ImVec2(100.0f, 0.0f), flags))
@@ -174,8 +174,8 @@ namespace DeconvolutionWindow
 				rc.Save();
 				AddRateCoefficientToList(rc);
 			}
-			ImGui::EndChild();
 		}
+		ImGui::EndChild();
 	}
 
 	void ShowPlots()
@@ -241,7 +241,11 @@ namespace DeconvolutionWindow
 
 	void ShowPlasmaRateWindow()
 	{
-		if (showPlasmaRateWindow && ImGui::Begin("plasma rate window", &showPlasmaRateWindow, ImGuiWindowFlags_NoDocking))
+		if (!showPlasmaRateWindow)
+		{
+			return;
+		}
+		if (ImGui::Begin("plasma rate window", &showPlasmaRateWindow, ImGuiWindowFlags_NoDocking))
 		{
 			if (ImPlot::BeginPlot("plasma rates"))
 			{
@@ -260,8 +264,8 @@ namespace DeconvolutionWindow
 
 				ImPlot::EndPlot();
 			}
-			ImGui::End();
 		}
+		ImGui::End();
 	}
 
 	void ShowRateCoefficientList()
@@ -313,9 +317,8 @@ namespace DeconvolutionWindow
 					AddRateCoefficientToList(rc);
 				}
 			}
-
-			ImGui::EndChild();
 		}
+		ImGui::EndChild();
 	}
 
 	void ShowCrossSectionList()
@@ -375,8 +378,8 @@ namespace DeconvolutionWindow
 			ImGui::SetNextItemWidth(50.0f);
 			ImGui::InputInt("scale", &scale, 0, 0);
 
-			ImGui::EndChild();
 		}
+		ImGui::EndChild();
 	}
 
 	void ShowPlasmaRateList()
@@ -418,9 +421,8 @@ namespace DeconvolutionWindow
 					AddPlasmaRateToList(prc);
 				}
 			}
-			
-			ImGui::EndChild();
 		}
+		ImGui::EndChild();
 	}
 }
 

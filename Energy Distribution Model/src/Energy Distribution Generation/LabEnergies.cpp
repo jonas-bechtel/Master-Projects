@@ -190,14 +190,14 @@ namespace LabEnergy
 
 				ShowParameterControls();
 
-				ImGui::EndChild();
 			}
+			ImGui::EndChild();
 
 			ImGui::SameLine();
 			ShowPlots();
 
-			ImGui::End();
 		}
+		ImGui::End();
 	}
 
 	void ShowList()

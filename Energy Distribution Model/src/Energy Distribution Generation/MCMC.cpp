@@ -24,7 +24,9 @@ namespace MCMC
 	static float limitedZRange[2] = { -0.4f, 0.4f };
 
 	// plotting data
-	static ROOTCanvas canvas("MCMC canvas", "MCMC canvas", 1200, 500);
+	static ROOTCanvas* canvas = nullptr;
+	static TCanvas* canvas2 = nullptr;
+
 	static std::vector<PlotBeamData> plotTargetBeams;
 	static std::vector<PlotBeamData> plotResultBeams;
 	static int selectedIndex = -1;
@@ -65,8 +67,9 @@ namespace MCMC
 
 	void Init()
 	{
-		canvas.Divide(2, 1);
-	
+		canvas = new ROOTCanvas("MCMC canvas", "MCMC canvas", 1200, 500);
+		canvas->Divide(2, 1);
+
 		if (generatorList.size() < numThreads)
 		{
 			std::cout << "list of generators is not large enough: size = " << generatorList.size() << " # threads = " << numThreads << std::endl;
@@ -303,10 +306,10 @@ namespace MCMC
 		newTarget.UpdateSlice(SliceZ);
 		newResult.UpdateSlice(SliceZ);
 
-		if (canvas.IsShown())
+		if (canvas->IsShown())
 		{
-			newTarget.Plot3D(canvas, 1);
-			newResult.Plot3D(canvas, 2);
+			newTarget.Plot3D(*canvas, 1);
+			newResult.Plot3D(*canvas, 2);
 		}
 	}
 
@@ -447,20 +450,19 @@ namespace MCMC
 				ImGui::Checkbox("show autocorrelation", &showAutoCorrelationWindow);
 
 				ImGui::Separator();
-				canvas.MakeShowHideButton();
+				canvas->MakeShowHideButton();
 				PlotBeamData::ShowRebinningFactorsInput();
-
-				ImGui::EndChild();
 			}
+			ImGui::EndChild();
 
 			ImGui::SameLine();
 
 			ShowPlots();
 			ShowAutoCorrelationPlots();
 
-			ImGui::End();
 		}
-		canvas.Render();
+		ImGui::End();
+		canvas->Render();
 	}
 
 	void ShowList()

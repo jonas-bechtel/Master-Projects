@@ -169,13 +169,13 @@ namespace IonBeam
 					slice.FromTH3D(beam, SliceZ);
 				}
 
-				ImGui::EndChild();
 			}
+			ImGui::EndChild();
 			ImGui::SameLine();
 			ShowPlots();
 
-			ImGui::End();
 		}
+		ImGui::End();
 	}
 
 	void ShowPlots()
@@ -221,9 +221,9 @@ namespace IonBeam
 
 		ImGui::Separator();
 		ImGui::BeginDisabled(!doubleGaussian);
-		somethingChanged |= ImGui::InputDouble("amplitude", parameter.amplitude, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+		somethingChanged |= ImGui::InputDouble("amplitude", parameter.amplitude, 0.0f, 0.0f, "%.4f");
 		ImGui::EndDisabled();
-		somethingChanged |= ImGui::InputFloat2("sigmas x and y [m]", parameter.sigma, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+		somethingChanged |= ImGui::InputFloat2("sigmas x and y [m]", parameter.sigma, "%.4f");
 		
 		if (ImGui::Button("Set Emittance Values"))
 		{
@@ -234,8 +234,8 @@ namespace IonBeam
 		ImGui::Separator();
 		somethingChanged |= ImGui::Checkbox("use second gaussian", &doubleGaussian);
 		ImGui::BeginDisabled(!doubleGaussian);
-		somethingChanged |= ImGui::InputDouble("amplitude 2", &amplitude2, 0.0f, 0.0f, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
-		somethingChanged |= ImGui::InputFloat2("sigmas 2 x and y [m]", sigma2, "%.4f", ImGuiInputTextFlags_EnterReturnsTrue);
+		somethingChanged |= ImGui::InputDouble("amplitude 2", &amplitude2, 0.0f, 0.0f, "%.4f");
+		somethingChanged |= ImGui::InputFloat2("sigmas 2 x and y [m]", sigma2, "%.4f");
 		
 		if (ImGui::Button("Set Lucias Values"))
 		{

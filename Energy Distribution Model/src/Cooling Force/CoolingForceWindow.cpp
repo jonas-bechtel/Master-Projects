@@ -67,8 +67,8 @@ namespace CoolingForceWindow
 
 			ShowAllParametersWindow();
 
-			ImGui::End();
 		}
+		ImGui::End();
 	}
 
 	void ShowSettings()
@@ -141,8 +141,8 @@ namespace CoolingForceWindow
 			ImGui::Text("(max Index: %d)", maxIndex);
 			ImGui::EndDisabled();
 
-			ImGui::EndChild();
 		}
+		ImGui::EndChild();
 	}
 
 	void ShowTabs()
@@ -179,8 +179,8 @@ namespace CoolingForceWindow
 			}
 			ImGui::PopStyleColor(2);
 
-			ImGui::EndChild();
 		}
+		ImGui::EndChild();
 	}
 
 	void ShowPlots()
@@ -205,32 +205,36 @@ namespace CoolingForceWindow
 
 	void ShowAllParametersWindow()
 	{
-		if (showAllParamsWindow && ImGui::Begin("all cooling force parameters", &showAllParamsWindow, ImGuiWindowFlags_NoDocking))
+		if (!showAllParamsWindow)
+		{
+			return;
+		}
+		if (ImGui::Begin("all cooling force parameters", &showAllParamsWindow, ImGuiWindowFlags_NoDocking))
 		{
 			ImGuiChildFlags flags = ImGuiChildFlags_ResizeX | ImGuiChildFlags_Border;
 			if (ImGui::BeginChild("labe", ImVec2(100, -1), flags))
 			{
 				ImGui::SeparatorText("Lab Energy parameter");
 				LabEnergy::ShowParameterControls();
-				ImGui::EndChild();
 			}
+			ImGui::EndChild();
 			ImGui::SameLine();
 			if (ImGui::BeginChild("ebeam", ImVec2(100, -1), flags))
 			{
 				ImGui::SeparatorText("Electron Beam parameter");
 				ElectronBeam::ShowParameterControls();
-				ImGui::EndChild();
 			}
+			ImGui::EndChild();
 			ImGui::SameLine();
 			if (ImGui::BeginChild("ibeam", ImVec2(100, -1), flags))
 			{
 				ImGui::SeparatorText("Ion Beam parameter");
 				IonBeam::ShowCoolingForceParameterControls();
 				IonBeam::ShowParameterControls();
-				ImGui::EndChild();
 			}
+			ImGui::EndChild();
 
-			ImGui::End();
 		}
+		ImGui::End();
 	}
 }

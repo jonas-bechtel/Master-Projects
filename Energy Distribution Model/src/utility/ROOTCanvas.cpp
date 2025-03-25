@@ -31,12 +31,16 @@ bool ROOTCanvas::IsShown()
 
 void ROOTCanvas::Show()
 {
+	if (m_shown) return;
+
 	((TRootCanvas*)GetCanvasImp())->MapRaised();
 	m_shown = true;
 }
 
 void ROOTCanvas::Hide()
 {
+	if (!m_shown) return;
+
 	((TRootCanvas*)GetCanvasImp())->UnmapWindow();
 	m_shown = false;
 }
