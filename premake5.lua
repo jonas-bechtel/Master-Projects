@@ -1,4 +1,4 @@
-workspace "Master Projects"
+workspace "Energy Distribution Model"
 	architecture "x86_64"
 	startproject "Energy Distribution Model"
 
@@ -16,7 +16,7 @@ workspace "Master Projects"
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 group "Dependencies"
-	-- include "vendor/premake"
+	include "vendor/premake"
 	include "Energy Distribution Model/vendor/tinyfiledialogs"
 	include "Energy Distribution Model/vendor/imgui"
 	include "Energy Distribution Model/vendor/implot"
