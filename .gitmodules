@@ -1,0 +1,8 @@
+[submodule "Energy Distribution Model/vendor/imgui"]
+    path = Energy Distribution Model/vendor/imgui
+    url = https://github.com/jonas-bechtel/imgui.git
+    branch = docking
+
+[submodule "Energy Distribution Model/vendor/implot"]
+    path = Energy Distribution Model/vendor/implot
+    url = https://github.com/jonas-bechtel/implot.git
