@@ -170,7 +170,7 @@ namespace EnergyDistributionWindow
 				int end = endIndex;
 				if (doAll)
 				{
-					start = 0;
+					start = 1;
 					end = maxIndex;
 				}
 				for (int i = start; i <= end; i++)

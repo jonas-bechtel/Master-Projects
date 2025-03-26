@@ -308,8 +308,8 @@ namespace MCMC
 
 		if (canvas->IsShown())
 		{
-			newTarget.Plot3D(*canvas, 1);
-			newResult.Plot3D(*canvas, 2);
+			newTarget.Plot3D(canvas, 1);
+			newResult.Plot3D(canvas, 2);
 		}
 	}
 
@@ -541,6 +541,7 @@ namespace MCMC
 		{
 			if (ImPlot::BeginPlot("Projection X"))
 			{
+				ImPlot::SetupAxes("x", "normalised value");
 				for (int i = 0; i < plotTargetBeams.size(); i++)
 				{
 					plotTargetBeams.at(i).PlotProjectionX(ImPlotLineFlags_Segments);
@@ -551,6 +552,7 @@ namespace MCMC
 
 			if (ImPlot::BeginPlot("Projection Y"))
 			{
+				ImPlot::SetupAxes("y", "normalised value");
 				for (int i = 0; i < plotTargetBeams.size(); i++)
 				{
 					plotTargetBeams.at(i).PlotProjectionY(ImPlotLineFlags_Segments);
@@ -561,6 +563,7 @@ namespace MCMC
 
 			if (ImPlot::BeginPlot("Projection Z"))
 			{
+				ImPlot::SetupAxes("z", "normalised value");
 				for (int i = 0; i < plotTargetBeams.size(); i++)
 				{
 					plotTargetBeams.at(i).PlotProjectionZ(ImPlotLineFlags_Segments);

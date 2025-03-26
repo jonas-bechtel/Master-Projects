@@ -144,16 +144,18 @@ void PlotBeamData::UpdateSlice(float zValue)
 	slice.FromTH3D(fullHistogram, zValue);
 }
 
-void PlotBeamData::Plot3D(ROOTCanvas& canvas, int pos)
+void PlotBeamData::Plot3D(ROOTCanvas* canvas, int pos)
 {
-	if (!canvas.IsShown() || !fullHistogram) return;
+	if (!canvas->IsShown() || !fullHistogram) return;
 
-	canvas.cd(pos);
+	canvas->cd(pos);
 
 	delete fullHistogramSmall;
 	fullHistogramSmall = (TH3D*)fullHistogram->Rebin3D(rebinningFactors[0],
 		rebinningFactors[1],
 		rebinningFactors[2], "dist small");
+
+	if (!fullHistogramSmall) return;
 
 	fullHistogramSmall->GetXaxis()->SetTitle("x-axis");
 	fullHistogramSmall->GetYaxis()->SetTitle("y-axis");

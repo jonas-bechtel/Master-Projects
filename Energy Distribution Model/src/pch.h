@@ -18,6 +18,7 @@
 // ROOT headers
 #include <TCanvas.h>
 #include <TF1.h>
+#include <TF2.h>
 #include <TH3D.h>
 #include <TProfile2D.h>
 #include <TRootCanvas.h>

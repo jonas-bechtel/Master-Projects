@@ -155,17 +155,17 @@ namespace ElectronBeam
 		if (!file.empty())
 		{
 			TH3D* result = FileUtils::LoadMatrixFile(file);
+
 			result = CutZerosFromDistribution(result);
 
 			if (mirrorAroundZ)
 				result = MirrorDistributionAtZ(result);
 
-			result->SetTitle("electron distribution");
-			result->SetName("electron distribution");
-
 			if (increaseHist)
 				result = CreateLargeDistribution(result);
-
+			
+			result->SetTitle("electron distribution");
+			result->SetName("electron distribution");
 			parameter.densityFile.set(file);
 
 			return result;
@@ -187,7 +187,7 @@ namespace ElectronBeam
 		PlotBeamData& newlySelected = plotBeams.at(selectedIndex);
 		newlySelected.UpdateSlice(SliceZ);
 
-		if (canvas->IsShown()) newlySelected.Plot3D(*canvas, 2);
+		if (canvas->IsShown()) newlySelected.Plot3D(canvas, 2);
 	}
 
 	void AddBeamToList(PlotBeamData& eBeam)
@@ -262,7 +262,8 @@ namespace ElectronBeam
 		double zMin = input->GetZaxis()->GetXmin();
 		double zMax = input->GetZaxis()->GetXmax();
 
-		TH3D* output = new TH3D(input->GetName(), input->GetTitle(),
+		std::string newName = std::string(input->GetName()) + "_cut";
+		TH3D* output = new TH3D(newName.c_str(), input->GetTitle(),
 			newBinsX, xMin, xMax,
 			newBinsY, yMin, yMax,
 			newBinsZ, zMin, zMax);
@@ -304,7 +305,8 @@ namespace ElectronBeam
 		double zMax = input->GetZaxis()->GetXmax();
 
 		// Create mirrored histogram with double Z range
-		TH3D* mirrored = new TH3D(input->GetName(), input->GetTitle(),
+		std::string newName = std::string(input->GetName()) + "_mirrored";
+		TH3D* mirrored = new TH3D(newName.c_str(), input->GetTitle(),
 			nBinsX, xMin, xMax,
 			nBinsY, yMin, yMax,
 			2 * nBinsZ, zMin, zMax);
@@ -352,7 +354,8 @@ namespace ElectronBeam
 		double lastBinCenterY = input->GetYaxis()->GetBinCenter(input->GetNbinsY());
 		double lastBinCenterZ = input->GetZaxis()->GetBinCenter(input->GetNbinsZ());
 
-		TH3D* output = new TH3D("electron distribution large", "electron distribution large",
+		std::string newName = std::string(input->GetName()) + "_large";
+		TH3D* output = new TH3D(newName.c_str(), input->GetTitle(),
 			numberBinsX, input->GetXaxis()->GetXmin(), input->GetXaxis()->GetXmax(),
 			numberBinsY, input->GetYaxis()->GetXmin(), input->GetYaxis()->GetXmax(),
 			numberBinsZ, input->GetZaxis()->GetXmin(), input->GetZaxis()->GetXmax());
@@ -433,7 +436,8 @@ namespace ElectronBeam
 			}
 		}
 		TH3D* newBeam = CutZerosFromDistribution(eBeam);
-		//delete eBeam;
+		newBeam->SetTitle("generated electron distribution");
+		newBeam->SetName("generated electron distribution");
 		return newBeam;
 	}
 
@@ -517,7 +521,7 @@ namespace ElectronBeam
 					for (const std::filesystem::path& file : files)
 					{
 							TH3D* hist = LoadDensityFile(file);
-
+							std::cout << hist->GetName() << std::endl;
 							PlotBeamData newBeam(hist);
 							std::string index = file.filename().string().substr(0, 4);
 							std::string label = file.parent_path().parent_path().filename().string() + ": index " + index;
@@ -527,6 +531,7 @@ namespace ElectronBeam
 					}
 				}
 				ImGui::SameLine();
+				ImGui::BeginDisabled(!(cylindricalElectronBeam || gaussianElectronBeam));
 				if (ImGui::Button("generate density"))
 				{
 					TH3D* hist = GenerateElectronBeamDensity();
@@ -538,6 +543,7 @@ namespace ElectronBeam
 					newBeam.SetLabel(shape + " beam, radius " + radius + " " + bend);
 					AddBeamToList(newBeam);
 				}
+				ImGui::EndDisabled();
 				ImGui::SameLine();
 				if (ImGui::Button("clear list"))
 				{
@@ -670,6 +676,7 @@ namespace ElectronBeam
 		{
 			if (ImPlot::BeginPlot("Projection X"))
 			{
+				ImPlot::SetupAxes("x", "normalised value");
 				for (const PlotBeamData& eBeam : plotBeams)
 				{
 					eBeam.PlotProjectionX();
@@ -679,6 +686,7 @@ namespace ElectronBeam
 
 			if (ImPlot::BeginPlot("Projection Y"))
 			{
+				ImPlot::SetupAxes("y", "normalised value");
 				for (const PlotBeamData& eBeam : plotBeams)
 				{
 					eBeam.PlotProjectionY();
@@ -688,9 +696,20 @@ namespace ElectronBeam
 
 			if (ImPlot::BeginPlot("Projection Z"))
 			{
+				ImPlot::SetupAxes("z", "normalised value");
 				for (const PlotBeamData& eBeam : plotBeams)
 				{
 					eBeam.PlotProjectionZ();
+				}
+				ImPlot::EndPlot();
+			}
+
+			if (ImPlot::BeginPlot("Inside/Outside"))
+			{
+				ImPlot::SetupAxes("z", "value");
+				for (const PlotBeamData& eBeam : plotBeams)
+				{
+					eBeam.PlotInsideOutsideValue();
 				}
 				ImPlot::EndPlot();
 			}

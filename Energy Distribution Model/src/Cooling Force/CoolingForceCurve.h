@@ -1,5 +1,6 @@
 #pragma once
 #include "CoolingForceValue.h"
+#include "CoolingForceModel.h"
 
 class CoolingForceCurve
 {
@@ -11,6 +12,7 @@ public:
 	CoolingForceCurve(CoolingForceCurve&& other) = default;
 	CoolingForceCurve& operator=(CoolingForceCurve&& other) = default;
 
+	void IntegrateNumerically(NumericalIntegrationParameter& params);
 	void AddForceValue(CoolingForceValue&& value);
 	void RemoveForceValue(int index);
 
@@ -24,7 +26,7 @@ public:
 
 	void ShowList();
 
-	void Plot() const;
+	void PlotForceZ() const;
 
 	//void Save() const;
 	//void Load(std::filesystem::path& folder);
@@ -40,6 +42,6 @@ private:
 	std::filesystem::path subFolder = "subfolder";
 
 	int selectedIndex = -1;
-
+	bool numerical = false; // as opposed to mcmc generated
 };
 

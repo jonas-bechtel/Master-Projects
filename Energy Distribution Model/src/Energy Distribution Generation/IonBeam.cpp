@@ -17,6 +17,8 @@ namespace IonBeam
 	static bool doubleGaussian;
 	static double amplitude2;
 	static float sigma2[2];
+	static bool limitZRange = false;
+	static float limitedZRange[2] = { -0.4f, 0.4f };
 
 	// plotting data
 	static std::vector<double> xAxis;
@@ -266,6 +268,11 @@ namespace IonBeam
 		ImGui::PushItemWidth(170.0f);
 		ImGui::InputInt("number samples", parameter.numberSamples);
 		ImGui::InputInt("charge", parameter.charge);
+		ImGui::BeginDisabled(!limitZRange);
+		ImGui::InputFloat2("##limited range", limitedZRange);
+		ImGui::EndDisabled();
+		ImGui::SameLine();
+		ImGui::Checkbox("limit z range", &limitZRange);
 		ImGui::PopItemWidth();
 		ImGui::EndGroup();
 	}
@@ -280,11 +287,18 @@ namespace IonBeam
 
 		TRandom3 generator(seconds);
 
+		float range[2] = { beam->GetZaxis()->GetXmin(), beam->GetZaxis()->GetXmax() };
+		if (limitZRange)
+		{
+			range[0] = limitedZRange[0];
+			range[1] = limitedZRange[1];
+		}
+
 		if (!doubleGaussian)
 		{
 			for (int i = 0; i < parameter.numberSamples; i++)
 			{
-				double z = generator.Uniform(beam->GetZaxis()->GetXmin(), beam->GetZaxis()->GetXmax());
+				double z = generator.Uniform(range[0], range[1]);
 				double x = generator.Gaus(parameter.shift.get().x + parameter.angles.get().x * z, parameter.sigma.get().x);
 				double y = generator.Gaus(parameter.shift.get().y + parameter.angles.get().y * z, parameter.sigma.get().y);
 				positions.emplace_back(x, y, z);
@@ -316,6 +330,7 @@ namespace IonBeam
 	{
 		std::string tags = "";
 		if (doubleGaussian) tags += "ion-2gaus, ";
+		if (limitZRange) tags += Form("z samples %.3f - %.3f, ", limitedZRange[0], limitedZRange[1]);
 		
 		return tags;
 	}

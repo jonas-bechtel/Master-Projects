@@ -243,6 +243,7 @@ namespace LabEnergy
 
 			if (ImPlot::BeginPlot("Projection X"))
 			{
+				ImPlot::SetupAxes("x", "normalised value");
 				for (const PlotBeamData& energy : plotEnergies)
 				{
 					energy.PlotProjectionX();
@@ -252,6 +253,7 @@ namespace LabEnergy
 
 			if (ImPlot::BeginPlot("Projection Y"))
 			{
+				ImPlot::SetupAxes("y", "normalised value");
 				for (const PlotBeamData& energy : plotEnergies)
 				{
 					energy.PlotProjectionY();
@@ -261,6 +263,7 @@ namespace LabEnergy
 
 			if (ImPlot::BeginPlot("Projection Z"))
 			{
+				ImPlot::SetupAxes("z", "normalised value");
 				for (const PlotBeamData& energy : plotEnergies)
 				{
 					energy.PlotProjectionZ();
@@ -270,6 +273,7 @@ namespace LabEnergy
 
 			if (ImPlot::BeginPlot("Inside/Outside"))
 			{
+				ImPlot::SetupAxes("z", "value");
 				for (const PlotBeamData& energy : plotEnergies)
 				{
 					energy.PlotInsideOutsideValue();

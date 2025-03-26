@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "CoolingForceWindow.h"
-
+#include "CoolingForceModel.h"
 #include "CoolingForceCurve.h"
 #include "FileUtils.h"
 
@@ -20,6 +20,9 @@ namespace CoolingForceWindow
 	static bool doAll = false;
 
 	static bool showAllParamsWindow = false;
+
+	static NumericalIntegrationParameter numericalParameter;
+	static bool showNumericalIntegrationWindow = false;
 
 
 	void Init()
@@ -66,6 +69,7 @@ namespace CoolingForceWindow
 			ImGui::EndGroup();
 
 			ShowAllParametersWindow();
+			numericalParameter.ShowWindow(showNumericalIntegrationWindow);
 
 		}
 		ImGui::End();
@@ -114,7 +118,7 @@ namespace CoolingForceWindow
 				int end = endIndex;
 				if (doAll)
 				{
-					start = 0;
+					start = 1;
 					end = maxIndex;
 				}
 				for (int i = start; i <= end; i++)
@@ -126,7 +130,16 @@ namespace CoolingForceWindow
 				}
 			}
 			ImGui::EndDisabled();
-
+			ImGui::SameLine();
+			if (ImGui::Button("Generate Cooling curve from numerical Model"))
+			{
+				CreateNewCurve();
+				CoolingForceCurve& curve = curveList.at(currentCurveIndex);
+				curve.IntegrateNumerically(numericalParameter);
+			}
+			ImGui::SameLine();
+			ImGui::Checkbox("parameter", &showNumericalIntegrationWindow);
+			
 			ImGui::SetNextItemWidth(80.0f);
 			ImGui::BeginDisabled(doAll);
 			ImGui::InputInt("start", &startIndex);
@@ -195,7 +208,7 @@ namespace CoolingForceWindow
 			for (const CoolingForceCurve& curve : curveList)
 			{
 					ImGui::PushID(i++);
-					curve.Plot();
+					curve.PlotForceZ();
 					ImGui::PopID();
 			}
 
@@ -229,8 +242,9 @@ namespace CoolingForceWindow
 			if (ImGui::BeginChild("ibeam", ImVec2(100, -1), flags))
 			{
 				ImGui::SeparatorText("Ion Beam parameter");
-				IonBeam::ShowCoolingForceParameterControls();
 				IonBeam::ShowParameterControls();
+				ImGui::Separator();
+				IonBeam::ShowCoolingForceParameterControls();
 			}
 			ImGui::EndChild();
 

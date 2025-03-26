@@ -15,10 +15,12 @@ std::normal_distribution<double> CoolingForceValue::transverseNormalDistribution
 
 CoolingForceValue::CoolingForceValue()
 {
+	//std::cout << "calling cf value default constructor" << std::endl;
 }
 
 CoolingForceValue::~CoolingForceValue()
 {
+	//std::cout << "calling cf value destructor" << std::endl;
 	delete forceX;
 	delete forceY;
 	delete forceZ;
@@ -27,6 +29,7 @@ CoolingForceValue::~CoolingForceValue()
 
 CoolingForceValue::CoolingForceValue(CoolingForceValue&& other) noexcept
 {
+	//std::cout << "calling cf value move constructor" << std::endl;
 	forceX = other.forceX;
 	forceY = other.forceY;
 	forceZ = other.forceZ;
@@ -66,6 +69,7 @@ CoolingForceValue::CoolingForceValue(CoolingForceValue&& other) noexcept
 
 CoolingForceValue& CoolingForceValue::operator=(CoolingForceValue&& other) noexcept
 {
+	//std::cout << "calling cf value move assignment" << std::endl;
 	if (this == &other) return *this;
 
 	forceX = other.forceX;
@@ -214,7 +218,7 @@ void CoolingForceValue::Calculate(std::filesystem::path descriptionFile, int ind
 
 		double electronDensity = ElectronBeam::GetDensity(point);
 		int ionCharge = IonBeam::GetCharge();
-		TVector3 coolingforce = cf::CoolingForce(collisionVelocity, trans_kT, electronDensity, ionCharge);
+		TVector3 coolingforce = CoolingForceModel::CoolingForce(collisionVelocity, trans_kT, electronDensity, ionCharge);
 	
 		positionSamples->Fill(x, y, z);
 	

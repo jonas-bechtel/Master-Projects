@@ -39,7 +39,7 @@ public:
 	void SetLabel(std::string str);
 	void UpdateSlice(float zValue);
 
-	void Plot3D(ROOTCanvas& canvas, int pos);
+	void Plot3D(ROOTCanvas* canvas, int pos);
 	void PlotSlice() const;
 	void PlotProjectionX(ImPlotLineFlags_ flags = ImPlotLineFlags_None) const;
 	void PlotProjectionY(ImPlotLineFlags_ flags = ImPlotLineFlags_None) const;
