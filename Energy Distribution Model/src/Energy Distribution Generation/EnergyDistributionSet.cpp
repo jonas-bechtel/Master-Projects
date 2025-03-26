@@ -192,10 +192,10 @@ void EnergyDistributionSet::CalculatePsisFromBinning(TH1D* crossSection)
 
 void EnergyDistributionSet::ShowList()
 {
-	ImGui::PushID(this);
-
+	//ImGui::PushID(this);
+	std::cout << ImGui::GetItemID() << std::endl;
 	float sizeY = ImGui::GetContentRegionAvail().y - 100.0f;
-	if (ImGui::BeginListBox("listbox", ImVec2(-1, sizeY)))
+	if (ImGui::BeginListBox("edist listbox", ImVec2(-1, sizeY)))
 	{
 		for (int i = 0; i < distributions.size(); i++)
 		{
@@ -210,11 +210,12 @@ void EnergyDistributionSet::ShowList()
 			}
 			ImGui::PopID();
 		}
-
+		std::cout << ImGui::GetItemID() << std::endl;
 		ImGui::EndListBox();
 	}
-	ImGui::PopID();
-
+	
+	//ImGui::PopID();
+	std::cout << ImGui::GetItemID() << std::endl;
 	if (ImGui::BeginPopupContextItem())
 	{
 		if (ImGui::Button("plot all"))

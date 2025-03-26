@@ -60,7 +60,7 @@ void CoolingForceCurve::ShowList()
 	ImGui::PushID(this);
 
 	float sizeY = ImGui::GetContentRegionAvail().y - 100.0f;
-	if (ImGui::BeginListBox("listbox", ImVec2(-1, sizeY)))
+	if (ImGui::BeginListBox("cc listbox", ImVec2(-1, sizeY)))
 	{
 		for (int i = 0; i < values.size(); i++)
 		{
