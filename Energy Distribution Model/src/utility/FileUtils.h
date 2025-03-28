@@ -11,6 +11,8 @@ namespace FileUtils
 	std::filesystem::path GetCrossSectionFolder();
 	std::filesystem::path GetRateCoefficientFolder();
 	std::filesystem::path GetEnergyDistSetFolder();
+	std::filesystem::path GetCoolingForceCurveFolder();
+	std::filesystem::path GetNumericalCoolingForceCurveFolder();
 
 	std::filesystem::path SelectFile(const std::filesystem::path& startPath = "data\\", const std::vector<const char*>& filterPatterns = { "*.asc" });
 	std::filesystem::path SelectFolder(const std::filesystem::path& startPath = "data\\");

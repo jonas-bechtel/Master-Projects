@@ -18,6 +18,8 @@ namespace FileUtils
     static std::filesystem::path crossSectionFolder = outputFolder / "Cross Sections\\";
     static std::filesystem::path rateCoefficientFolder = outputFolder / "Rate Coefficients\\";
     static std::filesystem::path energyDistSetFolder = outputFolder / "Energy Distribution Sets\\";
+    static std::filesystem::path coolingForceCurveFolder = outputFolder / "Cooling Force Curves\\";
+    static std::filesystem::path numericalCoolingForceCurveFolder = coolingForceCurveFolder / "Numerical\\";
     static int headerSize = 9;
     static std::string xDelimiter = "\t";
     static std::string zDelimiter = ";";
@@ -59,6 +61,16 @@ namespace FileUtils
     std::filesystem::path GetEnergyDistSetFolder()
     {
         return energyDistSetFolder;
+    }
+
+    std::filesystem::path GetCoolingForceCurveFolder()
+    {
+        return coolingForceCurveFolder;
+    }
+
+    std::filesystem::path GetNumericalCoolingForceCurveFolder()
+    {
+        return numericalCoolingForceCurveFolder;
     }
 
     std::filesystem::path SelectFile(const std::filesystem::path& startPath, const std::vector<const char*>& filterPatterns)

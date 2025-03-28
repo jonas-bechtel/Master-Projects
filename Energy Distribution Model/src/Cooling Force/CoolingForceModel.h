@@ -9,15 +9,17 @@ struct NumericalIntegrationParameter
 	double kT_trans = 0.002;
 	double kT_long = 187e-6;
 
-	float relativeVelocityRange[2] = { -10000.0f, 10000.0f };
-	int numberPoints = 100;
+	float relativeVelocityRange[2] = { -100000.0f, 100000.0f };
+	int numberPoints = 300;
 
+	std::string String() const;
+	void FromString(std::string& input);
 	void ShowWindow(bool& show);
 };
 
 namespace CoolingForceModel
 {
-	TVector3 CoolingForce(TVector3 relativeVelocity, double kT_trans, double electronDensity, int ionCharge);
+	TVector3 CoolingForce(TVector3 relativeVelocity, double kT_trans, double electronDensity, int ionCharge, bool onlyVRelLongInLC);
 
 	double NumericalIntegrand(double* vels, double* params);
 	double FlattenedMaxwellDistribution(double vTrans, double vLong, double sigmaTrans, double sigmaLong);

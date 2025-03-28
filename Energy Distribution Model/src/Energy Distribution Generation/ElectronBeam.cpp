@@ -19,6 +19,7 @@ namespace ElectronBeam
 	static bool cylindricalElectronBeam = false;
 	static bool noElectronBeamBend = false;
 	static double electronBeamRadius = 0.05;
+	static double electronBeamDensity = 1;
 	static bool fixedLongitudinalTemperature = false;
 
 	// parameters to increase histogram resolution by interpolation
@@ -421,14 +422,14 @@ namespace ElectronBeam
 					if (gaussianElectronBeam)
 					{
 						// Calculate the value using the Gaussian distribution centered at z = 0
-						value = exp(-(x * x + (y - ymean) * (y - ymean)) / (2.0 * pow(electronBeamRadius, 2)));
+						value = electronBeamDensity * exp(-(x * x + (y - ymean) * (y - ymean)) / (2.0 * pow(electronBeamRadius, 2)));
 					}
 					else if (cylindricalElectronBeam)
 					{
 						if (x * x + (y - ymean) * (y - ymean) <= pow(electronBeamRadius, 2))
 						{
 							// if inside the cylinder, set the value to an arbitrary constant value
-							value = 1;
+							value = electronBeamDensity;
 						}
 					}
 					eBeam->SetBinContent(i, j, k, value);
@@ -567,6 +568,7 @@ namespace ElectronBeam
 				ShowParameterControls();
 				ImGui::Separator();
 				canvas->MakeShowHideButton();
+				ImGui::SameLine();
 				PlotBeamData::ShowRebinningFactorsInput();
 
 				ImGui::SeparatorText("arrow sliders");
@@ -653,17 +655,26 @@ namespace ElectronBeam
 		{
 			parameter.densityFile.get().clear();
 			cylindricalElectronBeam = false;
+
+			// remove bend if unticked
+			if (!gaussianElectronBeam)
+				noElectronBeamBend = false;
 		}
 		ImGui::SameLine();
 		if (ImGui::Checkbox("cylindrical", &cylindricalElectronBeam))
 		{
 			parameter.densityFile.get().clear();
 			gaussianElectronBeam = false;
+
+			// remove bend if unticked
+			if (!cylindricalElectronBeam)
+				noElectronBeamBend = false;
 		}
 		ImGui::BeginDisabled(!(gaussianElectronBeam || cylindricalElectronBeam));
-		ImGui::InputDouble("radius [m]", &electronBeamRadius);
 		ImGui::SameLine();
 		ImGui::Checkbox("no bend", &noElectronBeamBend);
+		ImGui::InputDouble("radius [m]", &electronBeamRadius);
+		ImGui::InputDouble("density [1/m^3]", &electronBeamDensity, 0, 0, "%.2e");
 		ImGui::EndDisabled();
 
 		ImGui::PopItemWidth();

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "CoolingForceCurve.h"
 #include "Constants.h"
+#include "FileUtils.h"
 
 CoolingForceCurve::CoolingForceCurve()
 {
@@ -24,12 +25,13 @@ void CoolingForceCurve::IntegrateNumerically(NumericalIntegrationParameter& para
 		func.SetParameters((double*)&params);
 
 		// Now integrate the function over the specified range
-		double result = func.Integral(0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong);
+		double result = func.Integral(0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, 1e-8);
 
 		detuningVelocites.push_back(params.relativeVelocity);
 		forceZ.push_back(result);
 	}
 	numerical = true;
+	numericalParams = params;
 }
 
 void CoolingForceCurve::AddForceValue(CoolingForceValue&& value)
@@ -115,7 +117,7 @@ void CoolingForceCurve::ShowList()
 
 	if (ImGui::Button("save cooling curve"))
 	{
-		//Save();
+		Save();
 	}
 }
 
@@ -125,4 +127,103 @@ void CoolingForceCurve::PlotForceZ() const
 		ImPlot::PlotLine(GetLabel().c_str(), detuningVelocites.data(), forceZ.data(), detuningVelocites.size());
 	else
 		ImPlot::PlotScatter(GetLabel().c_str(), detuningVelocites.data(), forceZ.data(), detuningVelocites.size());
+}
+
+void CoolingForceCurve::Save() const
+{
+	if (numerical)
+	{
+		std::filesystem::path outfolder = FileUtils::GetNumericalCoolingForceCurveFolder();
+
+		if (!std::filesystem::exists(outfolder))
+		{
+			std::filesystem::create_directories(outfolder);
+		}
+
+		std::filesystem::path file = outfolder / (numericalParams.String() + ".asc");
+		std::ofstream outfile(file);
+
+		if (!outfile.is_open())
+		{
+			std::cerr << "Error opening file" << std::endl;
+			return;
+		}
+		outfile << "# " << numericalParams.String() << "\n";
+		outfile << "# detuning velocity [m/s]\tcooling force [eV/m]\n";
+		for (int i = 0; i < detuningVelocites.size(); i++)
+		{
+			outfile << detuningVelocites.at(i) << "\t" << forceZ.at(i) <<  "\n";
+		}
+
+		outfile.close();
+		return;
+	}
+
+	std::filesystem::path outfolder = FileUtils::GetCoolingForceCurveFolder() / folder / subFolder;
+
+	if (!std::filesystem::exists(outfolder))
+	{
+		std::filesystem::create_directories(outfolder);
+	}
+
+	for (const CoolingForceValue& value : values)
+	{
+		value.Save(outfolder);
+	}
+}
+
+void CoolingForceCurve::Load(const std::filesystem::path& input)
+{
+	if (!std::filesystem::exists(input))
+	{
+		std::cerr << "Invalid input path!" << std::endl;
+		return;
+	}
+
+	// loading mcmc generated cooling curve
+	if (std::filesystem::is_directory(input))
+	{
+		for (const auto& entry : std::filesystem::directory_iterator(input))
+		{
+			if (entry.is_regular_file() && entry.path().extension() == ".asc")
+			{
+				std::filesystem::path file = entry.path();
+				CoolingForceValue value;
+				value.Load(file);
+
+				AddForceValue(std::move(value));
+			}
+		}
+		folder = input.parent_path().parent_path().filename() / input.parent_path().filename();
+		subFolder = input.filename();
+	}
+	// loading numerically integrated cooling curves
+	else if (std::filesystem::is_regular_file(input))
+	{
+		// load the .asc file with the histogram data
+		std::ifstream infile(input);
+
+		// Check if the file was successfully opened
+		if (!infile.is_open())
+		{
+			std::cerr << "Error: Could not open the file " << input << std::endl;
+			return;
+		}
+
+		// skip the header
+		FileUtils::GetHeaderFromFile(infile);
+
+		std::string line;
+		while (std::getline(infile, line))
+		{
+			std::vector<std::string> tokens = FileUtils::SplitLine(line, "\t");
+
+			detuningVelocites.push_back(std::stod(tokens[0]));
+			forceZ.push_back(std::stod(tokens[1]));
+		}
+		infile.close();
+
+		numericalParams.FromString(input.filename().replace_extension().string());
+		numerical = true;
+	}
 }

@@ -34,10 +34,35 @@ void HeatMapData::Plot(std::string title) const
 	{
 		ImPlot::SetupAxes("x", "y");
 		ImPlot::PlotHeatmap(title.c_str(), values.data(), nRows, nCols, minValue, maxValue, nullptr, bottomLeft, topRight);
+		ShowColorValueTooltip();
 		ImPlot::EndPlot();
 	}
 	ImGui::SameLine();
 	ImPlot::ColormapScale("##HeatScale", minValue, maxValue, ImVec2(0, 350));
 
 	ImPlot::PopColormap();
+}
+
+void HeatMapData::ShowColorValueTooltip() const
+{
+	ImPlotPoint mouse = ImPlot::GetPlotMousePos();
+
+	// Convert mouse X, Y to array indices
+	int i = static_cast<int>((mouse.x - bottomLeft.x) / ((topRight.x - bottomLeft.x) / nCols));
+	int j = static_cast<int>((mouse.y - bottomLeft.y) / ((topRight.y - bottomLeft.y) / nRows));
+
+	// Flip Y-axis indexing (ImPlot uses bottom-left origin)
+	j = (nRows - 1) - j;
+
+	// Check if within valid range
+	if (i >= 0 && i < nCols && j >= 0 && j < nRows) {
+		float z_value = values[j * nCols + i]; // Correct indexing
+
+		// Show tooltip with X, Y, and Z values
+		ImGui::BeginTooltip();
+		ImGui::Text("X: %.3f", mouse.x);
+		ImGui::Text("Y: %.3f", mouse.y);
+		ImGui::Text("Z: %.2e", z_value);
+		ImGui::EndTooltip();
+	}
 }

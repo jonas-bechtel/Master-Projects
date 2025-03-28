@@ -28,8 +28,8 @@ public:
 
 	void PlotForceZ() const;
 
-	//void Save() const;
-	//void Load(std::filesystem::path& folder);
+	void Save() const;
+	void Load(const std::filesystem::path& input);
 
 private:
 	std::vector<CoolingForceValue> values;
@@ -43,5 +43,6 @@ private:
 
 	int selectedIndex = -1;
 	bool numerical = false; // as opposed to mcmc generated
+	NumericalIntegrationParameter numericalParams;
 };
 

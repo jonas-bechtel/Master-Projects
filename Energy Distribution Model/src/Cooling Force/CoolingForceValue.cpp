@@ -111,7 +111,7 @@ CoolingForceValue& CoolingForceValue::operator=(CoolingForceValue&& other) noexc
 	return *this;
 }
 
-void CoolingForceValue::Calculate(std::filesystem::path descriptionFile, int index)
+void CoolingForceValue::Calculate(std::filesystem::path descriptionFile, int index, bool onlyLongInLC)
 {
 	// get all necessary modules
 	std::filesystem::path folder = descriptionFile.parent_path();
@@ -156,7 +156,8 @@ void CoolingForceValue::Calculate(std::filesystem::path descriptionFile, int ind
 
 	// final setup of current curve
 	CopyParameters();
-	SetupLabellingThings();
+	SetupLabel();
+	SetupTags();
 
 	// calculate cooling force
 	std::vector<Point3D> samples = IonBeam::GeneratePositions();
@@ -214,11 +215,11 @@ void CoolingForceValue::Calculate(std::filesystem::path descriptionFile, int ind
 		TVector3 ionVelocity = ionVelocityDirection * ionVelocityMagnitude;
 
 		TVector3 collisionVelocity = ionVelocity - finalElectronVelocity;
-		double collisionVelocityMagnitude = collisionVelocity.Mag();
+		//double collisionVelocityMagnitude = collisionVelocity.Mag();
 
 		double electronDensity = ElectronBeam::GetDensity(point);
 		int ionCharge = IonBeam::GetCharge();
-		TVector3 coolingforce = CoolingForceModel::CoolingForce(collisionVelocity, trans_kT, electronDensity, ionCharge);
+		TVector3 coolingforce = CoolingForceModel::CoolingForce(collisionVelocity, trans_kT, electronDensity, ionCharge, onlyLongInLC);
 	
 		positionSamples->Fill(x, y, z);
 	
@@ -380,6 +381,64 @@ double CoolingForceValue::CalculateIntegral(TH3D* hist)
 	return result;
 }
 
+void CoolingForceValue::Save(std::filesystem::path folder) const
+{
+	std::filesystem::path file = folder / (Filename() + ".asc");
+	
+	// Open a ROOT file for writing
+	TFile outfile(file.string().c_str(), "RECREATE");
+	if (!outfile.IsOpen())
+	{
+		std::cout << "error opening file: " << file << std::endl;
+	}
+	TNamed header("header", GetHeaderString());
+	header.Write();
+
+	// Write histograms into the file
+	forceX->Write();
+	forceY->Write();
+	forceZ->Write();
+	positionSamples->Write();
+
+	outfile.Close();
+}
+
+void CoolingForceValue::Load(std::filesystem::path file)
+{
+	TFile infile(file.string().c_str(), "READ");
+
+	// Read metadata
+	TNamed* header = (TNamed*)infile.Get("header");
+	if (header) 
+	{
+		eBeamParameter.fromString(header->GetTitle());
+		ionBeamParameter.fromString(header->GetTitle());
+		labEnergiesParameter.fromString(header->GetTitle());
+	}
+	SetupLabel();
+
+	// Retrieve histograms
+	forceX = (TH3D*)infile.Get("cooling force X");
+	forceY = (TH3D*)infile.Get("cooling force Y");
+	forceZ = (TH3D*)infile.Get("cooling force Z");
+	positionSamples = (TH3D*)infile.Get("position samples");
+
+	forceX->SetDirectory(0);
+	forceY->SetDirectory(0);
+	forceZ->SetDirectory(0);
+	positionSamples->SetDirectory(0);
+
+	// Check if histograms were loaded correctly
+	if (!(forceX && forceY && forceZ && positionSamples)) 
+	{
+		std::cerr << "Error loading histograms!" << std::endl;
+	}
+
+	infile.Close();
+
+	FillData();
+}
+
 void CoolingForceValue::CopyParameters()
 {
 	eBeamParameter = ElectronBeam::GetParameters();
@@ -387,18 +446,22 @@ void CoolingForceValue::CopyParameters()
 	labEnergiesParameter = LabEnergy::GetParameters();
 }
 
-void CoolingForceValue::SetupLabellingThings()
+void CoolingForceValue::SetupLabel()
 {
 	if (!eBeamParameter.densityFile.get().empty() && !labEnergiesParameter.energyFile.get().empty())
 	{
 		index = std::stoi(eBeamParameter.densityFile.get().filename().string().substr(0, 4));
 	}
 
+	label = Form("%d: U drift = %.2fV, v_d = %.1f", index, labEnergiesParameter.driftTubeVoltage.get(),
+		eBeamParameter.detuningVelocity.get());
+}
+
+void CoolingForceValue::SetupTags()
+{
 	tags += ElectronBeam::GetTags();
 	tags += LabEnergy::GetTags();
 	tags += IonBeam::GetTags();
-	label = Form("%d: U drift = %.2fV, v_d = %.1f", index, labEnergiesParameter.driftTubeVoltage.get(),
-		eBeamParameter.detuningVelocity.get());
 }
 
 void CoolingForceValue::ResetDefaultValues()
@@ -437,7 +500,7 @@ std::string CoolingForceValue::Filename() const
 	std::ostringstream indexSS;
 	indexSS << std::setw(4) << std::setfill('0') << index;
 
-	std::string string = indexSS.str() + std::string(Form(" E_d %.4feV", eBeamParameter.detuningEnergy.get()));
+	std::string string = indexSS.str() + std::string(Form(" v_d %.0fmps", eBeamParameter.detuningVelocity.get()));
 
 	return string;
 }

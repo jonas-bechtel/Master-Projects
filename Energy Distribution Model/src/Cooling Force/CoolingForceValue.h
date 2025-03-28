@@ -24,7 +24,7 @@ public:
 	CoolingForceValue(CoolingForceValue&& other) noexcept;
 	CoolingForceValue& operator=(CoolingForceValue&& other) noexcept;
 
-	void Calculate(std::filesystem::path descriptionFile, int index);
+	void Calculate(std::filesystem::path descriptionFile, int index, bool onlyLongInLC);
 
 	bool ShowListItem(bool selected) const;
 
@@ -32,9 +32,13 @@ public:
 	void FillData();
 	double CalculateIntegral(TH3D* hist);
 
+	void Save(std::filesystem::path folder) const;
+	void Load(std::filesystem::path file);
+
 private:
 	void CopyParameters();
-	void SetupLabellingThings();
+	void SetupLabel();
+	void SetupTags();
 	void ResetDefaultValues();
 
 	std::string GetHeaderString() const;

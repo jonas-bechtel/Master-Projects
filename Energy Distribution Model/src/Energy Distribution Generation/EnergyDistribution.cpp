@@ -762,6 +762,7 @@ void EnergyDistribution::Load(std::filesystem::path& file, bool loadSamples)
 		binValues.push_back(std::stod(tokens[1]));
 		binValuesNormalised.push_back(std::stod(tokens[2]));
 	}
+	histFile.close();
 	std::cout << "loaded file: " << file.filename();
 
 	// see if .samples file exist with collision energy data
@@ -788,6 +789,7 @@ void EnergyDistribution::Load(std::filesystem::path& file, bool loadSamples)
 				collisionEnergies.push_back(std::stod(line));
 			}
 			std::cout << "\tsamples file found";
+			samplesFile.close();
 		}
 	}
 	std::cout << std::endl;

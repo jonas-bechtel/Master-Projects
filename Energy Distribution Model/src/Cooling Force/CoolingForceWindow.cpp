@@ -10,6 +10,9 @@ namespace CoolingForceWindow
 	static std::vector<CoolingForceCurve> curveList;
 	static int currentCurveIndex = -1;
 
+	// optional parameter
+	static bool onlyLongInLC = false;
+
 	// currently loaded description file
 	static std::filesystem::path currentDescriptionFile = std::filesystem::path("data\\C60\\dataset1\\100x100x100_Ie0.95_Ucath44.2_RelTol0_mbrc1_energies.asc");
 	static int maxIndex = 0;
@@ -89,7 +92,8 @@ namespace CoolingForceWindow
 			ImGui::Text("file: %s", (currentDescriptionFile.parent_path().filename() / currentDescriptionFile.filename()).string().c_str());
 			
 			ImGui::Checkbox("All Parameters", &showAllParamsWindow);
-
+			ImGui::SameLine();
+			ImGui::Checkbox("use only long comp in LC", &onlyLongInLC);
 			ImGui::SeparatorText("output things");
 
 			if (!curveList.empty())
@@ -98,7 +102,7 @@ namespace CoolingForceWindow
 				char buf[64] = "";
 				strncpy_s(buf, currentCurve.GetSubfolder().string().c_str(), sizeof(buf) - 1);
 				ImGui::SetNextItemWidth(150.0f);
-				if (ImGui::InputText("set subfolder", buf, IM_ARRAYSIZE(buf)))
+				if (ImGui::InputText("curve subfolder", buf, IM_ARRAYSIZE(buf)))
 				{
 					currentCurve.SetSubfolder(std::filesystem::path(buf));
 				}
@@ -124,7 +128,7 @@ namespace CoolingForceWindow
 				for (int i = start; i <= end; i++)
 				{
 					CoolingForceValue newValue;
-					newValue.Calculate(currentDescriptionFile, i);
+					newValue.Calculate(currentDescriptionFile, i, onlyLongInLC);
 					CoolingForceCurve& curve = curveList.at(currentCurveIndex);
 					curve.AddForceValue(std::move(newValue));
 				}
@@ -192,6 +196,28 @@ namespace CoolingForceWindow
 			}
 			ImGui::PopStyleColor(2);
 
+			if (ImGui::Button("load MCMC Cool Curve"))
+			{
+				std::filesystem::path folder = FileUtils::SelectFolder(FileUtils::GetCoolingForceCurveFolder());
+				if (!folder.empty())
+				{
+					CreateNewCurve();
+					curveList.back().Load(folder);
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("load numerical Cool Curves"))
+			{
+				std::vector<std::filesystem::path> filenames = FileUtils::SelectFiles(FileUtils::GetNumericalCoolingForceCurveFolder());
+				if (!filenames.empty())
+				{
+					for (auto& filename : filenames)
+					{
+						CreateNewCurve();
+						curveList.back().Load(filename);
+					}
+				}
+			}
 		}
 		ImGui::EndChild();
 	}
@@ -201,15 +227,21 @@ namespace CoolingForceWindow
 		if (ImPlot::BeginPlot("cooling force curves", ImVec2(-1, -1)))
 		{
 			ImPlot::SetupAxis(ImAxis_X1, "detuning velocity [m/s]");
-			ImPlot::SetupAxis(ImAxis_Y1, "cooling force [eV/m]", ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_RangeFit);
-			ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside);
+			ImPlot::SetupAxis(ImAxis_Y1, "cooling force [eV/m]");
+			ImPlot::SetupLegend(ImPlotLocation_NorthEast);
 
 			int i = 0;
 			for (const CoolingForceCurve& curve : curveList)
 			{
+					ImVec4 color = ImPlot::GetColormapColor(i);
+					ImPlot::PushStyleColor(ImPlotCol_Line, color);
+					ImPlot::PushStyleColor(ImPlotCol_MarkerOutline, color);
+
 					ImGui::PushID(i++);
 					curve.PlotForceZ();
 					ImGui::PopID();
+
+					ImPlot::PopStyleColor(2);
 			}
 
 			ImPlot::EndPlot();

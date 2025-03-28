@@ -451,6 +451,7 @@ namespace MCMC
 
 				ImGui::Separator();
 				canvas->MakeShowHideButton();
+				ImGui::SameLine();
 				PlotBeamData::ShowRebinningFactorsInput();
 			}
 			ImGui::EndChild();

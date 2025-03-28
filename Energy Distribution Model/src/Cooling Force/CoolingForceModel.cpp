@@ -3,13 +3,15 @@
 #include "Constants.h"
 
 // returns the 3d force in eV
-TVector3 CoolingForceModel::CoolingForce(TVector3 relativeVelocity, double kT_trans, double electronDensity, int ionCharge)
+TVector3 CoolingForceModel::CoolingForce(TVector3 relativeVelocity, double kT_trans, double electronDensity, int ionCharge, bool onlyVRelLongInLC)
 {
 	if (electronDensity == 0)
 		return TVector3(0, 0, 0);
 
 	double factor = pow(TMath::Qe(), 3) / (4 * TMath::Pi() * pow(PhysicalConstants::epsilon_0, 2) * PhysicalConstants::electronMass);
-	double L_C = CoulombLogarithm(relativeVelocity.Mag(), kT_trans, electronDensity, ionCharge);
+	double L_C = 0.0;
+	if(onlyVRelLongInLC) L_C = CoulombLogarithm(abs(relativeVelocity.z()), kT_trans, electronDensity, ionCharge);
+	else L_C = CoulombLogarithm(relativeVelocity.Mag(), kT_trans, electronDensity, ionCharge);
 	return -factor * ionCharge * ionCharge * electronDensity * L_C / pow(relativeVelocity.Mag(), 3) * relativeVelocity;
 }
 
@@ -32,7 +34,7 @@ double CoolingForceModel::NumericalIntegrand(double* vels, double* params)
 
 	double factor = ionCharge * ionCharge * pow(TMath::Qe(), 3) * electronDensity 
 		/ (4 * TMath::Pi() * pow(PhysicalConstants::epsilon_0, 2)  * PhysicalConstants::electronMass);
-	double L_C = CoulombLogarithm(vLong, kT_trans, electronDensity, ionCharge);
+	double L_C = CoulombLogarithm(relativeVelocity - vLong, kT_trans, electronDensity, ionCharge);
 	double deltaTrans = sqrt(2 * kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
 	double deltaLong = sqrt(kT_long * TMath::Qe() / PhysicalConstants::electronMass);
 	double f_v = FlattenedMaxwellDistribution(vTrans, vLong, deltaTrans, deltaLong);
@@ -59,7 +61,7 @@ double CoolingForceModel::FlattenedMaxwellDistribution(double vTrans, double vLo
 
 double CoolingForceModel::CoulombLogarithm(double relativeVelocity, double kT_trans, double electronDensity, int ionCharge)
 {
-	return log(B_max(relativeVelocity, kT_trans, electronDensity) / B_min(relativeVelocity, kT_trans, ionCharge));
+	return log(B_max(abs(relativeVelocity), kT_trans, electronDensity) / B_min(abs(relativeVelocity), kT_trans, ionCharge));
 }
 
 double CoolingForceModel::B_min(double relativeVelocity, double kT_trans, int ionCharge)
@@ -81,6 +83,47 @@ double CoolingForceModel::DebyeScreeningLength(double kT_trans, double electronD
 double CoolingForceModel::PlasmaFrequency(double electronDensity)
 {
 	return sqrt(electronDensity * TMath::Qe() * TMath::Qe() / (PhysicalConstants::epsilon_0 * PhysicalConstants::electronMass));
+}
+
+std::string NumericalIntegrationParameter::String() const
+{
+	std::ostringstream density;
+	density << std::scientific << std::setprecision(3) << electronDensity;
+	std::ostringstream Tlong;
+	Tlong << std::scientific << std::setprecision(3) << kT_long;
+	std::ostringstream Ttrans;
+	Ttrans << std::scientific << std::setprecision(3) << kT_trans;
+
+	std::string result = "Q=" + std::to_string(ionCharge) + "_ne=" + density.str()
+		+ "_Tlong=" + Tlong.str() + "_Ttrans=" + Ttrans.str();
+
+	return result;
+}
+
+void NumericalIntegrationParameter::FromString(std::string& input)
+{
+	std::istringstream stream(input);
+	std::string token;
+
+	while (std::getline(stream, token, '_')) 
+	{
+		if (token.find("Q=") == 0) 
+		{
+			ionCharge = std::stoi(token.substr(2));
+		}
+		else if (token.find("ne=") == 0) 
+		{
+			electronDensity = std::stod(token.substr(3));
+		}
+		else if (token.find("Tlong=") == 0) 
+		{
+			kT_long = std::stod(token.substr(6)); 
+		}
+		else if (token.find("Ttrans=") == 0) 
+		{
+			kT_trans = std::stod(token.substr(7));
+		}
+	}
 }
 
 void NumericalIntegrationParameter::ShowWindow(bool& show)
