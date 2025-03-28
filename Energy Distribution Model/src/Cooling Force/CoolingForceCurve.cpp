@@ -17,6 +17,7 @@ void CoolingForceCurve::IntegrateNumerically(NumericalIntegrationParameter& para
 
 	detuningVelocites.reserve(params.numberPoints);
 	forceZ.reserve(params.numberPoints);
+	forceZscaled.reserve(params.numberPoints);
 
 	TF2 func("func", CoolingForceModel::NumericalIntegrand, 0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, 5, 2);
 	for (int i = 0; i < params.numberPoints; i++)
@@ -29,6 +30,7 @@ void CoolingForceCurve::IntegrateNumerically(NumericalIntegrationParameter& para
 
 		detuningVelocites.push_back(params.relativeVelocity);
 		forceZ.push_back(result);
+		forceZscaled.push_back(result);
 	}
 	numerical = true;
 	numericalParams = params;
@@ -39,6 +41,7 @@ void CoolingForceCurve::AddForceValue(CoolingForceValue&& value)
 	forceX.push_back(value.forceXValue);
 	forceY.push_back(value.forceYValue);
 	forceZ.push_back(value.forceZValue);
+	forceZscaled.push_back(value.forceZValue);
 
 	// will call move Constructor
 	detuningVelocites.push_back(value.eBeamParameter.detuningVelocity);
@@ -50,6 +53,7 @@ void CoolingForceCurve::RemoveForceValue(int index)
 	forceX.erase(forceX.begin() + index);
 	forceY.erase(forceY.begin() + index);
 	forceZ.erase(forceZ.begin() + index);
+	forceZscaled.erase(forceZscaled.begin() + index);
 
 	detuningVelocites.erase(detuningVelocites.begin() + index);
 	values.erase(values.begin() + index);
@@ -89,7 +93,7 @@ void CoolingForceCurve::ShowList()
 {
 	ImGui::PushID(this);
 
-	float sizeY = ImGui::GetContentRegionAvail().y - 100.0f;
+	float sizeY = ImGui::GetContentRegionAvail().y - 200.0f;
 	if (ImGui::BeginListBox("##cc listbox", ImVec2(-1, sizeY)))
 	{
 		for (int i = 0; i < values.size(); i++)
@@ -113,20 +117,40 @@ void CoolingForceCurve::ShowList()
 	}
 	ImGui::PopID();
 
-	ImGui::Text("cooling force curve: %s", GetLabel().c_str());
-
-	if (ImGui::Button("save cooling curve"))
+	ImGui::SetNextItemWidth(200.0f);
+	bool changed = ImGui::SliderFloat("scale", &scale, 0, 10);
+	if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 	{
-		Save();
+		scale = 1.0f;
+		changed = true;
 	}
+	if (changed)
+	{
+		for (int i = 0; i < forceZ.size(); i++)
+		{
+			forceZscaled[i] = forceZ[i] * scale;
+		}
+	}
+	
+	ImGui::Text("cooling force curve: %s", GetLabel().c_str());
+}
+
+void CoolingForceCurve::PlotForceX() const
+{
+	ImPlot::PlotScatter(GetLabel().c_str(), detuningVelocites.data(), forceX.data(), forceX.size());
+}
+
+void CoolingForceCurve::PlotForceY() const
+{
+	ImPlot::PlotScatter(GetLabel().c_str(), detuningVelocites.data(), forceY.data(), forceY.size());
 }
 
 void CoolingForceCurve::PlotForceZ() const
 {
 	if(numerical)
-		ImPlot::PlotLine(GetLabel().c_str(), detuningVelocites.data(), forceZ.data(), detuningVelocites.size());
+		ImPlot::PlotLine(GetLabel().c_str(), detuningVelocites.data(), forceZscaled.data(), forceZscaled.size());
 	else
-		ImPlot::PlotScatter(GetLabel().c_str(), detuningVelocites.data(), forceZ.data(), detuningVelocites.size());
+		ImPlot::PlotScatter(GetLabel().c_str(), detuningVelocites.data(), forceZscaled.data(), forceZscaled.size());
 }
 
 void CoolingForceCurve::Save() const
@@ -220,6 +244,7 @@ void CoolingForceCurve::Load(const std::filesystem::path& input)
 
 			detuningVelocites.push_back(std::stod(tokens[0]));
 			forceZ.push_back(std::stod(tokens[1]));
+			forceZscaled.push_back(std::stod(tokens[1]));
 		}
 		infile.close();
 

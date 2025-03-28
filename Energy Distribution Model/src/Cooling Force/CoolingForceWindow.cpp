@@ -106,6 +106,11 @@ namespace CoolingForceWindow
 				{
 					currentCurve.SetSubfolder(std::filesystem::path(buf));
 				}
+				ImGui::SameLine();
+				if (ImGui::Button("save"))
+				{
+					currentCurve.Save();
+				}
 			}
 
 			ImGui::Separator();
@@ -196,6 +201,7 @@ namespace CoolingForceWindow
 			}
 			ImGui::PopStyleColor(2);
 
+			ImGui::Separator();
 			if (ImGui::Button("load MCMC Cool Curve"))
 			{
 				std::filesystem::path folder = FileUtils::SelectFolder(FileUtils::GetCoolingForceCurveFolder());
@@ -238,6 +244,8 @@ namespace CoolingForceWindow
 					ImPlot::PushStyleColor(ImPlotCol_MarkerOutline, color);
 
 					ImGui::PushID(i++);
+					//curve.PlotForceX();
+					//curve.PlotForceY();
 					curve.PlotForceZ();
 					ImGui::PopID();
 

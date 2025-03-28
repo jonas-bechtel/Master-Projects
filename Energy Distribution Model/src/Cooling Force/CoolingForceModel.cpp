@@ -34,7 +34,8 @@ double CoolingForceModel::NumericalIntegrand(double* vels, double* params)
 
 	double factor = ionCharge * ionCharge * pow(TMath::Qe(), 3) * electronDensity 
 		/ (4 * TMath::Pi() * pow(PhysicalConstants::epsilon_0, 2)  * PhysicalConstants::electronMass);
-	double L_C = CoulombLogarithm(relativeVelocity - vLong, kT_trans, electronDensity, ionCharge);
+	double v_r = sqrt(pow(relativeVelocity - vLong, 2) + pow(vTrans, 2));
+	double L_C = CoulombLogarithm(v_r, kT_trans, electronDensity, ionCharge);
 	double deltaTrans = sqrt(2 * kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
 	double deltaLong = sqrt(kT_long * TMath::Qe() / PhysicalConstants::electronMass);
 	double f_v = FlattenedMaxwellDistribution(vTrans, vLong, deltaTrans, deltaLong);

@@ -26,6 +26,8 @@ public:
 
 	void ShowList();
 
+	void PlotForceX() const;
+	void PlotForceY() const;
 	void PlotForceZ() const;
 
 	void Save() const;
@@ -36,7 +38,10 @@ private:
 	std::vector<double> forceX;
 	std::vector<double> forceY;
 	std::vector<double> forceZ;
+	std::vector<double> forceZscaled;
 	std::vector<double> detuningVelocites;
+
+	float scale = 1.0f;
 
 	std::filesystem::path folder = "Test";
 	std::filesystem::path subFolder = "subfolder";
