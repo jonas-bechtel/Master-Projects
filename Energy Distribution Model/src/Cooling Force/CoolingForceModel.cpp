@@ -2,43 +2,68 @@
 #include "CoolingForceModel.h"
 #include "Constants.h"
 
-// returns the 3d force in eV
-TVector3 CoolingForceModel::CoolingForce(TVector3 relativeVelocity, double kT_trans, double electronDensity, int ionCharge, bool onlyVRelLongInLC)
-{
-	if (electronDensity == 0)
-		return TVector3(0, 0, 0);
+double NumericalIntegrationParameter::precision = 1e-7;
 
-	double factor = pow(TMath::Qe(), 3) / (4 * TMath::Pi() * pow(PhysicalConstants::epsilon_0, 2) * PhysicalConstants::electronMass);
-	double L_C = 0.0;
-	if(onlyVRelLongInLC) L_C = CoulombLogarithm(abs(relativeVelocity.z()), kT_trans, electronDensity, ionCharge);
-	else L_C = CoulombLogarithm(relativeVelocity.Mag(), kT_trans, electronDensity, ionCharge);
-	return -factor * ionCharge * ionCharge * electronDensity * L_C / pow(relativeVelocity.Mag(), 3) * relativeVelocity;
+namespace CoolingForceModel
+{
+	static double constantsFactor =  pow(TMath::Qe(), 3) / (4 * TMath::Pi() * pow(PhysicalConstants::epsilon_0, 2) * PhysicalConstants::electronMass);
 }
 
-double CoolingForceModel::NumericalIntegrand(double* vels, double* params)
+// returns the 3d force in eV at one position for one relative velocity
+TVector3 CoolingForceModel::CoolingForce(const NumericalIntegrationParameter& params)
+{
+	if (params.electronDensity == 0)
+		return TVector3(0, 0, 0);
+
+	double factor = constantsFactor;// pow(TMath::Qe(), 3) / (4 * TMath::Pi() * pow(PhysicalConstants::epsilon_0, 2) * PhysicalConstants::electronMass);
+	double L_C = CoulombLogarithm(params.relativeVelocity.Mag(), params.kT_trans, params.electronDensity, params.ionCharge);
+	return -factor * pow(params.ionCharge, 2) * params.electronDensity * L_C / pow(params.relativeVelocity.Mag(), 3) * params.relativeVelocity;
+}
+
+// integrates the longitudinal cooling force for a given density and temperature and mean relative velocity
+double CoolingForceModel::ForceZ(const NumericalIntegrationParameter& params)
+{
+	if (params.electronDensity == 0)
+		return 0.0;
+
+	double deltaTrans = sqrt(2 * params.kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
+	double deltaLong = sqrt(params.kT_long * TMath::Qe() / PhysicalConstants::electronMass);
+
+	int numberParams = ceil(sizeof(NumericalIntegrationParameter) / sizeof(double));
+	//std::cout << "inside: " << params.String() << std::endl;
+	thread_local TF2 func("func", CoolingForceModel::NumericalIntegrandPolar, 0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, numberParams, 2);
+
+	func.SetParameters((double*)&params);
+
+	double result = func.Integral(0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, params.precision);
+
+	return result;
+}
+
+double CoolingForceModel::NumericalIntegrandPolar(double* vels, double* params)
 {
 	double vTrans = vels[0];
 	double vLong = vels[1];
 
-	double relativeVelocity = params[0];
-	double ionCharge = params[1];
-	double electronDensity = params[2];
-	double kT_trans = params[3];
-	double kT_long = params[4];
+	NumericalIntegrationParameter& parameter = *(NumericalIntegrationParameter*)params;
+	double relativeVelocity = parameter.relativeVelocity.z();
+	int ionCharge = parameter.ionCharge;
+	double electronDensity = parameter.electronDensity;
+	double kT_trans = parameter.kT_trans;
+	double kT_long = parameter.kT_long;
 
-	//std::cout << relativeVelocity << std::endl;
-	//std::cout << ionCharge << std::endl;
-	//std::cout << electronDensity << std::endl;
-	//std::cout << kT_trans << std::endl;
-	//std::cout << kT_long << std::endl;
+	/*std::cout << relativeVelocity << std::endl;
+	std::cout << ionCharge << std::endl;
+	std::cout << electronDensity << std::endl;
+	std::cout << kT_trans << std::endl;
+	std::cout << kT_long << std::endl;*/
 
-	double factor = ionCharge * ionCharge * pow(TMath::Qe(), 3) * electronDensity 
-		/ (4 * TMath::Pi() * pow(PhysicalConstants::epsilon_0, 2)  * PhysicalConstants::electronMass);
+	double factor = ionCharge * ionCharge * electronDensity * constantsFactor;
 	double v_r = sqrt(pow(relativeVelocity - vLong, 2) + pow(vTrans, 2));
 	double L_C = CoulombLogarithm(v_r, kT_trans, electronDensity, ionCharge);
 	double deltaTrans = sqrt(2 * kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
 	double deltaLong = sqrt(kT_long * TMath::Qe() / PhysicalConstants::electronMass);
-	double f_v = FlattenedMaxwellDistribution(vTrans, vLong, deltaTrans, deltaLong);
+	double f_v = FlattenedMaxwellDistributionPolar(vTrans, vLong, deltaTrans, deltaLong);
 
 	//std::cout << factor << std::endl;
 	//std::cout << L_C << std::endl;
@@ -53,11 +78,64 @@ double CoolingForceModel::NumericalIntegrand(double* vels, double* params)
 	return result;
 }
 
-double CoolingForceModel::FlattenedMaxwellDistribution(double vTrans, double vLong, double deltaTrans, double deltaLong)
+double CoolingForceModel::NumericalIntegrandCartesian(double* vels, double* params)
+{
+	double vX = vels[0];
+	double vY = vels[1];
+	double vZ = vels[2];
+
+	NumericalIntegrationParameter& parameter = *(NumericalIntegrationParameter*)params;
+	TVector3 meanRelativeVelocity = parameter.relativeVelocity;
+	int ionCharge = parameter.ionCharge;
+	double electronDensity = parameter.electronDensity;
+	double kT_trans = parameter.kT_trans;
+	double kT_long = parameter.kT_long;
+
+	double factor = ionCharge * ionCharge * electronDensity * constantsFactor;
+	TVector3 relativeVelocity = meanRelativeVelocity - TVector3(vX, vY, vZ);
+	//relativeVelocity.Print();
+	//meanRelativeVelocity.Unit().Print();
+	//std::cout << relativeVelocity.Dot(meanRelativeVelocity.Unit()) << std::endl << std::endl;
+	double v_r = relativeVelocity.Mag();
+	//double v_r = sqrt(pow(meanRelativeVelocity.z() - vZ, 2) + vY * vY + vX * vX);
+	double L_C = CoulombLogarithm(v_r, kT_trans, electronDensity, ionCharge);
+	double sigmaX = sqrt(kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
+	double sigmaY = sigmaX;
+	double sigmaZ = sqrt(kT_long * TMath::Qe() / PhysicalConstants::electronMass);
+	double f_v = FlattenedMaxwellDistributionCartesian(vX, vY, vZ, sigmaX, sigmaY, sigmaZ);
+
+	//std::cout << factor << std::endl;
+	/*std::cout << v_r << std::endl;
+	std::cout << L_C << std::endl;
+	std::cout << sigmaX << std::endl;
+	std::cout << sigmaZ << std::endl;
+	std::cout << f_v << std::endl;*/
+	if (relativeVelocity.z() == 0) 
+		return 0;
+
+	double result = -factor * L_C * f_v * relativeVelocity.z() / pow(v_r, 3);
+	if (std::isnan(result))
+	{
+		std::cout << "result is nan" << std::endl;
+	}
+	//std::cout << result << std::endl;
+
+	return result;
+}
+
+double CoolingForceModel::FlattenedMaxwellDistributionPolar(double vTrans, double vLong, double deltaTrans, double deltaLong)
 {
 	return 1 / (pow(deltaTrans, 2) * sqrt(2) * deltaLong * pow(TMath::Pi(), 1.5)) *
 		exp(-((pow(vTrans, 2) / pow(deltaTrans, 2))
 			+ (pow(vLong, 2) / (2 * pow(deltaLong, 2)))));
+}
+
+double CoolingForceModel::FlattenedMaxwellDistributionCartesian(double vX, double vY, double vZ, double sigmaX, double sigmaY, double sigmaZ)
+{
+	return 1 / (sigmaX * sigmaY * sigmaZ * pow(2 * TMath::Pi(), 1.5)) *
+		exp(-0.5 * (pow(vX, 2) / pow(sigmaX, 2)
+				 +  pow(vY, 2) / pow(sigmaY, 2)
+				 +  pow(vZ, 2) / pow(sigmaZ, 2)));
 }
 
 double CoolingForceModel::CoulombLogarithm(double relativeVelocity, double kT_trans, double electronDensity, int ionCharge)
@@ -84,6 +162,11 @@ double CoolingForceModel::DebyeScreeningLength(double kT_trans, double electronD
 double CoolingForceModel::PlasmaFrequency(double electronDensity)
 {
 	return sqrt(electronDensity * TMath::Qe() * TMath::Qe() / (PhysicalConstants::epsilon_0 * PhysicalConstants::electronMass));
+}
+
+double CoolingForceModel::GetConstantsFactor()
+{
+	return 0.0;
 }
 
 std::string NumericalIntegrationParameter::String() const
@@ -135,13 +218,14 @@ void NumericalIntegrationParameter::ShowWindow(bool& show)
 	}
 	if (ImGui::Begin("Numerical integration parameter", &show, ImGuiWindowFlags_NoDocking))
 	{
-
 		ImGui::PushItemWidth(150.0f);
 		ImGui::InputFloat2("velocity range", relativeVelocityRange, "%.1e");
 		ImGui::InputInt("number points", &numberPoints);
+		ImGui::InputDouble("relative precision", &precision, 0, 0, "%.1e");
+		ImGui::Separator();
 		ImGui::InputDouble("kT long", &kT_long);
 		ImGui::InputDouble("kT trans", &kT_trans);
-		ImGui::InputDouble("ion charge", &ionCharge);
+		ImGui::InputInt("ion charge", &ionCharge);
 		ImGui::InputDouble("electron density", &electronDensity, 0, 0, "%.2e");
 		ImGui::PopItemWidth();
 	}

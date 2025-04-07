@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "CoolingForceCurve.h"
+#include "CoolingForceWindow.h"
 #include "Constants.h"
 #include "FileUtils.h"
 
@@ -9,8 +10,9 @@ CoolingForceCurve::CoolingForceCurve()
 
 void CoolingForceCurve::IntegrateNumerically(NumericalIntegrationParameter& params)
 {
-	double deltaTrans = sqrt(2 * params.kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
-	double deltaLong = sqrt(params.kT_long * TMath::Qe() / PhysicalConstants::electronMass);
+	//double sigmaX = sqrt(params.kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
+	//double deltaTrans = sqrt(2 * params.kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
+	//double deltaLong = sqrt(params.kT_long * TMath::Qe() / PhysicalConstants::electronMass);
 
 	double start = params.relativeVelocityRange[0];
 	double step = (params.relativeVelocityRange[1] - params.relativeVelocityRange[0]) / (params.numberPoints - 1);
@@ -19,19 +21,40 @@ void CoolingForceCurve::IntegrateNumerically(NumericalIntegrationParameter& para
 	forceZ.reserve(params.numberPoints);
 	forceZscaled.reserve(params.numberPoints);
 
-	TF2 func("func", CoolingForceModel::NumericalIntegrand, 0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, 5, 2);
-	for (int i = 0; i < params.numberPoints; i++)
+	//int numberParams = ceil(sizeof(NumericalIntegrationParameter) / sizeof(double));
+	bool polar = true;
+	if (polar)
 	{
-		params.relativeVelocity = start + i * step;
-		func.SetParameters((double*)&params);
-
-		// Now integrate the function over the specified range
-		double result = func.Integral(0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, 1e-8);
-
-		detuningVelocites.push_back(params.relativeVelocity);
-		forceZ.push_back(result);
-		forceZscaled.push_back(result);
+		//TF2 func("func", CoolingForceModel::NumericalIntegrandPolar, 0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, numberParams, 2);
+		for (int i = 0; i < params.numberPoints; i++)
+		{
+			params.relativeVelocity.SetZ(start + i * step);
+			//func.SetParameters((double*)&params);
+			double result = CoolingForceModel::ForceZ(params);
+			// Now integrate the function over the specified range
+			//double result = func.Integral(0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, 1e-8);
+			detuningVelocites.push_back(params.relativeVelocity.z());
+			forceZ.push_back(result);
+			forceZscaled.push_back(result);
+		}
 	}
+	else
+	{
+		//TF3 func("func", CoolingForceModel::NumericalIntegrandCartesian, -4.0 * sigmaX, 4.0 * sigmaX, -4.0 * sigmaX, 4.0 * sigmaX, -4.0 * deltaLong, 4.0 * deltaLong, numberParams, 3);
+		//for (int i = 0; i < params.numberPoints; i++)
+		//{
+		//	params.relativeVelocity = TVector3(0,0,1) * (start + i * step);
+		//	params.relativeVelocity.Print();
+		//	func.SetParameters((double*)&params);
+		//
+		//	// Now integrate the function over the specified range
+		//	double result = func.Integral(-4.0 * sigmaX, 4.0 * sigmaX, -4.0 * sigmaX, 4.0 * sigmaX, -4.0 * deltaLong, 4.0 * deltaLong, 1e-8);
+		//	detuningVelocites.push_back(params.relativeVelocity.z());
+		//	forceZ.push_back(result);
+		//	forceZscaled.push_back(result);
+		//}
+	}
+
 	numerical = true;
 	numericalParams = params;
 }
@@ -46,6 +69,12 @@ void CoolingForceCurve::AddForceValue(CoolingForceValue&& value)
 	// will call move Constructor
 	detuningVelocites.push_back(value.eBeamParameter.detuningVelocity);
 	values.emplace_back(std::move(value));
+
+	if (values.size() == 1)
+	{
+		selectedIndex = 0;
+		SelectedItemChanged();
+	}
 }
 
 void CoolingForceCurve::RemoveForceValue(int index)
@@ -57,6 +86,12 @@ void CoolingForceCurve::RemoveForceValue(int index)
 
 	detuningVelocites.erase(detuningVelocites.begin() + index);
 	values.erase(values.begin() + index);
+
+	selectedIndex = std::min(selectedIndex, (int)values.size() - 1);
+	if (selectedIndex >= 0)
+	{
+		SelectedItemChanged();
+	}
 }
 
 void CoolingForceCurve::SetFolder(std::filesystem::path path)
@@ -81,6 +116,9 @@ std::filesystem::path CoolingForceCurve::GetSubfolder() const
 
 std::string CoolingForceCurve::GetLabel() const
 {
+	if (numerical) 
+		return numericalParams.String();
+
 	return (folder / subFolder).string();
 }
 
@@ -89,34 +127,64 @@ bool CoolingForceCurve::Empty() const
 	return values.empty();
 }
 
+bool CoolingForceCurve::IsNumerical() const
+{
+	return numerical;
+}
+
 void CoolingForceCurve::ShowList() 
 {
-	ImGui::PushID(this);
-
-	float sizeY = ImGui::GetContentRegionAvail().y - 200.0f;
-	if (ImGui::BeginListBox("##cc listbox", ImVec2(-1, sizeY)))
+	ImGui::Text("label: %s", GetLabel().c_str());
+	if (numerical)
 	{
-		for (int i = 0; i < values.size(); i++)
+		ImGui::Separator();
+		ImGui::BeginGroup();
+		ImGui::Text("electron density:");
+		ImGui::Text("ion charge:");
+		ImGui::Text("longitudinal kT:");
+		ImGui::Text("transverse kT:");
+		ImGui::Text("relative error:");	
+		ImGui::EndGroup();
+		ImGui::SameLine();
+		ImGui::BeginGroup();
+		ImGui::Text("%.2e", numericalParams.electronDensity);
+		ImGui::Text("%d", numericalParams.ionCharge);
+		ImGui::Text("%.2e", numericalParams.kT_long);
+		ImGui::Text("%.2e", numericalParams.kT_trans);
+		ImGui::Text("%.1e", numericalParams.precision);
+		ImGui::EndGroup();
+		ImGui::Separator();				
+	}									
+	else
+	{
+		ImGui::PushID(this);
+
+		float sizeY = ImGui::GetContentRegionAvail().y - 200.0f;
+		if (ImGui::BeginListBox("##cc listbox", ImVec2(-1, sizeY)))
 		{
-			ImGui::PushID(i);
-			const CoolingForceValue& value = values.at(i);
-			if (value.ShowListItem(selectedIndex == i))
+			for (int i = 0; i < values.size(); i++)
 			{
-				selectedIndex = i;
+				ImGui::PushID(i);
+				const CoolingForceValue& value = values.at(i);
+				if (value.ShowListItem(selectedIndex == i))
+				{
+					selectedIndex = i;
+					SelectedItemChanged();
+				}
+
+				ImGui::SameLine();
+				if (ImGui::SmallButton("x"))
+				{
+					RemoveForceValue(i);
+				}
+				ImGui::PopID();
 			}
 
-			ImGui::SameLine();
-			if (ImGui::SmallButton("x"))
-			{
-				RemoveForceValue(i);
-			}
-			ImGui::PopID();
+			ImGui::EndListBox();
 		}
-
-		ImGui::EndListBox();
-	}
-	ImGui::PopID();
-
+		ImGui::PopID();
+	}						
+	
 	ImGui::SetNextItemWidth(200.0f);
 	bool changed = ImGui::SliderFloat("scale", &scale, 0, 10);
 	if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
@@ -131,8 +199,11 @@ void CoolingForceCurve::ShowList()
 			forceZscaled[i] = forceZ[i] * scale;
 		}
 	}
-	
-	ImGui::Text("cooling force curve: %s", GetLabel().c_str());
+}
+
+void CoolingForceCurve::SelectedItemChanged()
+{
+	UpdateSlice(CoolingForceWindow::GetSlice());
 }
 
 void CoolingForceCurve::PlotForceX() const
@@ -151,6 +222,24 @@ void CoolingForceCurve::PlotForceZ() const
 		ImPlot::PlotLine(GetLabel().c_str(), detuningVelocites.data(), forceZscaled.data(), forceZscaled.size());
 	else
 		ImPlot::PlotScatter(GetLabel().c_str(), detuningVelocites.data(), forceZscaled.data(), forceZscaled.size());
+}
+
+void CoolingForceCurve::PlotDetails() const
+{
+	if (selectedIndex < 0) return;
+	const CoolingForceValue& value = values.at(selectedIndex);
+
+	//ImPlot::BeginPlot("##details");
+	value.PlotPreForceSlize();
+	//ImPlot::EndPlot();
+
+}
+
+void CoolingForceCurve::UpdateSlice(float zValue)
+{
+	if (selectedIndex < 0) return;
+
+	values.at(selectedIndex).UpdateSlice(zValue);
 }
 
 void CoolingForceCurve::Save() const

@@ -23,12 +23,17 @@ public:
 	std::filesystem::path GetSubfolder() const;
 	std::string GetLabel() const;
 	bool Empty() const;
+	bool IsNumerical() const;
 
 	void ShowList();
+	void SelectedItemChanged();
 
 	void PlotForceX() const;
 	void PlotForceY() const;
 	void PlotForceZ() const;
+	void PlotDetails() const;
+
+	void UpdateSlice(float zValue);
 
 	void Save() const;
 	void Load(const std::filesystem::path& input);

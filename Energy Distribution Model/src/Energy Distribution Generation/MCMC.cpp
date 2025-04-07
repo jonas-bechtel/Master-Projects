@@ -3,6 +3,7 @@
 #include "MCMC.h"
 #include "ElectronBeam.h"
 #include "IonBeam.h"
+#include "HistUtils.h"
 
 namespace MCMC
 {
@@ -252,32 +253,32 @@ namespace MCMC
 		
 
 		// check if point is outside histogram domain
-		if (x_proposed < target->GetXaxis()->GetXmin() || x_proposed > target->GetXaxis()->GetXmax() ||
-			y_proposed < target->GetYaxis()->GetXmin() || y_proposed > target->GetYaxis()->GetXmax() ||
-			z_proposed < target->GetZaxis()->GetXmin() || z_proposed > target->GetZaxis()->GetXmax())
-		{
-			return false;
-		}
-
-		int x_nBins = target->GetXaxis()->GetNbins();
-		int y_nBins = target->GetYaxis()->GetNbins();
-		int z_nBins = target->GetZaxis()->GetNbins();
+		//if (x_proposed < target->GetXaxis()->GetXmin() || x_proposed > target->GetXaxis()->GetXmax() ||
+		//	y_proposed < target->GetYaxis()->GetXmin() || y_proposed > target->GetYaxis()->GetXmax() ||
+		//	z_proposed < target->GetZaxis()->GetXmin() || z_proposed > target->GetZaxis()->GetXmax())
+		//{
+		//	return false;
+		//}
+		//
+		//int x_nBins = target->GetXaxis()->GetNbins();
+		//int y_nBins = target->GetYaxis()->GetNbins();
+		//int z_nBins = target->GetZaxis()->GetNbins();
 
 		// compute probabilities
 		auto t_int_start = std::chrono::high_resolution_clock::now();
-		double p_new;
-		if (useInterpolation)
-		{
-			double x_modified = std::min(std::max(x_proposed, target->GetXaxis()->GetBinCenter(1)), target->GetXaxis()->GetBinCenter(x_nBins) - 1e-5);
-			double y_modified = std::min(std::max(y_proposed, target->GetYaxis()->GetBinCenter(1)), target->GetYaxis()->GetBinCenter(y_nBins) - 1e-5);
-			double z_modified = std::min(std::max(z_proposed, target->GetZaxis()->GetBinCenter(1)), target->GetZaxis()->GetBinCenter(z_nBins) - 1e-5);
-
-			p_new = target->Interpolate(x_modified, y_modified, z_modified);
-		}
-		else
-		{
-			p_new = target->GetBinContent(target->FindBin(x_proposed, y_proposed, z_proposed));
-		}
+		double p_new = HistUtils::GetValueAtPosition(target, { x_proposed,y_proposed, z_proposed }, useInterpolation);
+		//if (useInterpolation)
+		//{
+		//	double x_modified = std::min(std::max(x_proposed, target->GetXaxis()->GetBinCenter(1)), target->GetXaxis()->GetBinCenter(x_nBins) - 1e-5);
+		//	double y_modified = std::min(std::max(y_proposed, target->GetYaxis()->GetBinCenter(1)), target->GetYaxis()->GetBinCenter(y_nBins) - 1e-5);
+		//	double z_modified = std::min(std::max(z_proposed, target->GetZaxis()->GetBinCenter(1)), target->GetZaxis()->GetBinCenter(z_nBins) - 1e-5);
+		//
+		//	p_new = target->Interpolate(x_modified, y_modified, z_modified);
+		//}
+		//else
+		//{
+		//	p_new = target->GetBinContent(target->FindBin(x_proposed, y_proposed, z_proposed));
+		//}
 
 		auto t_int_end = std::chrono::high_resolution_clock::now();
 		interpolationTime += std::chrono::duration<double, std::milli>(t_int_end - t_int_start).count();
@@ -405,7 +406,7 @@ namespace MCMC
 					target = (TH3D*)ionBeam->Clone("electron-ion density");
 					target->SetTitle("electron-ion density");
 					target->Multiply(electronBeam);
-
+					
 					GenerateSamples();
 
 					if (distribution && target)

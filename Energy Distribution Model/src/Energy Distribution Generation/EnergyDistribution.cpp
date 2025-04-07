@@ -520,7 +520,7 @@ void EnergyDistribution::Generate(std::filesystem::path descriptionFile, int ind
 		double z = point.z;
 
 		// calculate velocity magnitude from lab energy given as matrix (TH3D) from outside
-		double labEnergy = LabEnergy::Get(x, y, z);
+		double labEnergy = LabEnergy::GetValue(x, y, z);
 		double electronVelocityMagnitude = TMath::Sqrt(2 * labEnergy * TMath::Qe() / PhysicalConstants::electronMass);
 
 		// determine direction of velocity based on beam trajectory function

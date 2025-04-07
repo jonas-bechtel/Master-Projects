@@ -8,6 +8,8 @@
 #include <random>
 #include <chrono>
 #include <future>
+#include <execution>
+#include <numeric>
 
 #include <vector>
 #include <array>
@@ -19,6 +21,7 @@
 #include <TCanvas.h>
 #include <TF1.h>
 #include <TF2.h>
+#include <TF3.h>
 #include <TH3D.h>
 #include <TProfile2D.h>
 #include <TRootCanvas.h>

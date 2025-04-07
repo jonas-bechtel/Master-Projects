@@ -7,6 +7,7 @@ int PlotBeamData::rebinningFactors[3] = { 10, 10, 10 };
 
 PlotBeamData::PlotBeamData(TH3D* hist)
 {
+	delete fullHistogram;
 	fullHistogram = hist;
 
 	xAxis.reserve(fullHistogram->GetNbinsX());
@@ -33,42 +34,7 @@ PlotBeamData::PlotBeamData(TH3D* hist)
 		zAxis.push_back(fullHistogram->GetZaxis()->GetBinCenter(i));
 	}
 
-	TH1D* projectionX = fullHistogram->ProjectionX();
-	TH1D* projectionY = fullHistogram->ProjectionY();
-	TH1D* projectionZ = fullHistogram->ProjectionZ();
-	projectionX->Scale(1.0 / projectionX->Integral());
-	projectionY->Scale(1.0 / projectionY->Integral());
-	projectionZ->Scale(1.0 / projectionZ->Integral());
-
-	for (int i = 1; i <= projectionX->GetNbinsX(); i++)
-	{
-		projectionValuesX.push_back(projectionX->GetBinContent(i));
-	}
-	for (int i = 1; i <= projectionY->GetNbinsX(); i++)
-	{
-		projectionValuesY.push_back(projectionY->GetBinContent(i));
-	}
-	for (int i = 1; i <= projectionZ->GetNbinsX(); i++)
-	{
-		projectionValuesZ.push_back(projectionZ->GetBinContent(i));
-	}
-
-	delete projectionX;
-	delete projectionY;
-	delete projectionZ;
-
-	int binInCenterX = fullHistogram->GetNbinsX() / 2;
-	for (int i = 1; i <= fullHistogram->GetNbinsZ(); i++)
-	{
-		double zValue = fullHistogram->GetZaxis()->GetBinCenter(i);
-		int binInCenterY = fullHistogram->GetYaxis()->FindBin(ElectronBeam::Trajectory(zValue));
-
-		double energyValueIn = fullHistogram->GetBinContent(binInCenterX, binInCenterY, i);
-		double energyValueOut = fullHistogram->GetBinContent(1, 1, i);
-
-		centerValue.push_back(energyValueIn);
-		outsideValue.push_back(energyValueOut);
-	}
+	UpdateData();
 }
 
 PlotBeamData::PlotBeamData(PlotBeamData&& other) noexcept
@@ -142,6 +108,46 @@ void PlotBeamData::SetLabel(std::string str)
 void PlotBeamData::UpdateSlice(float zValue)
 {
 	slice.FromTH3D(fullHistogram, zValue);
+}
+
+void PlotBeamData::UpdateData()
+{
+	TH1D* projectionX = fullHistogram->ProjectionX();
+	TH1D* projectionY = fullHistogram->ProjectionY();
+	TH1D* projectionZ = fullHistogram->ProjectionZ();
+	projectionX->Scale(1.0 / projectionX->Integral());
+	projectionY->Scale(1.0 / projectionY->Integral());
+	projectionZ->Scale(1.0 / projectionZ->Integral());
+
+	for (int i = 1; i <= projectionX->GetNbinsX(); i++)
+	{
+		projectionValuesX.push_back(projectionX->GetBinContent(i));
+	}
+	for (int i = 1; i <= projectionY->GetNbinsX(); i++)
+	{
+		projectionValuesY.push_back(projectionY->GetBinContent(i));
+	}
+	for (int i = 1; i <= projectionZ->GetNbinsX(); i++)
+	{
+		projectionValuesZ.push_back(projectionZ->GetBinContent(i));
+	}
+
+	delete projectionX;
+	delete projectionY;
+	delete projectionZ;
+
+	int binInCenterX = fullHistogram->GetNbinsX() / 2;
+	for (int i = 1; i <= fullHistogram->GetNbinsZ(); i++)
+	{
+		double zValue = fullHistogram->GetZaxis()->GetBinCenter(i);
+		int binInCenterY = fullHistogram->GetYaxis()->FindBin(ElectronBeam::Trajectory(zValue));
+
+		double energyValueIn = fullHistogram->GetBinContent(binInCenterX, binInCenterY, i);
+		double energyValueOut = fullHistogram->GetBinContent(1, 1, i);
+
+		centerValue.push_back(energyValueIn);
+		outsideValue.push_back(energyValueOut);
+	}
 }
 
 void PlotBeamData::Plot3D(ROOTCanvas* canvas, int pos)

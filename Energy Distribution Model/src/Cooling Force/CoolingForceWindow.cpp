@@ -11,10 +11,11 @@ namespace CoolingForceWindow
 	static int currentCurveIndex = -1;
 
 	// optional parameter
-	static bool onlyLongInLC = false;
+	static int method = 2;
+	static bool interpolate = true;
 
 	// currently loaded description file
-	static std::filesystem::path currentDescriptionFile = std::filesystem::path("data\\C60\\dataset1\\100x100x100_Ie0.95_Ucath44.2_RelTol0_mbrc1_energies.asc");
+	static std::filesystem::path currentDescriptionFile;
 	static int maxIndex = 0;
 
 	// start/end index in description file to generate cooling force for
@@ -23,6 +24,9 @@ namespace CoolingForceWindow
 	static bool doAll = false;
 
 	static bool showAllParamsWindow = false;
+	static bool showForceDetailWindow = false;
+
+	static float sliceZ = 0.0f;
 
 	static NumericalIntegrationParameter numericalParameter;
 	static bool showNumericalIntegrationWindow = false;
@@ -30,6 +34,8 @@ namespace CoolingForceWindow
 
 	void Init()
 	{
+		currentDescriptionFile = std::filesystem::path("data\\C60\\C60 0.012 peak\\100x100x100_Ie0.012_Ucath44.2_RelTol0_Ni0_mbrc2_energies.asc");
+		maxIndex = FileUtils::GetMaxIndex(currentDescriptionFile);
 	}
 
 	void CreateNewCurve()
@@ -40,11 +46,12 @@ namespace CoolingForceWindow
 
 	void SetupCurve(std::filesystem::path folder, std::filesystem::path subfolder)
 	{
-		if (curveList.empty())
+		if (curveList.empty() || curveList.at(currentCurveIndex).IsNumerical())
 		{
 			CreateNewCurve();
 		}
 		CoolingForceCurve& currentCurve = curveList.at(currentCurveIndex);
+
 		if (currentCurve.Empty())
 		{
 			currentCurve.SetFolder(folder);
@@ -56,6 +63,11 @@ namespace CoolingForceWindow
 			curveList.at(currentCurveIndex).SetFolder(folder);
 			if (!subfolder.empty()) curveList.at(currentCurveIndex).SetSubfolder(subfolder);
 		}
+	}
+
+	float GetSlice()
+	{
+		return sliceZ;
 	}
 
 	void ShowWindow()
@@ -73,7 +85,7 @@ namespace CoolingForceWindow
 
 			ShowAllParametersWindow();
 			numericalParameter.ShowWindow(showNumericalIntegrationWindow);
-
+			ShowForceDetailWindow();
 		}
 		ImGui::End();
 	}
@@ -92,21 +104,22 @@ namespace CoolingForceWindow
 			ImGui::Text("file: %s", (currentDescriptionFile.parent_path().filename() / currentDescriptionFile.filename()).string().c_str());
 			
 			ImGui::Checkbox("All Parameters", &showAllParamsWindow);
-			ImGui::SameLine();
-			ImGui::Checkbox("use only long comp in LC", &onlyLongInLC);
 			ImGui::SeparatorText("output things");
 
 			if (!curveList.empty())
 			{
 				CoolingForceCurve& currentCurve = curveList.at(currentCurveIndex);
-				char buf[64] = "";
-				strncpy_s(buf, currentCurve.GetSubfolder().string().c_str(), sizeof(buf) - 1);
-				ImGui::SetNextItemWidth(150.0f);
-				if (ImGui::InputText("curve subfolder", buf, IM_ARRAYSIZE(buf)))
+				if (!currentCurve.IsNumerical())
 				{
-					currentCurve.SetSubfolder(std::filesystem::path(buf));
+					char buf[64] = "";
+					strncpy_s(buf, currentCurve.GetSubfolder().string().c_str(), sizeof(buf) - 1);
+					ImGui::SetNextItemWidth(150.0f);
+					if (ImGui::InputText("curve subfolder", buf, IM_ARRAYSIZE(buf)))
+					{
+						currentCurve.SetSubfolder(std::filesystem::path(buf));
+					}
+					ImGui::SameLine();
 				}
-				ImGui::SameLine();
 				if (ImGui::Button("save"))
 				{
 					currentCurve.Save();
@@ -133,11 +146,14 @@ namespace CoolingForceWindow
 				for (int i = start; i <= end; i++)
 				{
 					CoolingForceValue newValue;
-					newValue.Calculate(currentDescriptionFile, i, onlyLongInLC);
+					if (method == 0) newValue.CalculateOriginal(currentDescriptionFile, i);
+					if (method == 1) newValue.CalculateHalfIntegrated(currentDescriptionFile, i, interpolate);
+					if (method == 2) newValue.CalculateFullIntegrated(currentDescriptionFile, i);
 					CoolingForceCurve& curve = curveList.at(currentCurveIndex);
 					curve.AddForceValue(std::move(newValue));
 				}
 			}
+			
 			ImGui::EndDisabled();
 			ImGui::SameLine();
 			if (ImGui::Button("Generate Cooling curve from numerical Model"))
@@ -148,7 +164,26 @@ namespace CoolingForceWindow
 			}
 			ImGui::SameLine();
 			ImGui::Checkbox("parameter", &showNumericalIntegrationWindow);
-			
+
+			if (ImGui::RadioButton("original", method == 0))
+			{
+				method = 0;
+			}
+			ImGui::SameLine();
+			if (ImGui::RadioButton("half integrated", method == 1))
+			{
+				method = 1;
+			}
+			ImGui::SameLine();
+			if (ImGui::RadioButton("full integrated", method == 2))
+			{
+				method = 2;
+			}
+			ImGui::SameLine();
+			ImGui::Checkbox("interpolate pre calc force", &interpolate);
+			ImGui::SameLine();
+			CoolingForceValue::ShowParallelPrecalculationCheckbox();
+
 			ImGui::SetNextItemWidth(80.0f);
 			ImGui::BeginDisabled(doAll);
 			ImGui::InputInt("start", &startIndex);
@@ -189,6 +224,8 @@ namespace CoolingForceWindow
 					{
 						currentCurveIndex = curveIndex;
 						curveList.at(curveIndex).ShowList();
+						ImGui::SameLine();
+						ImGui::Checkbox("show force details", &showForceDetailWindow);
 						ImGui::EndTabItem();
 					}
 					if (!open)
@@ -224,6 +261,7 @@ namespace CoolingForceWindow
 					}
 				}
 			}
+			
 		}
 		ImGui::EndChild();
 	}
@@ -288,6 +326,27 @@ namespace CoolingForceWindow
 			}
 			ImGui::EndChild();
 
+		}
+		ImGui::End();
+	}
+
+	void ShowForceDetailWindow()
+	{
+		if (!showForceDetailWindow)
+		{
+			return;
+		}
+		if (ImGui::Begin("cooling force details", &showForceDetailWindow, ImGuiWindowFlags_NoDocking))
+		{
+			if (currentCurveIndex >= 0)
+			{
+				CoolingForceCurve& curve = curveList.at(currentCurveIndex);
+				if (ImGui::SliderFloat("z slice", &sliceZ, -0.7, 0.7))
+				{
+					curve.UpdateSlice(sliceZ);
+				}
+				curve.PlotDetails();
+			}
 		}
 		ImGui::End();
 	}

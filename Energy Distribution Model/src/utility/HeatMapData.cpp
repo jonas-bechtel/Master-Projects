@@ -3,6 +3,9 @@
 
 void HeatMapData::FromTH3D(TH3D* hist, float zSliceValue)
 {
+	if (!hist)
+		return;
+
 	nRows = hist->GetNbinsY();
 	nCols = hist->GetNbinsX();
 	//std::cout << nRows << ", " << nCols << std::endl;
@@ -26,6 +29,7 @@ void HeatMapData::FromTH3D(TH3D* hist, float zSliceValue)
 	bottomLeft = { hist->GetXaxis()->GetBinLowEdge(1), hist->GetYaxis()->GetBinLowEdge(1) };
 	topRight = { hist->GetXaxis()->GetXmax(), hist->GetYaxis()->GetXmax() };
 }
+
 void HeatMapData::Plot(std::string title) const
 {
 	ImPlot::PushColormap(9);
@@ -34,7 +38,8 @@ void HeatMapData::Plot(std::string title) const
 	{
 		ImPlot::SetupAxes("x", "y");
 		ImPlot::PlotHeatmap(title.c_str(), values.data(), nRows, nCols, minValue, maxValue, nullptr, bottomLeft, topRight);
-		ShowColorValueTooltip();
+		if(ImPlot::IsPlotHovered())
+			ShowColorValueTooltip();
 		ImPlot::EndPlot();
 	}
 	ImGui::SameLine();
@@ -46,7 +51,7 @@ void HeatMapData::Plot(std::string title) const
 void HeatMapData::ShowColorValueTooltip() const
 {
 	ImPlotPoint mouse = ImPlot::GetPlotMousePos();
-
+	
 	// Convert mouse X, Y to array indices
 	int i = static_cast<int>((mouse.x - bottomLeft.x) / ((topRight.x - bottomLeft.x) / nCols));
 	int j = static_cast<int>((mouse.y - bottomLeft.y) / ((topRight.y - bottomLeft.y) / nRows));

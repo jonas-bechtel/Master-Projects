@@ -1,6 +1,7 @@
 #pragma once
 
 #include "HeatMapData.h"
+#include "PlotBeamData.h"
 #include "ElectronBeam.h"
 #include "IonBeam.h"
 #include "LabEnergies.h"
@@ -24,18 +25,26 @@ public:
 	CoolingForceValue(CoolingForceValue&& other) noexcept;
 	CoolingForceValue& operator=(CoolingForceValue&& other) noexcept;
 
-	void Calculate(std::filesystem::path descriptionFile, int index, bool onlyLongInLC);
+	void CalculateOriginal(std::filesystem::path descriptionFile, int index);
+	void CalculateHalfIntegrated(std::filesystem::path descriptionFile, int index, bool interpolate);
+	void CalculateFullIntegrated(std::filesystem::path descriptionFile, int index);
 
 	bool ShowListItem(bool selected) const;
+	static bool ShowParallelPrecalculationCheckbox();
 
 	void SetupHistograms(TH3D* reference);
 	void FillData();
 	double CalculateIntegral(TH3D* hist);
 
+	void PlotPreForceSlize() const;
+	void UpdateSlice(float zValue);
+
 	void Save(std::filesystem::path folder) const;
 	void Load(std::filesystem::path file);
 
 private:
+	void PrepareCalculation(std::filesystem::path descriptionFile, int index);
+	void PrecalculateForce();
 	void CopyParameters();
 	void SetupLabel();
 	void SetupTags();
@@ -45,6 +54,8 @@ private:
 	std::string Filename() const;
 
 private:
+	PlotBeamData precalculatedForce;
+
 	// x,y,z component of cooling force at each position
 	TH3D* forceX = nullptr;
 	TH3D* forceY = nullptr;
@@ -86,6 +97,8 @@ private:
 	std::string label = "";
 	std::string tags = "";
 	int index = 0;
+
+	static bool parallelForcePrecalculation;
 
 	// random number generation things
 	static std::mersenne_twister_engine<std::uint_fast64_t,

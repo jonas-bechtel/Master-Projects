@@ -9,7 +9,8 @@ namespace LabEnergy
 {
 	void Init();
 
-	double Get(double x, double y, double z);
+	TH3D* Get();
+	double GetValue(double x, double y, double z);
 	LabEnergyParameters GetParameters();
 	double GetCenterLabEnergy();
 	void SetDriftTubeVoltage(double voltage);

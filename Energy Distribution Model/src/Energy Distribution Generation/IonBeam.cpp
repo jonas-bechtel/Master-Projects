@@ -70,6 +70,7 @@ namespace IonBeam
 			{
 				for (int k = 1; k <= nZBins; k++) 
 				{
+					
 					// Calculate the coordinates for this bin
 					double x = beam->GetXaxis()->GetBinCenter(i);
 					double y = beam->GetYaxis()->GetBinCenter(j);
@@ -84,13 +85,14 @@ namespace IonBeam
 					y -= parameter.angles.get().y * z;
 
 					double value = 0;
-					value = parameter.amplitude * exp(-0.5 * ((x * x) / pow(parameter.sigma.get().x, 2) + (y * y) / pow(parameter.sigma.get().y, 2)));
+					double normalisation = 1 / (parameter.sigma.get().x * parameter.sigma.get().y * 2 * TMath::Pi());
+					value = normalisation * exp(-0.5 * ((x * x) / pow(parameter.sigma.get().x, 2) + (y * y) / pow(parameter.sigma.get().y, 2)));
 					
 					if (doubleGaussian)
 					{
 						value += amplitude2 * exp(-0.5 * ((x * x) / pow(sigma2[0], 2) + (y * y) / pow(sigma2[1], 2)));
 					}
-
+					
 					beam->SetBinContent(i, j, k, value);
 				}
 			}

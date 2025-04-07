@@ -11,10 +11,10 @@ private:
 
 private:
 	std::vector<double> values;
-	int nRows;
-	int nCols;
-	double minValue;
-	double maxValue;
-	ImPlotPoint bottomLeft;
-	ImPlotPoint topRight;
+	int nRows = 0;
+	int nCols = 0;
+	double minValue = 0;
+	double maxValue = 1;
+	ImPlotPoint bottomLeft = { 0,0 };
+	ImPlotPoint topRight = { 1,1 };
 };

@@ -1,12 +1,13 @@
 #include "pch.h"
 #include "CoolingForceValue.h"
-
+#include "CoolingForceWindow.h"
 
 #include "CoolingForceModel.h"
 
 #include "Constants.h"
 #include "FileUtils.h"
 
+bool CoolingForceValue::parallelForcePrecalculation = true;
 RNG_engine CoolingForceValue::generator = RNG_engine();
 
 std::normal_distribution<double> CoolingForceValue::longitudinalNormalDistribution = std::normal_distribution<double>();
@@ -30,6 +31,8 @@ CoolingForceValue::~CoolingForceValue()
 CoolingForceValue::CoolingForceValue(CoolingForceValue&& other) noexcept
 {
 	//std::cout << "calling cf value move constructor" << std::endl;
+	precalculatedForce = std::move(other.precalculatedForce);
+
 	forceX = other.forceX;
 	forceY = other.forceY;
 	forceZ = other.forceZ;
@@ -72,6 +75,8 @@ CoolingForceValue& CoolingForceValue::operator=(CoolingForceValue&& other) noexc
 	//std::cout << "calling cf value move assignment" << std::endl;
 	if (this == &other) return *this;
 
+	precalculatedForce = std::move(other.precalculatedForce);
+
 	forceX = other.forceX;
 	forceY = other.forceY;
 	forceZ = other.forceZ;
@@ -111,53 +116,9 @@ CoolingForceValue& CoolingForceValue::operator=(CoolingForceValue&& other) noexc
 	return *this;
 }
 
-void CoolingForceValue::Calculate(std::filesystem::path descriptionFile, int index, bool onlyLongInLC)
+void CoolingForceValue::CalculateOriginal(std::filesystem::path descriptionFile, int index)
 {
-	// get all necessary modules
-	std::filesystem::path folder = descriptionFile.parent_path();
-
-	// get 3 parameters: U drift tube, electron current, center E lab if index is in file
-	std::array<float, 3> additionalParameter = FileUtils::GetParametersFromDescriptionFileAtIndex(descriptionFile, index);
-
-	// if they are not found the index is not in the file
-	if (!additionalParameter[0])
-	{
-		std::cout << "index " << index << " is not in the file " << descriptionFile.filename() << std::endl;
-		return;
-	}
-
-	// set read electron current and center lab energy
-	LabEnergy::SetDriftTubeVoltage(additionalParameter[0]);
-	LabEnergy::SetCenterEnergy(additionalParameter[2]);
-	ElectronBeam::SetElectronCurrent(additionalParameter[1]);
-	ElectronBeam::CalculateEstimateLongkT();
-	ElectronBeam::CalculateDetuningEnergy();
-	ElectronBeam::CalculateDetuningVelocity();
-
-	// full procedure to generate one energy distribution 
-	// 1. setup necessary distributions
-	std::filesystem::path densityfile = FileUtils::FindFileWithIndex(folder / "e-densities", index);
-	if (densityfile.empty())
-	{
-		std::cout << "density file not found: " << densityfile.filename() << std::endl;
-		return;
-	}
-	ElectronBeam::SetupDistribution(densityfile);
-
-	std::filesystem::path energyfile = FileUtils::FindFileWithIndex(folder / "lab-energies", index);
-	if (energyfile.empty())
-	{
-		std::cout << "energy file not found: " << energyfile.filename() << std::endl;
-		return;
-	}
-	LabEnergy::SetupDistribution(energyfile);
-
-	IonBeam::CreateFromReference(ElectronBeam::Get());
-
-	// final setup of current curve
-	CopyParameters();
-	SetupLabel();
-	SetupTags();
+	PrepareCalculation(descriptionFile, index);
 
 	// calculate cooling force
 	std::vector<Point3D> samples = IonBeam::GeneratePositions();
@@ -168,8 +129,6 @@ void CoolingForceValue::Calculate(std::filesystem::path descriptionFile, int ind
 		return;
 	}
 	
-	SetupHistograms(IonBeam::Get());
-	
 	for (const Point3D& point : samples)
 	{
 		double x = point.x;
@@ -177,7 +136,7 @@ void CoolingForceValue::Calculate(std::filesystem::path descriptionFile, int ind
 		double z = point.z;
 	
 		// calculate velocity magnitude from lab energy given as matrix (TH3D) from outside
-		double labEnergy = LabEnergy::Get(x, y, z);
+		double labEnergy = LabEnergy::GetValue(x, y, z);
 		double electronVelocityMagnitude = TMath::Sqrt(2 * labEnergy * TMath::Qe() / PhysicalConstants::electronMass);
 
 		// determine direction of velocity based on beam trajectory function
@@ -205,7 +164,7 @@ void CoolingForceValue::Calculate(std::filesystem::path descriptionFile, int ind
 		TVector3 transverseDirection1 = longitudinalDirection.Cross(helpVector);
 		TVector3 transverseDirection2 = longitudinalDirection.Cross(transverseDirection1);
 
-		TVector3 finalElectronVelocity = (electronVelocityMagnitude + longitudinalAddition) * longitudinalDirection
+		TVector3 finalElectronVelocity = (electronVelocityMagnitude + longitudinalAddition)*longitudinalDirection
 			+ transverseAdditionX * transverseDirection1
 			+ transverseAdditionY * transverseDirection2;
 
@@ -217,9 +176,13 @@ void CoolingForceValue::Calculate(std::filesystem::path descriptionFile, int ind
 		TVector3 collisionVelocity = ionVelocity - finalElectronVelocity;
 		//double collisionVelocityMagnitude = collisionVelocity.Mag();
 
-		double electronDensity = ElectronBeam::GetDensity(point);
-		int ionCharge = IonBeam::GetCharge();
-		TVector3 coolingforce = CoolingForceModel::CoolingForce(collisionVelocity, trans_kT, electronDensity, ionCharge, onlyLongInLC);
+		NumericalIntegrationParameter params;
+		params.relativeVelocity = collisionVelocity;
+		params.electronDensity = ElectronBeam::GetDensity(point);
+		params.ionCharge = IonBeam::GetCharge();
+		params.kT_long = long_kT;
+		params.kT_trans = trans_kT;
+		TVector3 coolingforce = CoolingForceModel::CoolingForce(params);
 	
 		positionSamples->Fill(x, y, z);
 	
@@ -234,6 +197,75 @@ void CoolingForceValue::Calculate(std::filesystem::path descriptionFile, int ind
 	forceZ->Divide(positionSamples);
 	
 	FillData();
+}
+
+void CoolingForceValue::CalculateHalfIntegrated(std::filesystem::path descriptionFile, int index, bool interpolate)
+{
+	PrepareCalculation(descriptionFile, index);
+	PrecalculateForce();
+
+	std::vector<Point3D> samples = IonBeam::GeneratePositions();
+
+	if (samples.empty())
+	{
+		std::cout << "sampling positions failed\n";
+		return;
+	}
+
+	for (const Point3D& point : samples)
+	{
+		double x = point.x;
+		double y = point.y;
+		double z = point.z;
+
+		TVector3 coolingforce;
+		TH3D* preForceHist = precalculatedForce.GetHist();
+		double xMin = preForceHist->GetXaxis()->GetBinCenter(1);
+		double xMax = preForceHist->GetXaxis()->GetBinCenter(preForceHist->GetNbinsX());
+
+		double yMin = preForceHist->GetYaxis()->GetBinCenter(1);
+		double yMax = preForceHist->GetYaxis()->GetBinCenter(preForceHist->GetNbinsY());
+
+		double zMin = preForceHist->GetZaxis()->GetBinCenter(1);
+		double zMax = preForceHist->GetZaxis()->GetBinCenter(preForceHist->GetNbinsZ());
+
+		if (x >= xMin && x <= xMax && y >= yMin && y <= yMax && abs(z) >= zMin && abs(z) <= zMax)
+		{
+			if(interpolate) 
+				coolingforce = { 0, 0, preForceHist->Interpolate(x, y, abs(z)) };
+			else 
+				coolingforce = { 0, 0, preForceHist->GetBinContent(preForceHist->FindBin(x, y, abs(z))) };
+		}
+		else
+		{
+			coolingforce = { 0,0,0 };
+		}
+
+		positionSamples->Fill(x, y, z);
+
+		int bin = forceX->FindBin(x, y, z);
+		forceX->AddBinContent(bin, coolingforce.x());
+		forceY->AddBinContent(bin, coolingforce.y());
+		forceZ->AddBinContent(bin, coolingforce.z());
+	}
+
+	forceX->Divide(positionSamples);
+	forceY->Divide(positionSamples);
+	forceZ->Divide(positionSamples);
+
+	FillData();
+}
+
+void CoolingForceValue::CalculateFullIntegrated(std::filesystem::path descriptionFile, int index)
+{
+	PrepareCalculation(descriptionFile, index);
+	PrecalculateForce();
+	
+	TH3D* intermediate = (TH3D*)precalculatedForce.GetHist()->Clone("force times ion density");
+	intermediate->Multiply(IonBeam::Get());
+	std::cout << IonBeam::Get()->Integral(1, -1, 1, -1, 1, 1, "width") / IonBeam::Get()->GetZaxis()->GetBinWidth(1) << std::endl;
+
+	forceZValue = intermediate->Integral("width") / 0.8;
 }
 
 bool CoolingForceValue::ShowListItem(bool selected) const
@@ -263,27 +295,38 @@ bool CoolingForceValue::ShowListItem(bool selected) const
 	return clicked;
 }
 
+bool CoolingForceValue::ShowParallelPrecalculationCheckbox()
+{
+	return ImGui::Checkbox("parallel force calc", &parallelForcePrecalculation);
+}
+
 void CoolingForceValue::SetupHistograms(TH3D* reference)
 {
 	delete forceX;
 	delete forceY;
 	delete forceZ;
 	delete positionSamples;
+	//delete precalculatedForce;
 
 	forceX = (TH3D*)reference->Clone("cooling force X");
 	forceY = (TH3D*)reference->Clone("cooling force Y");
 	forceZ = (TH3D*)reference->Clone("cooling force Z");
 	positionSamples = (TH3D*)reference->Clone("position samples");
-
+	TH3D* precalculatedForceHist = (TH3D*)reference->Clone("precalculated force");
+	
 	forceX->Reset();
 	forceY->Reset();
 	forceZ->Reset();
 	positionSamples->Reset();
+	precalculatedForceHist->Reset();
 
 	forceX->SetTitle("cooling force X");
 	forceY->SetTitle("cooling force Y");
 	forceZ->SetTitle("cooling force Z");
 	positionSamples->SetTitle("position samples");
+	precalculatedForceHist->SetTitle("precalculated force");
+
+	precalculatedForce = PlotBeamData(precalculatedForceHist);
 }
 
 void CoolingForceValue::FillData()
@@ -349,15 +392,15 @@ double CoolingForceValue::CalculateIntegral(TH3D* hist)
 	TH1D* H_weightedAvgZ = new TH1D("H_weightedAvgZ", "Weighted Average per Z", nBinsZ, zMin, zMax);
 
 	// Loop over Z bins
-	for (int iZ = 1; iZ <= nBinsZ; iZ++)
+	for (int iZ = 0; iZ <= nBinsZ + 1; iZ++)
 	{
 		double weightedSum = 0.0;
 		double weightSum = 0.0;
 
 		// Loop over all (x, y) bins for this fixed Z bin
-		for (int iX = 1; iX <= hist->GetXaxis()->GetNbins(); iX++)
+		for (int iX = 0; iX <= hist->GetXaxis()->GetNbins() + 1; iX++)
 		{
-			for (int iY = 1; iY <= hist->GetYaxis()->GetNbins(); iY++)
+			for (int iY = 0; iY <= hist->GetYaxis()->GetNbins() + 1; iY++)
 			{
 				int bin = hist->GetBin(iX, iY, iZ);
 
@@ -379,6 +422,16 @@ double CoolingForceValue::CalculateIntegral(TH3D* hist)
 	delete H_weightedAvgZ;
 
 	return result;
+}
+
+void CoolingForceValue::PlotPreForceSlize() const
+{
+	precalculatedForce.PlotSlice();
+}
+
+void CoolingForceValue::UpdateSlice(float zValue)
+{
+	precalculatedForce.UpdateSlice(zValue);
 }
 
 void CoolingForceValue::Save(std::filesystem::path folder) const
@@ -437,6 +490,151 @@ void CoolingForceValue::Load(std::filesystem::path file)
 	infile.Close();
 
 	FillData();
+}
+
+void CoolingForceValue::PrepareCalculation(std::filesystem::path descriptionFile, int index)
+{
+	// get all necessary modules
+	std::filesystem::path folder = descriptionFile.parent_path();
+
+	// get 3 parameters: U drift tube, electron current, center E lab if index is in file
+	std::array<float, 3> additionalParameter = FileUtils::GetParametersFromDescriptionFileAtIndex(descriptionFile, index);
+
+	// if they are not found the index is not in the file
+	if (!additionalParameter[0])
+	{
+		std::cout << "index " << index << " is not in the file " << descriptionFile.filename() << std::endl;
+		return;
+	}
+
+	// set read electron current and center lab energy
+	LabEnergy::SetDriftTubeVoltage(additionalParameter[0]);
+	LabEnergy::SetCenterEnergy(additionalParameter[2]);
+	ElectronBeam::SetElectronCurrent(additionalParameter[1]);
+	ElectronBeam::CalculateEstimateLongkT();
+	ElectronBeam::CalculateDetuningEnergy();
+	ElectronBeam::CalculateDetuningVelocity();
+
+	// full procedure to generate one energy distribution 
+	// 1. setup necessary distributions
+	std::filesystem::path densityfile = FileUtils::FindFileWithIndex(folder / "e-densities", index);
+	if (densityfile.empty())
+	{
+		std::cout << "density file not found: " << densityfile.filename() << std::endl;
+		return;
+	}
+	ElectronBeam::SetupDistribution(densityfile);
+
+	std::filesystem::path energyfile = FileUtils::FindFileWithIndex(folder / "lab-energies", index);
+	if (energyfile.empty())
+	{
+		std::cout << "energy file not found: " << energyfile.filename() << std::endl;
+		return;
+	}
+	LabEnergy::SetupDistribution(energyfile);
+
+	IonBeam::CreateFromReference(ElectronBeam::Get());
+
+	// final setup of current curve
+	CopyParameters();
+	SetupLabel();
+	SetupTags();
+
+	SetupHistograms(IonBeam::Get());
+}
+
+void CoolingForceValue::PrecalculateForce()
+{
+	double ionVelocityMagnitude = TMath::Sqrt(2 * eBeamParameter.coolingEnergy * TMath::Qe() / PhysicalConstants::electronMass);
+	TVector3 ionVelocityDirection = IonBeam::GetDirection();
+	TVector3 ionVelocity = ionVelocityDirection * ionVelocityMagnitude;
+	TH3D* hist = precalculatedForce.GetHist();
+
+	auto t_int_start = std::chrono::high_resolution_clock::now();
+
+	int nBinsX = hist->GetXaxis()->GetNbins();
+	int nBinsY = hist->GetYaxis()->GetNbins();
+	int nBinsZ = hist->GetZaxis()->GetNbins();
+
+	int totalBins = nBinsX * nBinsY * nBinsZ;
+	std::vector<int> indices(totalBins);
+	std::iota(indices.begin(), indices.end(), 0);
+	
+	if (parallelForcePrecalculation)
+	{
+		std::for_each_n(std::execution::par, indices.begin(), totalBins,
+			[&](int idx)
+			{
+				int i = idx / (nBinsY * nBinsZ) + 1;
+				int j = (idx / nBinsZ) % nBinsY + 1;
+				int k = idx % nBinsZ + 1;
+
+				double x = hist->GetXaxis()->GetBinCenter(i);
+				double y = hist->GetYaxis()->GetBinCenter(j);
+				double z = hist->GetZaxis()->GetBinCenter(k);
+				if (z < 0) return;
+
+				double labEnergy = LabEnergy::GetValue(x, y, z);
+				double electronVelocityMagnitude = TMath::Sqrt(2 * labEnergy * TMath::Qe() / PhysicalConstants::electronMass);
+				TVector3 longitudinalDirection = ElectronBeam::GetDirection(z);
+				TVector3 electronVelocity = electronVelocityMagnitude * longitudinalDirection;
+				TVector3 relativeVelocity = ionVelocity - electronVelocity;
+
+				NumericalIntegrationParameter params;
+				params.relativeVelocity = relativeVelocity;
+				params.electronDensity = ElectronBeam::GetDensity({ x,y,z });
+				params.ionCharge = IonBeam::GetCharge();
+				params.kT_long = ElectronBeam::GetLongitudinal_kT(labEnergy);
+				params.kT_trans = ElectronBeam::GetTransverse_kT();
+				//std::cout << "outside: " << params.String() << std::endl;
+				double value = CoolingForceModel::ForceZ(params);
+				hist->SetBinContent(i, j, k, value);
+				int bin = hist->FindBin(x, y, -z);
+				hist->SetBinContent(bin, value);
+			});
+	}
+	else
+	{
+		for (int i = 1; i <= hist->GetXaxis()->GetNbins(); i++)
+		{
+			for (int j = 1; j <= hist->GetYaxis()->GetNbins(); j++)
+			{
+				for (int k = 1; k <= hist->GetZaxis()->GetNbins(); k++)
+				{
+					double x = hist->GetXaxis()->GetBinCenter(i);
+					double y = hist->GetYaxis()->GetBinCenter(j);
+					double z = hist->GetZaxis()->GetBinCenter(k);
+					if (z < 0) continue;
+
+					double labEnergy = LabEnergy::GetValue(x, y, z);
+					double electronVelocityMagnitude = TMath::Sqrt(2 * labEnergy * TMath::Qe() / PhysicalConstants::electronMass);
+					TVector3 longitudinalDirection = ElectronBeam::GetDirection(z);
+					TVector3 electronVelocity = electronVelocityMagnitude * longitudinalDirection;
+					TVector3 relativeVelocity = ionVelocity - electronVelocity;
+
+					NumericalIntegrationParameter params;
+					params.relativeVelocity = relativeVelocity;
+					params.electronDensity = ElectronBeam::GetDensity({ x,y,z });
+					params.ionCharge = IonBeam::GetCharge();
+					params.kT_long = ElectronBeam::GetLongitudinal_kT(labEnergy);
+					params.kT_trans = ElectronBeam::GetTransverse_kT();
+
+					double value = CoolingForceModel::ForceZ(params);
+					hist->SetBinContent(i, j, k, value);
+					int bin = hist->FindBin(x, y, -z);
+					hist->SetBinContent(bin, value);
+				}
+			}
+		}
+	}
+	
+
+	
+	auto t_int_end = std::chrono::high_resolution_clock::now();
+	std::cout << "precalculation time: " << std::chrono::duration<double, std::milli>(t_int_end - t_int_start).count() << std::endl;
+
+	precalculatedForce.UpdateData();
+	precalculatedForce.UpdateSlice(CoolingForceWindow::GetSlice());
 }
 
 void CoolingForceValue::CopyParameters()

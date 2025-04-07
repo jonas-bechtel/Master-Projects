@@ -27,6 +27,7 @@ private:
 	static int rebinningFactors[3];
 
 public:
+	PlotBeamData() {};
 	PlotBeamData(TH3D* hist);
 	PlotBeamData(const PlotBeamData& other) = delete;
 	PlotBeamData& operator=(const PlotBeamData& other) = delete;
@@ -38,6 +39,7 @@ public:
 	std::string GetLabel();
 	void SetLabel(std::string str);
 	void UpdateSlice(float zValue);
+	void UpdateData();
 
 	void Plot3D(ROOTCanvas* canvas, int pos);
 	void PlotSlice() const;

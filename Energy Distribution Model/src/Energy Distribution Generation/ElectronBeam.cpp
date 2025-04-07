@@ -6,6 +6,7 @@
 #include "FileUtils.h"
 #include "ROOTcanvas.h"
 #include "HeatMapData.h"
+#include "HistUtils.h"
 
 namespace ElectronBeam
 {
@@ -27,6 +28,7 @@ namespace ElectronBeam
 	static int factor = 3;
 
 	static bool mirrorAroundZ = true;
+	static bool cutOutZeros = true;
 
 	// plotting data
 	static ROOTCanvas* canvas = nullptr;
@@ -109,18 +111,7 @@ namespace ElectronBeam
 
 	double GetDensity(const Point3D& point)
 	{
-		int numberBinsX = beam->GetXaxis()->GetNbins();
-		int numberBinsY = beam->GetYaxis()->GetNbins();
-		int numberBinsZ = beam->GetZaxis()->GetNbins();
-
-		if (point.x < beam->GetXaxis()->GetBinCenter(1) || point.x >(beam->GetXaxis()->GetBinCenter(numberBinsX) - 1e-4) ||
-			point.y < beam->GetYaxis()->GetBinCenter(1) || point.y >(beam->GetYaxis()->GetBinCenter(numberBinsY) - 1e-4) ||
-			point.z < beam->GetZaxis()->GetBinCenter(1) || point.z >(beam->GetZaxis()->GetBinCenter(numberBinsZ) - 1e-4))
-		{
-			return 0;
-		}
-
-		return beam->Interpolate(point.x, point.y, point.z);
+		return HistUtils::GetValueAtPosition(beam, point);
 	}
 
 	void SetElectronCurrent(double current)
@@ -156,8 +147,8 @@ namespace ElectronBeam
 		if (!file.empty())
 		{
 			TH3D* result = FileUtils::LoadMatrixFile(file);
-
-			result = CutZerosFromDistribution(result);
+			if(cutOutZeros) 
+				result = CutZerosFromDistribution(result);
 
 			if (mirrorAroundZ)
 				result = MirrorDistributionAtZ(result);
@@ -252,6 +243,12 @@ namespace ElectronBeam
 			}
 		}
 
+		// add/subtract 1 to keep one row of zeros in each direction for interpolation purposes
+		minX -= 1;
+		maxX += 1;
+		minY -= 1;
+		maxY += 1;
+
 		int newBinsX = maxX - minX + 1;
 		int newBinsY = maxY - minY + 1;
 		int newBinsZ = input->GetNbinsZ();
@@ -260,8 +257,8 @@ namespace ElectronBeam
 		double xMax = input->GetXaxis()->GetBinUpEdge(maxX);
 		double yMin = input->GetYaxis()->GetBinLowEdge(minY);
 		double yMax = input->GetYaxis()->GetBinUpEdge(maxY);
-		double zMin = input->GetZaxis()->GetXmin();
-		double zMax = input->GetZaxis()->GetXmax();
+		double zMin = input->GetZaxis()->GetBinLowEdge(minZ);
+		double zMax = input->GetZaxis()->GetBinUpEdge(maxZ);
 
 		std::string newName = std::string(input->GetName()) + "_cut";
 		TH3D* output = new TH3D(newName.c_str(), input->GetTitle(),
@@ -310,7 +307,7 @@ namespace ElectronBeam
 		TH3D* mirrored = new TH3D(newName.c_str(), input->GetTitle(),
 			nBinsX, xMin, xMax,
 			nBinsY, yMin, yMax,
-			2 * nBinsZ, zMin, zMax);
+			2 * nBinsZ - 1, zMin, zMax);
 
 		mirrored->GetXaxis()->SetTitle(input->GetXaxis()->GetTitle());
 		mirrored->GetYaxis()->SetTitle(input->GetYaxis()->GetTitle());
@@ -649,6 +646,8 @@ namespace ElectronBeam
 		ImGui::EndDisabled();
 
 		ImGui::Checkbox("mirror around z-axis", &mirrorAroundZ);
+		ImGui::SameLine();
+		ImGui::Checkbox("cut out zeros", &cutOutZeros);
 
 		ImGui::SeparatorText("special beam shapes");
 		if (ImGui::Checkbox("gaussian", &gaussianElectronBeam))

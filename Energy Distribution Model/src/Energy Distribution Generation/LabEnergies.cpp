@@ -2,6 +2,7 @@
 
 #include "LabEnergies.h"
 #include "FileUtils.h"
+#include "HistUtils.h"
 
 namespace LabEnergy
 {
@@ -26,22 +27,16 @@ namespace LabEnergy
 	{
 	}
 
-	double Get(double x, double y, double z)
+	TH3D* Get()
+	{
+		return hist;
+	}
+
+	double GetValue(double x, double y, double z)
 	{
 		z = TMath::Abs(z);
 
-		int numberBinsX = hist->GetXaxis()->GetNbins();
-		int numberBinsY = hist->GetYaxis()->GetNbins();
-		int numberBinsZ = hist->GetZaxis()->GetNbins();
-
-		double x_clamped = std::clamp(x, hist->GetXaxis()->GetBinCenter(1), hist->GetXaxis()->GetBinCenter(numberBinsX) - 1e-4);
-		double y_clamped = std::clamp(y, hist->GetYaxis()->GetBinCenter(1), hist->GetYaxis()->GetBinCenter(numberBinsY) - 1e-4);
-		double z_clamped = std::clamp(z, hist->GetZaxis()->GetBinCenter(1), hist->GetZaxis()->GetBinCenter(numberBinsZ) - 1e-4);
-
-		if (interpolateEnergy)
-			return hist->Interpolate(x_clamped, y_clamped, z_clamped);
-		else
-			return hist->GetBinContent(hist->FindBin(x, y, z));
+		return HistUtils::GetValueAtPosition(hist, {x, y, z}, interpolateEnergy);
 	}
 
 	LabEnergyParameters GetParameters()
