@@ -6,3 +6,6 @@
 [submodule "Energy Distribution Model/vendor/implot"]
     path = Energy Distribution Model/vendor/implot
     url = https://github.com/jonas-bechtel/implot.git
+[submodule "Energy Distribution Model/vendor/JSPEC"]
+	path = Energy Distribution Model/vendor/JSPEC
+	url = https://github.com/JeffersonLab/ElectronCooling.git
