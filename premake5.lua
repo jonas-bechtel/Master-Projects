@@ -20,6 +20,7 @@ group "Dependencies"
 	include "Energy Distribution Model/vendor/tinyfiledialogs"
 	include "Energy Distribution Model/vendor/imgui"
 	include "Energy Distribution Model/vendor/implot"
+	include "Energy Distribution Model/vendor/JSPEC"
 group ""
 
 group "Core"

@@ -2,57 +2,61 @@
 #include "CoolingForceValue.h"
 #include "CoolingForceModel.h"
 
-class CoolingForceCurve
+namespace CoolingForce
 {
-public:
-	CoolingForceCurve();
-	CoolingForceCurve(const CoolingForceCurve& other) = delete;
-	CoolingForceCurve& operator=(const CoolingForceCurve& other) = delete;
+	class Curve
+	{
+	public:
+		Curve();
+		Curve(const Curve& other) = delete;
+		Curve& operator=(const Curve& other) = delete;
 
-	CoolingForceCurve(CoolingForceCurve&& other) = default;
-	CoolingForceCurve& operator=(CoolingForceCurve&& other) = default;
+		Curve(Curve&& other) = default;
+		Curve& operator=(Curve&& other) = default;
 
-	void IntegrateNumerically(NumericalIntegrationParameter& params);
-	void AddForceValue(CoolingForceValue&& value);
-	void RemoveForceValue(int index);
+		void IntegrateNumerically(const Model::Parameter& params);
+		void AddForceValue(Value&& value);
+		void RemoveForceValue(int index);
 
-	void SetFolder(std::filesystem::path path);
-	void SetSubfolder(std::filesystem::path path);
+		void SetFolder(std::filesystem::path path);
+		void SetSubfolder(std::filesystem::path path);
 
-	std::filesystem::path GetFolder() const;
-	std::filesystem::path GetSubfolder() const;
-	std::string GetLabel() const;
-	bool Empty() const;
-	bool IsNumerical() const;
+		std::filesystem::path GetFolder() const;
+		std::filesystem::path GetSubfolder() const;
+		std::string GetLabel() const;
+		bool Empty() const;
+		bool IsNumerical() const;
 
-	void ShowList();
-	void SelectedItemChanged();
+		void ShowContent();
+		void SelectedItemChanged();
 
-	void PlotForceX() const;
-	void PlotForceY() const;
-	void PlotForceZ() const;
-	void PlotDetails() const;
+		void PlotForceX() const;
+		void PlotForceY() const;
+		void PlotForceZ() const;
+		void PlotDetails() const;
 
-	void UpdateSlice(float zValue);
+		void UpdateSlice(float zValue);
 
-	void Save() const;
-	void Load(const std::filesystem::path& input);
+		void Save() const;
+		void Load(const std::filesystem::path& input);
 
-private:
-	std::vector<CoolingForceValue> values;
-	std::vector<double> forceX;
-	std::vector<double> forceY;
-	std::vector<double> forceZ;
-	std::vector<double> forceZscaled;
-	std::vector<double> detuningVelocites;
+	private:
+		std::vector<Value> values;
+		std::vector<double> forceX;
+		std::vector<double> forceY;
+		std::vector<double> forceZ;
+		std::vector<double> forceZscaled;
+		std::vector<double> detuningVelocites;
 
-	float scale = 1.0f;
+		float scale = 1.0f;
 
-	std::filesystem::path folder = "Test";
-	std::filesystem::path subFolder = "subfolder";
+		std::filesystem::path folder = "Test";
+		std::filesystem::path subFolder = "subfolder";
 
-	int selectedIndex = -1;
-	bool numerical = false; // as opposed to mcmc generated
-	NumericalIntegrationParameter numericalParams;
-};
+		int selectedIndex = -1;
+		bool numerical = false; // as opposed to mcmc generated
+		Model::Parameter modelParams;
+	};
+}
+
 

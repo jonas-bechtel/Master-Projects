@@ -369,7 +369,7 @@ namespace MCMC
 			double sumY = 0;
 			double sumZ = 0;
 
-			for (int i = 0; i < parameters.numberSamples - lag; i++)
+			for (int i = 0; i < parameters.numberSamples.get() - lag; i++)
 			{
 				Point3D point = chain[i];
 				Point3D pointLag = chain[i + lag];
@@ -377,9 +377,9 @@ namespace MCMC
 				sumY += (point.y - means[1]) * (pointLag.y - means[1]);
 				sumZ += (point.z - means[2]) * (pointLag.z - means[2]);
 			}
-			autocorrX[lag] = sumX / (variances[0] * (parameters.numberSamples - lag));
-			autocorrY[lag] = sumY / (variances[1] * (parameters.numberSamples - lag));
-			autocorrZ[lag] = sumZ / (variances[2] * (parameters.numberSamples - lag));
+			autocorrX[lag] = sumX / (variances[0] * (parameters.numberSamples.get() - lag));
+			autocorrY[lag] = sumY / (variances[1] * (parameters.numberSamples.get() - lag));
+			autocorrZ[lag] = sumZ / (variances[2] * (parameters.numberSamples.get() - lag));
 
 			lagValues[lag] = lag;
 		}

@@ -14,7 +14,12 @@ namespace IonBeam
 	void UpdatePlotData();
 
 	TVector3 GetDirection();
+	TVector3 GetVelocity();
+	double GetValue(const Point3D& point);
+	double GetVelocityMagnitude();
 	int GetCharge();
+	float GetSigmaX();
+	float GetSigmaY();
 	TH3D* Get();
 	std::string GetTags();
 

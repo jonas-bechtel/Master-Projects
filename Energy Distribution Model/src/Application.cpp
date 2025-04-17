@@ -241,7 +241,7 @@ Application::Application()
     IonBeam::Init();
     LabEnergy::Init();
     EnergyDistributionWindow::Init();
-    CoolingForceWindow::Init();
+    CoolingForce::Init();
     DeconvolutionWindow::Init();
     //gStyle->SetOptStat(0);
 }
@@ -261,7 +261,7 @@ void Application::ShowWindows()
         IonBeam::ShowWindow();
         LabEnergy::ShowWindow();
         EnergyDistributionWindow::ShowWindow();
-        CoolingForceWindow::ShowWindow();
+        CoolingForce::ShowWindow();
 
     }
     ImGui::End();
@@ -278,7 +278,7 @@ void Application::ShowWindows()
     
 
     //ImGui::ShowDemoWindow();
-    //ImPlot::ShowDemoWindow();
+    ImPlot::ShowDemoWindow();
 
     // Handle ROOT events
     gSystem->ProcessEvents();

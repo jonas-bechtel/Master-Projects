@@ -4,6 +4,7 @@
 #include "ElectronBeam.h"
 #include "MCMC.h"
 #include "EnergyDistribution.h"
+#include "Constants.h"
 
 namespace IonBeam
 {
@@ -318,9 +319,55 @@ namespace IonBeam
 		return TVector3(angleX, angleY, 1).Unit();
 	}
 
+	TVector3 GetVelocity()
+	{
+		return GetDirection() * GetVelocityMagnitude();
+	}
+
+	double GetValue(const Point3D& point)
+	{
+		double x = point.x;
+		double y = point.y;
+		double z = point.z;
+
+		// apply shift of ion beam
+		x -= parameter.shift.get().x;
+		y -= parameter.shift.get().y;
+
+		// apply the angles with small angle approximation
+		x -= parameter.angles.get().x * z;
+		y -= parameter.angles.get().y * z;
+
+		double value = 0;
+		double normalisation = 1 / (parameter.sigma.get().x * parameter.sigma.get().y * 2 * TMath::Pi());
+		value = normalisation * exp(-0.5 * ((x * x) / pow(parameter.sigma.get().x, 2) + (y * y) / pow(parameter.sigma.get().y, 2)));
+
+		if (doubleGaussian)
+		{
+			value += amplitude2 * exp(-0.5 * ((x * x) / pow(sigma2[0], 2) + (y * y) / pow(sigma2[1], 2)));
+		}
+
+		return value;
+	}
+
+	double GetVelocityMagnitude()
+	{
+		return TMath::Sqrt(2 * ElectronBeam::GetCoolingEnergy() * TMath::Qe() / PhysicalConstants::electronMass);
+	}
+
 	int GetCharge()
 	{
 		return parameter.charge;
+	}
+
+	float GetSigmaX()
+	{
+		return parameter.sigma.get().x;
+	}
+
+	float GetSigmaY()
+	{
+		return parameter.sigma.get().y;
 	}
 
 	TH3D* Get()

@@ -97,7 +97,7 @@ EnergyDistribution& EnergyDistribution::operator=(EnergyDistribution&& other) no
 
 	psi = std::move(other.psi);
 
-	cfData = std::move(other.cfData);
+	//cfData = std::move(other.cfData);
 
 	showPlot = other.showPlot;
 	showNormalisedByWidth = other.showNormalisedByWidth;

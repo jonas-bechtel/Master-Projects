@@ -1,233 +1,539 @@
 #include "pch.h"
 #include "CoolingForceModel.h"
 #include "Constants.h"
+#include "Math.h"
 
-double NumericalIntegrationParameter::precision = 1e-7;
+#include "force.h"
+#include "beam.h"
 
-namespace CoolingForceModel
+namespace CoolingForce
 {
-	static double constantsFactor =  pow(TMath::Qe(), 3) / (4 * TMath::Pi() * pow(PhysicalConstants::epsilon_0, 2) * PhysicalConstants::electronMass);
-}
-
-// returns the 3d force in eV at one position for one relative velocity
-TVector3 CoolingForceModel::CoolingForce(const NumericalIntegrationParameter& params)
+namespace Model
 {
-	if (params.electronDensity == 0)
-		return TVector3(0, 0, 0);
+	static double constantsFactor = pow(TMath::Qe(), 3) / (4 * TMath::Pi() * pow(PhysicalConstants::epsilon_0, 2) * PhysicalConstants::electronMass);
+	static const char* modelTypes[] = { "NonMagOriginal", "Parkhomchuk", "NonMagNumeric3D", "DerbenovSkrinsky"};
+	static int currentModelIndex = 0;
+	float Parameter::relativeVelocityRange[2] = { -100000.0f, 100000.0f };
+	int Parameter::numberPoints = 100;
+	bool Parameter::showLinesLong = true;
+	bool Parameter::showLinesTrans = true;
 
-	double factor = constantsFactor;// pow(TMath::Qe(), 3) / (4 * TMath::Pi() * pow(PhysicalConstants::epsilon_0, 2) * PhysicalConstants::electronMass);
-	double L_C = CoulombLogarithm(params.relativeVelocity.Mag(), params.kT_trans, params.electronDensity, params.ionCharge);
-	return -factor * pow(params.ionCharge, 2) * params.electronDensity * L_C / pow(params.relativeVelocity.Mag(), 3) * params.relativeVelocity;
-}
-
-// integrates the longitudinal cooling force for a given density and temperature and mean relative velocity
-double CoolingForceModel::ForceZ(const NumericalIntegrationParameter& params)
-{
-	if (params.electronDensity == 0)
-		return 0.0;
-
-	double deltaTrans = sqrt(2 * params.kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
-	double deltaLong = sqrt(params.kT_long * TMath::Qe() / PhysicalConstants::electronMass);
-
-	int numberParams = ceil(sizeof(NumericalIntegrationParameter) / sizeof(double));
-	//std::cout << "inside: " << params.String() << std::endl;
-	thread_local TF2 func("func", CoolingForceModel::NumericalIntegrandPolar, 0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, numberParams, 2);
-
-	func.SetParameters((double*)&params);
-
-	double result = func.Integral(0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, params.precision);
-
-	return result;
-}
-
-double CoolingForceModel::NumericalIntegrandPolar(double* vels, double* params)
-{
-	double vTrans = vels[0];
-	double vLong = vels[1];
-
-	NumericalIntegrationParameter& parameter = *(NumericalIntegrationParameter*)params;
-	double relativeVelocity = parameter.relativeVelocity.z();
-	int ionCharge = parameter.ionCharge;
-	double electronDensity = parameter.electronDensity;
-	double kT_trans = parameter.kT_trans;
-	double kT_long = parameter.kT_long;
-
-	/*std::cout << relativeVelocity << std::endl;
-	std::cout << ionCharge << std::endl;
-	std::cout << electronDensity << std::endl;
-	std::cout << kT_trans << std::endl;
-	std::cout << kT_long << std::endl;*/
-
-	double factor = ionCharge * ionCharge * electronDensity * constantsFactor;
-	double v_r = sqrt(pow(relativeVelocity - vLong, 2) + pow(vTrans, 2));
-	double L_C = CoulombLogarithm(v_r, kT_trans, electronDensity, ionCharge);
-	double deltaTrans = sqrt(2 * kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
-	double deltaLong = sqrt(kT_long * TMath::Qe() / PhysicalConstants::electronMass);
-	double f_v = FlattenedMaxwellDistributionPolar(vTrans, vLong, deltaTrans, deltaLong);
-
-	//std::cout << factor << std::endl;
-	//std::cout << L_C << std::endl;
-	//std::cout << deltaTrans << std::endl;
-	//std::cout << deltaLong << std::endl;
-	//std::cout << f_v << std::endl;
-	double result = -factor * 2 * TMath::Pi() * L_C * f_v * (relativeVelocity - vLong) * vTrans /
-		pow(sqrt(pow(relativeVelocity - vLong, 2) + vTrans * vTrans), 3);
-
-	//std::cout << result << std::endl;
-
-	return result;
-}
-
-double CoolingForceModel::NumericalIntegrandCartesian(double* vels, double* params)
-{
-	double vX = vels[0];
-	double vY = vels[1];
-	double vZ = vels[2];
-
-	NumericalIntegrationParameter& parameter = *(NumericalIntegrationParameter*)params;
-	TVector3 meanRelativeVelocity = parameter.relativeVelocity;
-	int ionCharge = parameter.ionCharge;
-	double electronDensity = parameter.electronDensity;
-	double kT_trans = parameter.kT_trans;
-	double kT_long = parameter.kT_long;
-
-	double factor = ionCharge * ionCharge * electronDensity * constantsFactor;
-	TVector3 relativeVelocity = meanRelativeVelocity - TVector3(vX, vY, vZ);
-	//relativeVelocity.Print();
-	//meanRelativeVelocity.Unit().Print();
-	//std::cout << relativeVelocity.Dot(meanRelativeVelocity.Unit()) << std::endl << std::endl;
-	double v_r = relativeVelocity.Mag();
-	//double v_r = sqrt(pow(meanRelativeVelocity.z() - vZ, 2) + vY * vY + vX * vX);
-	double L_C = CoulombLogarithm(v_r, kT_trans, electronDensity, ionCharge);
-	double sigmaX = sqrt(kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
-	double sigmaY = sigmaX;
-	double sigmaZ = sqrt(kT_long * TMath::Qe() / PhysicalConstants::electronMass);
-	double f_v = FlattenedMaxwellDistributionCartesian(vX, vY, vZ, sigmaX, sigmaY, sigmaZ);
-
-	//std::cout << factor << std::endl;
-	/*std::cout << v_r << std::endl;
-	std::cout << L_C << std::endl;
-	std::cout << sigmaX << std::endl;
-	std::cout << sigmaZ << std::endl;
-	std::cout << f_v << std::endl;*/
-	if (relativeVelocity.z() == 0) 
-		return 0;
-
-	double result = -factor * L_C * f_v * relativeVelocity.z() / pow(v_r, 3);
-	if (std::isnan(result))
+	std::string Parameter::String() const
 	{
-		std::cout << "result is nan" << std::endl;
+		std::ostringstream density;
+		density << std::scientific << std::setprecision(3) << electronDensity;
+		std::ostringstream Tlong;
+		Tlong << std::scientific << std::setprecision(3) << kT_long;
+		std::ostringstream Ttrans;
+		Ttrans << std::scientific << std::setprecision(3) << kT_trans;
+		std::ostringstream Bfield;
+		Bfield << std::setprecision(3) << magneticField;
+		std::ostringstream effVel;
+		effVel << std::scientific << std::setprecision(1) << effectiveVelocity;
+
+		std::string result = std::string(modelTypes[(int)model]) + "_Q=" + std::to_string(ionCharge) + "_ne=" + density.str()
+			+ "_Tlong=" + Tlong.str() + "_Ttrans=" + Ttrans.str();
+		if (model == Type::Parkhomchuk)
+		{
+			result += "_B=" + Bfield.str() + "_Veff=" + effVel.str();
+		}
+		if (model == Type::DerbenovSkrinsky)
+		{
+			result += "_B=" + Bfield.str();
+		}
+		return result;
 	}
-	//std::cout << result << std::endl;
 
-	return result;
-}
-
-double CoolingForceModel::FlattenedMaxwellDistributionPolar(double vTrans, double vLong, double deltaTrans, double deltaLong)
-{
-	return 1 / (pow(deltaTrans, 2) * sqrt(2) * deltaLong * pow(TMath::Pi(), 1.5)) *
-		exp(-((pow(vTrans, 2) / pow(deltaTrans, 2))
-			+ (pow(vLong, 2) / (2 * pow(deltaLong, 2)))));
-}
-
-double CoolingForceModel::FlattenedMaxwellDistributionCartesian(double vX, double vY, double vZ, double sigmaX, double sigmaY, double sigmaZ)
-{
-	return 1 / (sigmaX * sigmaY * sigmaZ * pow(2 * TMath::Pi(), 1.5)) *
-		exp(-0.5 * (pow(vX, 2) / pow(sigmaX, 2)
-				 +  pow(vY, 2) / pow(sigmaY, 2)
-				 +  pow(vZ, 2) / pow(sigmaZ, 2)));
-}
-
-double CoolingForceModel::CoulombLogarithm(double relativeVelocity, double kT_trans, double electronDensity, int ionCharge)
-{
-	return log(B_max(abs(relativeVelocity), kT_trans, electronDensity) / B_min(abs(relativeVelocity), kT_trans, ionCharge));
-}
-
-double CoolingForceModel::B_min(double relativeVelocity, double kT_trans, int ionCharge)
-{
-	double deltaE_trans = sqrt(2 * kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
-	return ionCharge * TMath::Qe() * TMath::Qe() / (4 * TMath::Pi() * PhysicalConstants::epsilon_0 * PhysicalConstants::electronMass * pow(std::max(relativeVelocity, deltaE_trans), 2));
-}
-
-double CoolingForceModel::B_max(double relativeVelocity, double kT_trans, double electronDensity)
-{
-	return std::max(relativeVelocity / PlasmaFrequency(electronDensity), DebyeScreeningLength(kT_trans, electronDensity));
-}
-
-double CoolingForceModel::DebyeScreeningLength(double kT_trans, double electronDensity)
-{
-	return sqrt(PhysicalConstants::epsilon_0 * kT_trans * TMath::Qe() / (electronDensity * TMath::Qe() * TMath::Qe()));
-}
-
-double CoolingForceModel::PlasmaFrequency(double electronDensity)
-{
-	return sqrt(electronDensity * TMath::Qe() * TMath::Qe() / (PhysicalConstants::epsilon_0 * PhysicalConstants::electronMass));
-}
-
-double CoolingForceModel::GetConstantsFactor()
-{
-	return 0.0;
-}
-
-std::string NumericalIntegrationParameter::String() const
-{
-	std::ostringstream density;
-	density << std::scientific << std::setprecision(3) << electronDensity;
-	std::ostringstream Tlong;
-	Tlong << std::scientific << std::setprecision(3) << kT_long;
-	std::ostringstream Ttrans;
-	Ttrans << std::scientific << std::setprecision(3) << kT_trans;
-
-	std::string result = "Q=" + std::to_string(ionCharge) + "_ne=" + density.str()
-		+ "_Tlong=" + Tlong.str() + "_Ttrans=" + Ttrans.str();
-
-	return result;
-}
-
-void NumericalIntegrationParameter::FromString(std::string& input)
-{
-	std::istringstream stream(input);
-	std::string token;
-
-	while (std::getline(stream, token, '_')) 
+	void Parameter::FromString(std::string& input)
 	{
-		if (token.find("Q=") == 0) 
+		std::istringstream stream(input);
+		std::string token;
+
+		// get first elemetn which is the model type
+		std::getline(stream, token, '_');
+		for (int i = 0 ; i < (int)Type::Count; i++)
 		{
-			ionCharge = std::stoi(token.substr(2));
+			if (std::string(modelTypes[i]) == token)
+			{
+				model = (Type)i;
+			}
 		}
-		else if (token.find("ne=") == 0) 
+		while (std::getline(stream, token, '_'))
 		{
-			electronDensity = std::stod(token.substr(3));
-		}
-		else if (token.find("Tlong=") == 0) 
-		{
-			kT_long = std::stod(token.substr(6)); 
-		}
-		else if (token.find("Ttrans=") == 0) 
-		{
-			kT_trans = std::stod(token.substr(7));
+			if (token.find("Q=") == 0)
+			{
+				ionCharge = std::stoi(token.substr(2));
+			}
+			else if (token.find("ne=") == 0)
+			{
+				electronDensity = std::stod(token.substr(3));
+			}
+			else if (token.find("Tlong=") == 0)
+			{
+				kT_long = std::stod(token.substr(6));
+			}
+			else if (token.find("Ttrans=") == 0)
+			{
+				kT_trans = std::stod(token.substr(7));
+			}
+			else if (token.find("B=") == 0)
+			{
+				magneticField = std::stod(token.substr(2));
+			}
+			else if (token.find("Veff=") == 0)
+			{
+				effectiveVelocity = std::stod(token.substr(5));
+			}
 		}
 	}
+
+	void Parameter::ShowWindow(bool& show)
+	{
+		if (!show)
+		{
+			return;
+		}
+		if (ImGui::Begin("Numerical integration parameter", &show, ImGuiWindowFlags_NoDocking))
+		{
+			ImGui::PushItemWidth(140.0f);
+			ImGui::InputFloat2("velocity range", relativeVelocityRange, "%.1e");
+			ImGui::InputInt("number points", &numberPoints);
+			ImGui::Separator();
+			if (ImGui::Combo("models", &currentModelIndex, modelTypes, IM_ARRAYSIZE(modelTypes)))
+			{
+				model = static_cast<Model::Type>(currentModelIndex);
+			}
+			ImGui::InputInt("ion charge", &ionCharge);
+			ImGui::InputDouble("electron density", &electronDensity, 0, 0, "%.2e");
+			ImGui::BeginGroup();
+			if (ImGui::InputDouble("kT long", &kT_long))
+			{
+				velSpreadLong = Math::LongTempToVelocitySpread(kT_long);
+
+			}
+			if (ImGui::InputDouble("kT trans", &kT_trans))
+			{
+				velSpreadTrans = Math::TransTempToVelocitySpread(kT_trans);
+			}
+			ImGui::EndGroup();
+			ImGui::SameLine();
+			ImGui::BeginGroup();
+			if (ImGui::InputDouble("vel long", &velSpreadLong, 0, 0, "%.0f"))
+			{
+				kT_long = Math::VelocitySpreadToLongTemp(velSpreadLong);
+
+			}
+			if (ImGui::InputDouble("vel trans", &velSpreadTrans, 0, 0, "%.0f"))
+			{
+				kT_trans = Math::VelocitySpreadToTransTemp(velSpreadTrans);
+			}
+			ImGui::EndGroup();
+			ImGui::SameLine();
+			ImGui::BeginGroup();
+			ImGui::Checkbox("show##long", &showLinesLong);
+			ImGui::Checkbox("show##trans", &showLinesTrans);
+			ImGui::EndGroup();
+
+			switch (model)
+			{
+			case Model::Type::Parkhomchuk:
+				ImGui::InputDouble("effective vel trans", &effectiveVelocity);
+				ImGui::InputDouble("magnetic field", &magneticField);
+				break;
+			case Model::Type::NonMagOriginal:
+				ImGui::InputDouble("relative tolerance", &relTolerance, 0, 0, "%.1e");
+				break;
+			case Model::Type::NonMagNumeric3D:
+				ImGui::InputDouble("relative tolerance", &relTolerance, 0, 0, "%.1e");
+				ImGui::Checkbox("use gsl", &useGSL);
+				break;
+			case Model::Type::DerbenovSkrinsky:
+				ImGui::InputDouble("magnetic field", &magneticField);
+				ImGui::InputDouble("smoothing factor", &smoothingFactor);
+				ImGui::Checkbox("magnetic only", &magneticOnly);
+				break;
+			}
+
+			ImGui::PopItemWidth();
+		}
+		ImGui::End();
+	}
+
+	void Parameter::ShowValues()
+	{
+		ImGui::BeginGroup();
+		ImGui::Text("model:");
+		ImGui::Text("electron density:");
+		ImGui::Text("ion charge:");
+		ImGui::Text("longitudinal kT:");
+		ImGui::Text("transverse kT:");
+		switch (model)
+		{
+		case Model::Type::NonMagOriginal:
+			ImGui::Text("relative tolerance");
+			break;
+		case Model::Type::Parkhomchuk:
+			ImGui::Text("effective vel trans:");
+			ImGui::Text("magnetic field:");
+			break;
+		case Model::Type::NonMagNumeric3D:
+			ImGui::Text("relative tolerance:");
+			break;
+		case Model::Type::DerbenovSkrinsky:
+			ImGui::Text("magnetic field:");
+			ImGui::Text("smoothing factor:");
+			ImGui::Text("magnetic only:");
+			break;
+		}
+		ImGui::EndGroup();
+
+		ImGui::SameLine();
+		ImGui::BeginGroup();
+		ImGui::Text("%s", modelTypes[(int)model]);
+		ImGui::Text("%.2e [1/m^3]", electronDensity);
+		ImGui::Text("%d", ionCharge);
+		ImGui::Text("%.2e [eV]", kT_long);
+		ImGui::Text("%.2e [eV]", kT_trans);
+		switch (model)
+		{
+		case Model::Type::NonMagOriginal:
+			ImGui::Text("%.1e", relTolerance);
+			break;
+		case Model::Type::Parkhomchuk:
+			ImGui::Text("%.0f [m/s]", effectiveVelocity);
+			ImGui::Text("%.3f [T]", magneticField);
+			break;
+		case Model::Type::NonMagNumeric3D:
+			ImGui::Text("%.1e", relTolerance);
+			break;
+		case Model::Type::DerbenovSkrinsky:
+			ImGui::Text("%.3f [T]", magneticField);
+			ImGui::Text("%.1f", smoothingFactor);
+			ImGui::Text("%s", magneticOnly ? "True" : "False");
+			break;
+		}
+		ImGui::EndGroup();
+	}
+
+	void Parameter::ShowVelocityLines()
+	{
+		double negVelLongTemp = -velSpreadLong;
+		double negVelTransTemp = -velSpreadTrans;
+		bool changed1 = false;
+		bool changed2 = false;
+		ImVec4 colorLong = ImVec4(0.6f, 0.05f, 0.18f, 1.0f);
+		ImVec4 colorTrans = ImVec4(0.8f, 0.31f, 0.22f, 1.0f);
+
+		if (showLinesLong)
+		{
+			changed1 |= ImPlot::DragLineX(0, &velSpreadLong, colorLong, 1, ImPlotDragToolFlags_NoFit);
+			ImPlot::TagX(velSpreadLong, colorLong, "kT long");
+			changed2 |= ImPlot::DragLineX(1, &negVelLongTemp, colorLong, 1, ImPlotDragToolFlags_NoFit);
+			ImPlot::TagX(negVelLongTemp, colorLong, "kT long");
+
+		}
+		if (showLinesTrans)
+		{
+			changed1 |= ImPlot::DragLineX(2, &velSpreadTrans, colorTrans, 1, ImPlotDragToolFlags_NoFit);
+			ImPlot::TagX(velSpreadTrans, colorTrans, "kT trans");
+			changed2 |= ImPlot::DragLineX(3, &negVelTransTemp, colorTrans, 1, ImPlotDragToolFlags_NoFit);
+			ImPlot::TagX(negVelTransTemp, colorTrans, "kT trans");
+		}
+		
+		if (changed2)
+		{
+			velSpreadLong = -negVelLongTemp;
+			velSpreadTrans = -negVelTransTemp;
+		}
+		if (changed1 || changed2)
+		{
+			kT_long = Math::VelocitySpreadToLongTemp(velSpreadLong);
+			kT_trans = Math::VelocitySpreadToTransTemp(velSpreadTrans);
+		}
+	}
+
+	// returns the 3d force in eV at one position for one relative velocity
+	TVector3 CoolingForce(const Parameter& params)
+	{
+		if (params.electronDensity == 0)
+			return TVector3(0, 0, 0);
+
+		double factor = constantsFactor;// pow(TMath::Qe(), 3) / (4 * TMath::Pi() * pow(PhysicalConstants::epsilon_0, 2) * PhysicalConstants::electronMass);
+		double L_C = CoulombLogarithm(params.relativeVelocity.Mag(), params.kT_trans, params.electronDensity, params.ionCharge);
+		return -factor * pow(params.ionCharge, 2) * params.electronDensity * L_C / pow(params.relativeVelocity.Mag(), 3) * params.relativeVelocity;
+	}
+
+	// integrates the longitudinal cooling force for a given density and temperature and mean relative velocity
+	double ForceZ(const Parameter& params)
+	{
+		if (params.electronDensity == 0)
+			return 0.0;
+
+		double deltaTrans = sqrt(2 * params.kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
+		double deltaLong = sqrt(params.kT_long * TMath::Qe() / PhysicalConstants::electronMass);
+
+		int numberParams = ceil(sizeof(Model::Parameter) / sizeof(double));
+		//std::cout << "inside: " << params.String() << std::endl;
+		thread_local TF2 func("func", Model::NumericalIntegrandPolar, 0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, numberParams, 2);
+
+		func.SetParameters((double*)&params);
+
+		double result = func.Integral(0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, params.relTolerance);
+
+		return result;
+	}
+
+	double NumericalIntegrandPolar(double* vels, double* params)
+	{
+		double vTrans = vels[0];
+		double vLong = vels[1];
+
+		Parameter& parameter = *(Parameter*)params;
+		double relativeVelocity = parameter.relativeVelocity.z();
+		int ionCharge = parameter.ionCharge;
+		double electronDensity = parameter.electronDensity;
+		double kT_trans = parameter.kT_trans;
+		double kT_long = parameter.kT_long;
+
+		/*std::cout << relativeVelocity << std::endl;
+		std::cout << ionCharge << std::endl;
+		std::cout << electronDensity << std::endl;
+		std::cout << kT_trans << std::endl;
+		std::cout << kT_long << std::endl;*/
+
+		double factor = ionCharge * ionCharge * electronDensity * constantsFactor;
+		double v_r = sqrt(pow(relativeVelocity - vLong, 2) + pow(vTrans, 2));
+		double L_c = CoulombLogarithm(v_r, kT_trans, electronDensity, ionCharge);
+		double deltaTrans = sqrt(2 * kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
+		double deltaLong = sqrt(kT_long * TMath::Qe() / PhysicalConstants::electronMass);
+		double f_v = FlattenedMaxwellDistributionPolar(vTrans, vLong, deltaTrans, deltaLong);
+
+		//std::cout << factor << std::endl;
+		//std::cout << L_C << std::endl;
+		//std::cout << deltaTrans << std::endl;
+		//std::cout << deltaLong << std::endl;
+		//std::cout << f_v << std::endl;
+		double result = -factor * 2 * TMath::Pi() * L_c * f_v * (relativeVelocity - vLong) * vTrans /
+			pow(sqrt(pow(relativeVelocity - vLong, 2) + vTrans * vTrans), 3);
+
+		if (ionCharge < 0)
+			result += -factor * 4 * TMath::Pi() * f_v * (relativeVelocity - vLong) * vTrans /
+			pow(sqrt(pow(relativeVelocity - vLong, 2) + vTrans * vTrans), 3);
+
+		//std::cout << result << std::endl;
+
+		return result;
+	}
+
+	double NumericalIntegrandCartesian(double* vels, double* params)
+	{
+		double vX = vels[0];
+		double vY = vels[1];
+		double vZ = vels[2];
+
+		Parameter& parameter = *(Parameter*)params;
+		TVector3 meanRelativeVelocity = parameter.relativeVelocity;
+		int ionCharge = parameter.ionCharge;
+		double electronDensity = parameter.electronDensity;
+		double kT_trans = parameter.kT_trans;
+		double kT_long = parameter.kT_long;
+
+		double factor = ionCharge * ionCharge * electronDensity * constantsFactor;
+		TVector3 relativeVelocity = meanRelativeVelocity - TVector3(vX, vY, vZ);
+		//relativeVelocity.Print();
+		//meanRelativeVelocity.Unit().Print();
+		//std::cout << relativeVelocity.Dot(meanRelativeVelocity.Unit()) << std::endl << std::endl;
+		double v_r = relativeVelocity.Mag();
+		//double v_r = sqrt(pow(meanRelativeVelocity.z() - vZ, 2) + vY * vY + vX * vX);
+		double L_C = CoulombLogarithm(v_r, kT_trans, electronDensity, ionCharge);
+		double sigmaX = sqrt(kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
+		double sigmaY = sigmaX;
+		double sigmaZ = sqrt(kT_long * TMath::Qe() / PhysicalConstants::electronMass);
+		double f_v = FlattenedMaxwellDistributionCartesian(vX, vY, vZ, sigmaX, sigmaY, sigmaZ);
+
+		//std::cout << factor << std::endl;
+		/*std::cout << v_r << std::endl;
+		std::cout << L_C << std::endl;
+		std::cout << sigmaX << std::endl;
+		std::cout << sigmaZ << std::endl;
+		std::cout << f_v << std::endl;*/
+		if (relativeVelocity.z() == 0)
+			return 0;
+
+		double result = -factor * L_C * f_v * relativeVelocity.z() / pow(v_r, 3);
+		if (std::isnan(result))
+		{
+			std::cout << "result is nan" << std::endl;
+		}
+		//std::cout << result << std::endl;
+
+		return result;
+	}
+
+	double FlattenedMaxwellDistributionPolar(double vTrans, double vLong, double deltaTrans, double deltaLong)
+	{
+		return 1 / (pow(deltaTrans, 2) * sqrt(2) * deltaLong * pow(TMath::Pi(), 1.5)) *
+			exp(-((pow(vTrans, 2) / pow(deltaTrans, 2))
+				+ (pow(vLong, 2) / (2 * pow(deltaLong, 2)))));
+	}
+
+	double FlattenedMaxwellDistributionCartesian(double vX, double vY, double vZ, double sigmaX, double sigmaY, double sigmaZ)
+	{
+		return 1 / (sigmaX * sigmaY * sigmaZ * pow(2 * TMath::Pi(), 1.5)) *
+			exp(-0.5 * (pow(vX, 2) / pow(sigmaX, 2)
+				+ pow(vY, 2) / pow(sigmaY, 2)
+				+ pow(vZ, 2) / pow(sigmaZ, 2)));
+	}
+
+	double CoulombLogarithm(double relativeVelocity, double kT_trans, double electronDensity, int ionCharge)
+	{
+		double bMax = B_max(abs(relativeVelocity), kT_trans, electronDensity);
+		double bMin = B_min(abs(relativeVelocity), kT_trans, ionCharge);
+		if (ionCharge < 0)
+			bMin *= 2;
+		return log(bMax / bMin);
+	}
+
+	double B_min(double relativeVelocity, double kT_trans, int ionCharge)
+	{
+		double deltaE_trans = sqrt(2 * kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
+		return abs(ionCharge) * TMath::Qe() * TMath::Qe() / (4 * TMath::Pi() * PhysicalConstants::epsilon_0 * PhysicalConstants::electronMass * pow(std::max(relativeVelocity, deltaE_trans), 2));
+	}
+
+	double B_max(double relativeVelocity, double kT_trans, double electronDensity)
+	{
+		return std::max(relativeVelocity / PlasmaFrequency(electronDensity), TransverseDebyeScreeningLength(kT_trans, electronDensity));
+	}
+
+	/*namespace Adiabatic
+	{
+		double L_C_nm(double u_ad, double kT_trans, int ionCharge, double magneticField)
+		{
+			return 0.0;
+		}
+		double L_C_ad(double u_ad, double kT_long, int ionCharge, double magneticField, double electronDensity);
+
+		double B_min_nm(double u_ad, double kT_trans, int ionCharge)
+		{
+			double deltaE_trans = sqrt(2 * kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
+			return abs(ionCharge) * TMath::Qe() * TMath::Qe() / (4 * TMath::Pi() * PhysicalConstants::epsilon_0 * PhysicalConstants::electronMass * pow(std::max(u_ad, deltaE_trans), 2));
+		}
+
+		double B_max_nm(double u_ad, double magneticField)
+		{
+			return u_ad / CyclotronFrequency(magneticField);
+		}
+
+		double B_min_ad(double u_ad, double magneticField, int ionCharge, double kT_long)
+		{
+			double first = u_ad / CyclotronFrequency(magneticField);
+			double deltaE_long = sqrt(2 * kT_long * TMath::Qe() / PhysicalConstants::electronMass);
+			double second = abs(ionCharge) * TMath::Qe() * TMath::Qe() / (4 * TMath::Pi() * PhysicalConstants::epsilon_0 * PhysicalConstants::electronMass * pow(std::max(u_ad, deltaE_long), 2));
+
+			return std::max(first, second);
+		}
+
+		double B_max_ad(double u_ad, double electronDensity, double kT_long)
+		{
+			return std::max(u_ad / PlasmaFrequency(electronDensity), LongitudinalDebyeScreeningLength(kT_long, electronDensity));
+		}
+	}*/
+
+	double TransverseDebyeScreeningLength(double kT_trans, double electronDensity)
+	{
+		return sqrt(PhysicalConstants::epsilon_0 * kT_trans * TMath::Qe() / (electronDensity * TMath::Qe() * TMath::Qe()));
+	}
+
+	double LongitudinalDebyeScreeningLength(double kT_long, double electronDensity)
+	{
+		return sqrt(PhysicalConstants::epsilon_0 * kT_long * TMath::Qe() / (electronDensity * TMath::Qe() * TMath::Qe()));
+	}
+
+	double PlasmaFrequency(double electronDensity)
+	{
+		return sqrt(electronDensity * TMath::Qe() * TMath::Qe() / (PhysicalConstants::epsilon_0 * PhysicalConstants::electronMass));
+	}
+
+	double CyclotronFrequency(double magneticField)
+	{
+		return TMath::Qe() * magneticField / PhysicalConstants::electronMass;
+	}
+
+	double CyclotronRadius(double magneticField, double transverseVelocity)
+	{
+		return transverseVelocity / CyclotronFrequency(magneticField);
+	}
+
+	namespace JSPEC
+	{
+		static UniformCylinder beam(1, 1);
+		static ForcePark parkhomchukModel;
+		static ForceNonMagNumeric3D nonMagNum3DModel(1000);
+		static ForceDSM derbenovSkrinskyModel;
+
+		double ForceZ_Parkhomchuk(const Parameter& parameter)
+		{
+			double longSigma = Math::LongTempToVelocitySpread(parameter.kT_long);
+			double transSigma = Math::TransTempToVelocitySpread(parameter.kT_trans);
+
+			beam.set_v_rms(transSigma, longSigma);
+			parkhomchukModel.set_v_eff(parameter.effectiveVelocity);
+			parkhomchukModel.set_mag_field(parameter.magneticField);
+			parkhomchukModel.set_time_cooler(parameter.coolerTime);
+			std::vector<double> v_tr = { parameter.relativeVelocity.Perp() };
+			std::vector<double> v_l = { parameter.relativeVelocity.z() };
+			std::vector<double> n_e = { parameter.electronDensity };
+			std::vector<double> f_tr;
+			std::vector<double> f_l;
+			parkhomchukModel.friction_force(parameter.ionCharge, 1, v_tr, v_l, n_e, beam, f_tr, f_l);
+
+			return f_l.at(0) / TMath::Qe();
+		}
+
+		double ForceZ_NonMagNumeric3D(const Parameter& parameter)
+		{
+			double longSigma = Math::LongTempToVelocitySpread(parameter.kT_long);
+			double transSigma = Math::TransTempToVelocitySpread(parameter.kT_trans);
+
+			beam.set_v_rms(transSigma, longSigma);
+			nonMagNum3DModel.set_mag_field(parameter.magneticField);
+			nonMagNum3DModel.set_time_cooler(parameter.coolerTime);
+			nonMagNum3DModel.set_esprel(parameter.relTolerance);
+			nonMagNum3DModel.set_gsl(parameter.useGSL);
+			std::vector<double> v_tr = { parameter.relativeVelocity.Perp() };
+			std::vector<double> v_l = { parameter.relativeVelocity.z() };
+			std::vector<double> n_e = { parameter.electronDensity };
+			std::vector<double> f_tr;
+			std::vector<double> f_l;
+			nonMagNum3DModel.friction_force(parameter.ionCharge, 1, v_tr, v_l, n_e, beam, f_tr, f_l);
+			
+			return f_l.at(0) / TMath::Qe();
+		}
+
+		double ForceZ_DerbenovSkrinsky(const Parameter& parameter)
+		{
+			double longSigma = Math::LongTempToVelocitySpread(parameter.kT_long);
+			double transSigma = Math::TransTempToVelocitySpread(parameter.kT_trans);
+
+			beam.set_v_rms(transSigma, longSigma);
+			derbenovSkrinskyModel.set_mag_field(parameter.magneticField);
+			derbenovSkrinskyModel.set_time_cooler(parameter.coolerTime);
+			derbenovSkrinskyModel.set_smooth_factor(parameter.smoothingFactor);
+			derbenovSkrinskyModel.set_mag_only(parameter.magneticOnly);
+			derbenovSkrinskyModel.set_steps(500);
+			derbenovSkrinskyModel.set_grid(70, 70, 20);
+			std::vector<double> v_tr = { parameter.relativeVelocity.Perp() };
+			std::vector<double> v_l = { parameter.relativeVelocity.z() };
+			std::vector<double> n_e = { parameter.electronDensity };
+			std::vector<double> f_tr;
+			std::vector<double> f_l;
+			derbenovSkrinskyModel.friction_force(parameter.ionCharge, 1, v_tr, v_l, n_e, beam, f_tr, f_l);
+
+			return f_l.at(0) / TMath::Qe();
+		}
+	}
+}
 }
 
-void NumericalIntegrationParameter::ShowWindow(bool& show)
-{
-	if (!show)
-	{
-		return;
-	}
-	if (ImGui::Begin("Numerical integration parameter", &show, ImGuiWindowFlags_NoDocking))
-	{
-		ImGui::PushItemWidth(150.0f);
-		ImGui::InputFloat2("velocity range", relativeVelocityRange, "%.1e");
-		ImGui::InputInt("number points", &numberPoints);
-		ImGui::InputDouble("relative precision", &precision, 0, 0, "%.1e");
-		ImGui::Separator();
-		ImGui::InputDouble("kT long", &kT_long);
-		ImGui::InputDouble("kT trans", &kT_trans);
-		ImGui::InputInt("ion charge", &ionCharge);
-		ImGui::InputDouble("electron density", &electronDensity, 0, 0, "%.2e");
-		ImGui::PopItemWidth();
-	}
-	ImGui::End();
-}
+
+

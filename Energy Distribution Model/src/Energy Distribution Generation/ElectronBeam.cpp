@@ -87,6 +87,11 @@ namespace ElectronBeam
 		parameter.longitudinal_kT_estimate = GetLongitudinal_kT(LabEnergy::GetCenterLabEnergy());
 	}
 
+	double GetVelocityMagnitude(double energy)
+	{
+		return TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
+	}
+
 	double GetLongitudinal_kT(double labEnergy)
 	{
 		if (fixedLongitudinalTemperature)
@@ -107,6 +112,11 @@ namespace ElectronBeam
 	double GetTransverse_kT()
 	{
 		return parameter.transverse_kT;
+	}
+
+	double GetCoolingEnergy()
+	{
+		return parameter.coolingEnergy;
 	}
 
 	double GetDensity(const Point3D& point)
@@ -210,6 +220,11 @@ namespace ElectronBeam
 		double derivative = Derivative(z);
 		TVector3 direction(0, derivative, 1);
 		return direction.Unit();
+	}
+
+	TVector3 GetVelocity(double z, double energy)
+	{
+		return GetVelocityMagnitude(energy) * GetDirection(z);
 	}
 
 	TVector3 GetNormal(double z)

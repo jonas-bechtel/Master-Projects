@@ -34,6 +34,7 @@ project "Energy Distribution Model"
 		"%{wks.location}/Energy Distribution Model/vendor/implot",
 		"%{wks.location}/Energy Distribution Model/vendor/eigen",
 		"%{wks.location}/Energy Distribution Model/vendor/tinyfiledialogs",
+		"%{wks.location}/Energy Distribution Model/vendor/JSPEC/include",
 		"%{ROOT_DIR}/include"
 	}
 
@@ -47,6 +48,7 @@ project "Energy Distribution Model"
 		"imgui",
 		"implot",
 		"tinyfiledialogs",
+		"JSPEC",
 		"libCore",
 		"libRIO",
 		"libHist",
@@ -67,6 +69,12 @@ project "Energy Distribution Model"
 			"d3dcompiler",
 			"dxgi"
 		}
+
+		postbuildcommands
+		{
+			'cmd /c if exist vendor\\JSPEC\\lib\\*.dll xcopy /Q /Y /I vendor\\JSPEC\\lib\\*.dll "%{cfg.targetdir}" > nul'
+		}
+
 
 	filter "configurations:Debug"
 		defines "_DEBUG"

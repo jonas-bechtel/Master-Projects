@@ -14,104 +14,110 @@ using RNG_engine = std::mersenne_twister_engine<std::uint_fast64_t,
 	0xfff7eee000000000, 43,
 	6364136223846793005>;
 
-struct CoolingForceValue
+namespace CoolingForce
 {
-public:
-	CoolingForceValue();
-	~CoolingForceValue();
+	struct Value
+	{
+	public:
+		Value();
+		~Value();
 
-	CoolingForceValue(const CoolingForceValue& other) = delete;
-	CoolingForceValue& operator=(const CoolingForceValue& other) = delete;
-	CoolingForceValue(CoolingForceValue&& other) noexcept;
-	CoolingForceValue& operator=(CoolingForceValue&& other) noexcept;
+		Value(const Value& other) = delete;
+		Value& operator=(const Value& other) = delete;
+		Value(Value&& other) noexcept;
+		Value& operator=(Value&& other) noexcept;
 
-	void CalculateOriginal(std::filesystem::path descriptionFile, int index);
-	void CalculateHalfIntegrated(std::filesystem::path descriptionFile, int index, bool interpolate);
-	void CalculateFullIntegrated(std::filesystem::path descriptionFile, int index);
+		void CalculateOriginal(std::filesystem::path descriptionFile, int index);
+		void CalculateHalfIntegrated(std::filesystem::path descriptionFile, int index, bool interpolate);
+		void CalculateFullIntegrated(std::filesystem::path descriptionFile, int index);
+		void CalculateFullIntegratedBetter(std::filesystem::path descriptionFile, int index);
+		double Integrand(double* position, double* params);
 
-	bool ShowListItem(bool selected) const;
-	static bool ShowParallelPrecalculationCheckbox();
+		bool ShowListItem(bool selected) const;
+		static bool ShowParallelPrecalculationCheckbox();
 
-	void SetupHistograms(TH3D* reference);
-	void FillData();
-	double CalculateIntegral(TH3D* hist);
+		void SetupHistogramsFromReference(TH3D* reference);
+		void FillData();
+		double CalculateIntegral(TH3D* hist);
 
-	void PlotPreForceSlize() const;
-	void UpdateSlice(float zValue);
+		void PlotPreForceSlize() const;
+		void UpdateSlice(float zValue);
 
-	void Save(std::filesystem::path folder) const;
-	void Load(std::filesystem::path file);
+		void Save(std::filesystem::path folder) const;
+		void Load(std::filesystem::path file);
 
-private:
-	void PrepareCalculation(std::filesystem::path descriptionFile, int index);
-	void PrecalculateForce();
-	void CopyParameters();
-	void SetupLabel();
-	void SetupTags();
-	void ResetDefaultValues();
+	private:
+		void PrepareCalculation(std::filesystem::path descriptionFile, int index);
+		void PrecalculateForce();
+		void CopyParameters();
+		void SetupLabel();
+		void SetupTags();
+		void ResetDefaultValues();
 
-	std::string GetHeaderString() const;
-	std::string Filename() const;
+		std::string GetHeaderString() const;
+		std::string Filename() const;
 
-private:
-	PlotBeamData precalculatedForce;
+	private:
+		PlotBeamData precalculatedForce;
 
-	// x,y,z component of cooling force at each position
-	TH3D* forceX = nullptr;
-	TH3D* forceY = nullptr;
-	TH3D* forceZ = nullptr;
+		// x,y,z component of cooling force at each position
+		TH3D* forceX = nullptr;
+		TH3D* forceY = nullptr;
+		TH3D* forceZ = nullptr;
 
-	TH3D* positionSamples = nullptr;
+		TH3D* positionSamples = nullptr;
 
-	// xy slice of each component
-	HeatMapData forceXSlice;
-	HeatMapData forceYSlice;
-	HeatMapData forceZSlice;
+		// xy slice of each component
+		HeatMapData forceXSlice;
+		HeatMapData forceYSlice;
+		HeatMapData forceZSlice;
 
-	// sum in z direction of average of all xy planes, represents total energy lost
-	double forceXIntegral = 0.0;
-	double forceYIntegral = 0.0;
-	double forceZIntegral = 0.0;
+		// sum in z direction of average of all xy planes, represents total energy lost
+		double forceXIntegral = 0.0;
+		double forceYIntegral = 0.0;
+		double forceZIntegral = 0.0;
 
-	// actual resulting value of the force to be compared to measurements (integral divided by length)
-	double forceXValue = 0.0;
-	double forceYValue = 0.0;
-	double forceZValue = 0.0;
+		// actual resulting value of the force to be compared to measurements (integral divided by length)
+		double forceXValue = 0.0;
+		double forceYValue = 0.0;
+		double forceZValue = 0.0;
 
-	// axes for plotting
-	std::vector<double> xAxis;
-	std::vector<double> yAxis;
-	std::vector<double> zAxis;
+		// axes for plotting
+		std::vector<double> xAxis;
+		std::vector<double> yAxis;
+		std::vector<double> zAxis;
 
-	// projections of longitudinal component (z)
-	std::vector<double> forceZProjectionX;
-	std::vector<double> forceZProjectionY;
-	std::vector<double> forceZProjectionZ;
+		// projections of longitudinal component (z)
+		std::vector<double> forceZProjectionX;
+		std::vector<double> forceZProjectionY;
+		std::vector<double> forceZProjectionZ;
 
-	// all the parameters used to create it
-	ElectronBeamParameters eBeamParameter;
-	IonBeamParameters ionBeamParameter;
-	LabEnergyParameters labEnergiesParameter;
+		// all the parameters used to create it
+		ElectronBeamParameters eBeamParameter;
+		IonBeamParameters ionBeamParameter;
+		LabEnergyParameters labEnergiesParameter;
 
-	// additional labelling things
-	std::string label = "";
-	std::string tags = "";
-	int index = 0;
+		// additional labelling things
+		std::string label = "";
+		std::string tags = "";
+		int index = 0;
 
-	static bool parallelForcePrecalculation;
+		static bool parallelForcePrecalculation;
 
-	// random number generation things
-	static std::mersenne_twister_engine<std::uint_fast64_t,
-		64, 312, 156, 31,
-		0xb5026f5aa96619e9, 29,
-		0x5555555555555555, 17,
-		0x71d67fffeda60000, 37,
-		0xfff7eee000000000, 43,
-		6364136223846793005> generator;
+		// random number generation things
+		static std::mersenne_twister_engine<std::uint_fast64_t,
+			64, 312, 156, 31,
+			0xb5026f5aa96619e9, 29,
+			0x5555555555555555, 17,
+			0x71d67fffeda60000, 37,
+			0xfff7eee000000000, 43,
+			6364136223846793005> generator;
 
-	static std::normal_distribution<double> longitudinalNormalDistribution;
-	static std::normal_distribution<double> transverseNormalDistribution;
+		static std::normal_distribution<double> longitudinalNormalDistribution;
+		static std::normal_distribution<double> transverseNormalDistribution;
 
-	friend class CoolingForceCurve;
-};
+		friend class Curve;
+	};
+}
+
 

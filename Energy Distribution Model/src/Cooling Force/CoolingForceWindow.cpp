@@ -4,14 +4,14 @@
 #include "CoolingForceCurve.h"
 #include "FileUtils.h"
 
-namespace CoolingForceWindow
+namespace CoolingForce
 {
 	// main storge data
-	static std::vector<CoolingForceCurve> curveList;
+	static std::vector<Curve> curveList;
 	static int currentCurveIndex = -1;
 
 	// optional parameter
-	static int method = 2;
+	static int method = 3;
 	static bool interpolate = true;
 
 	// currently loaded description file
@@ -28,8 +28,8 @@ namespace CoolingForceWindow
 
 	static float sliceZ = 0.0f;
 
-	static NumericalIntegrationParameter numericalParameter;
-	static bool showNumericalIntegrationWindow = false;
+	static Model::Parameter modelParameter;
+	static bool showModelParameterWindow = false;
 
 
 	void Init()
@@ -50,7 +50,7 @@ namespace CoolingForceWindow
 		{
 			CreateNewCurve();
 		}
-		CoolingForceCurve& currentCurve = curveList.at(currentCurveIndex);
+		Curve& currentCurve = curveList.at(currentCurveIndex);
 
 		if (currentCurve.Empty())
 		{
@@ -65,7 +65,7 @@ namespace CoolingForceWindow
 		}
 	}
 
-	float GetSlice()
+	float GetSliceValue()
 	{
 		return sliceZ;
 	}
@@ -84,7 +84,7 @@ namespace CoolingForceWindow
 			ImGui::EndGroup();
 
 			ShowAllParametersWindow();
-			numericalParameter.ShowWindow(showNumericalIntegrationWindow);
+			modelParameter.ShowWindow(showModelParameterWindow);
 			ShowForceDetailWindow();
 		}
 		ImGui::End();
@@ -108,7 +108,7 @@ namespace CoolingForceWindow
 
 			if (!curveList.empty())
 			{
-				CoolingForceCurve& currentCurve = curveList.at(currentCurveIndex);
+				Curve& currentCurve = curveList.at(currentCurveIndex);
 				if (!currentCurve.IsNumerical())
 				{
 					char buf[64] = "";
@@ -145,11 +145,12 @@ namespace CoolingForceWindow
 				}
 				for (int i = start; i <= end; i++)
 				{
-					CoolingForceValue newValue;
+					Value newValue;
 					if (method == 0) newValue.CalculateOriginal(currentDescriptionFile, i);
 					if (method == 1) newValue.CalculateHalfIntegrated(currentDescriptionFile, i, interpolate);
 					if (method == 2) newValue.CalculateFullIntegrated(currentDescriptionFile, i);
-					CoolingForceCurve& curve = curveList.at(currentCurveIndex);
+					if (method == 3) newValue.CalculateFullIntegratedBetter(currentDescriptionFile, i);
+					Curve& curve = curveList.at(currentCurveIndex);
 					curve.AddForceValue(std::move(newValue));
 				}
 			}
@@ -159,11 +160,11 @@ namespace CoolingForceWindow
 			if (ImGui::Button("Generate Cooling curve from numerical Model"))
 			{
 				CreateNewCurve();
-				CoolingForceCurve& curve = curveList.at(currentCurveIndex);
-				curve.IntegrateNumerically(numericalParameter);
+				Curve& curve = curveList.at(currentCurveIndex);
+				curve.IntegrateNumerically(modelParameter);
 			}
 			ImGui::SameLine();
-			ImGui::Checkbox("parameter", &showNumericalIntegrationWindow);
+			ImGui::Checkbox("parameter", &showModelParameterWindow);
 
 			if (ImGui::RadioButton("original", method == 0))
 			{
@@ -180,9 +181,14 @@ namespace CoolingForceWindow
 				method = 2;
 			}
 			ImGui::SameLine();
+			if (ImGui::RadioButton("full integrated better", method == 3))
+			{
+				method = 3;
+			}
+			ImGui::SameLine();
 			ImGui::Checkbox("interpolate pre calc force", &interpolate);
 			ImGui::SameLine();
-			CoolingForceValue::ShowParallelPrecalculationCheckbox();
+			Value::ShowParallelPrecalculationCheckbox();
 
 			ImGui::SetNextItemWidth(80.0f);
 			ImGui::BeginDisabled(doAll);
@@ -223,7 +229,7 @@ namespace CoolingForceWindow
 					if (ImGui::BeginTabItem(label.c_str(), &open))
 					{
 						currentCurveIndex = curveIndex;
-						curveList.at(curveIndex).ShowList();
+						curveList.at(curveIndex).ShowContent();
 						ImGui::SameLine();
 						ImGui::Checkbox("show force details", &showForceDetailWindow);
 						ImGui::EndTabItem();
@@ -275,7 +281,7 @@ namespace CoolingForceWindow
 			ImPlot::SetupLegend(ImPlotLocation_NorthEast);
 
 			int i = 0;
-			for (const CoolingForceCurve& curve : curveList)
+			for (const Curve& curve : curveList)
 			{
 					ImVec4 color = ImPlot::GetColormapColor(i);
 					ImPlot::PushStyleColor(ImPlotCol_Line, color);
@@ -289,7 +295,10 @@ namespace CoolingForceWindow
 
 					ImPlot::PopStyleColor(2);
 			}
-
+			if (showModelParameterWindow)
+			{
+				modelParameter.ShowVelocityLines();
+			}
 			ImPlot::EndPlot();
 		}
 	}
@@ -340,7 +349,7 @@ namespace CoolingForceWindow
 		{
 			if (currentCurveIndex >= 0)
 			{
-				CoolingForceCurve& curve = curveList.at(currentCurveIndex);
+				Curve& curve = curveList.at(currentCurveIndex);
 				if (ImGui::SliderFloat("z slice", &sliceZ, -0.7, 0.7))
 				{
 					curve.UpdateSlice(sliceZ);

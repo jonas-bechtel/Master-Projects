@@ -1,12 +1,12 @@
 #pragma once
-namespace CoolingForceWindow
+namespace CoolingForce
 {
 	void Init();
 
 	void CreateNewCurve();
 	void SetupCurve(std::filesystem::path folder, std::filesystem::path subfolder = "");
 
-	float GetSlice();
+	float GetSliceValue();
 
 	void ShowWindow();
 	void ShowSettings();

@@ -108,7 +108,7 @@ private:
 	std::vector<double> psi;
 
 	// cooling force
-	CoolingForceValue cfData;
+	//Value cfData;
 
 	// plot parameters
 	bool showPlot = false;

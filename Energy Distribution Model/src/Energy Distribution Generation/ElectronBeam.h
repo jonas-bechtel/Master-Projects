@@ -12,11 +12,13 @@ namespace ElectronBeam
 	void SetupDistribution(std::filesystem::path densityfile);
 
 	TH3D* Get();
-	TVector3 GetDirection(double z);
-
 	ElectronBeamParameters GetParameters();
+	TVector3 GetDirection(double z);
+	TVector3 GetVelocity(double z, double energy);
+	double GetVelocityMagnitude(double energy);
 	double GetLongitudinal_kT(double labEnergy);
 	double GetTransverse_kT();
+	double GetCoolingEnergy();
 	double GetDensity(const Point3D& point);
 
 	void SetElectronCurrent(double current);
