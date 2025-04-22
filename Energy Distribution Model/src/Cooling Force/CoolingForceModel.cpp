@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "CoolingForceModel.h"
 #include "Constants.h"
-#include "Math.h"
+#include "MathUtils.h"
 
 #include "force.h"
 #include "beam.h"

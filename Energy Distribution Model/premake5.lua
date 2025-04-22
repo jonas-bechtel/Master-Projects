@@ -35,7 +35,7 @@ project "Energy Distribution Model"
 		"%{wks.location}/Energy Distribution Model/vendor/eigen",
 		"%{wks.location}/Energy Distribution Model/vendor/tinyfiledialogs",
 		"%{wks.location}/Energy Distribution Model/vendor/JSPEC/include",
-		--"%{wks.location}/Energy Distribution Model/vendor/Betacool/src",
+		"%{wks.location}/Energy Distribution Model/vendor/Betacool/src",
 		"%{ROOT_DIR}/include"
 	}
 
@@ -50,7 +50,7 @@ project "Energy Distribution Model"
 		"implot",
 		"tinyfiledialogs",
 		"JSPEC",
-		--"Betacool",
+		"Betacool",
 		"libCore",
 		"libRIO",
 		"libHist",

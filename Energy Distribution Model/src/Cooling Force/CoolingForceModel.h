@@ -1,6 +1,6 @@
 #pragma once
 #include <TVector3.h>
-#include "Math.h"
+#include "MathUtils.h"
 
 namespace CoolingForce
 {
