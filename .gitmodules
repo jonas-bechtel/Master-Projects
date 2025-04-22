@@ -9,3 +9,6 @@
 [submodule "Energy Distribution Model/vendor/JSPEC"]
 	path = Energy Distribution Model/vendor/JSPEC
 	url = https://github.com/jonas-bechtel/JSPEC.git
+[submodule "Energy Distribution Model/vendor/Betacool"]
+	path = Energy Distribution Model/vendor/Betacool
+	url = https://github.com/jonas-bechtel/Betacool.git

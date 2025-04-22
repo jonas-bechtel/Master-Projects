@@ -21,6 +21,7 @@ group "Dependencies"
 	include "Energy Distribution Model/vendor/imgui"
 	include "Energy Distribution Model/vendor/implot"
 	include "Energy Distribution Model/vendor/JSPEC"
+	include "Energy Distribution Model/vendor/Betacool"
 group ""
 
 group "Core"

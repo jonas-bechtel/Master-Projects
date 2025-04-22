@@ -49,6 +49,7 @@ project "Energy Distribution Model"
 		"implot",
 		"tinyfiledialogs",
 		"JSPEC",
+		"Betacool",
 		"libCore",
 		"libRIO",
 		"libHist",
