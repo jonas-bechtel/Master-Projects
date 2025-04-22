@@ -26,25 +26,10 @@ namespace CoolingForce
 			modelParams.relativeVelocity.SetZ(params.relativeVelocityRange[0] + i * step);
 			detuningVelocites.push_back(modelParams.relativeVelocity.z());
 
-			double result = 0;
-			switch (params.model)
-			{
-			case Model::Type::NonMagOriginal:
-				result = Model::ForceZ(modelParams);
-				break;
-			case Model::Type::Parkhomchuk:
-				result = Model::JSPEC::ForceZ_Parkhomchuk(modelParams);
-				break;
-			case Model::Type::NonMagNumeric3D:
-				result = Model::JSPEC::ForceZ_NonMagNumeric3D(modelParams);
-				break;
-			case Model::Type::DerbenovSkrinsky:
-				result = Model::JSPEC::ForceZ_DerbenovSkrinsky(modelParams);
-				break;
-			}
+			double force = Model::ForceZ(modelParams);
 			
-			forceZ.push_back(result);
-			forceZscaled.push_back(result);
+			forceZ.push_back(force);
+			forceZscaled.push_back(force);
 		}
 
 		

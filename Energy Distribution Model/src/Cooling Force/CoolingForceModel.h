@@ -47,8 +47,10 @@ namespace Model
 		void ShowVelocityLines();
 	};
 
-	TVector3 CoolingForce(const Parameter& params);
 	double ForceZ(const Parameter& params);
+
+	TVector3 CoolingForce(const Parameter& params);
+	double ForceZ_Original(const Parameter& params);
 
 	double NumericalIntegrandPolar(double* vels, double* params);
 	double NumericalIntegrandCartesian(double* vels, double* params);

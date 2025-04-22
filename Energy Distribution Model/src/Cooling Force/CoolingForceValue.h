@@ -6,6 +6,8 @@
 #include "IonBeam.h"
 #include "LabEnergies.h"
 
+#include "CoolingForceModel.h"
+
 using RNG_engine = std::mersenne_twister_engine<std::uint_fast64_t,
 	64, 312, 156, 31,
 	0xb5026f5aa96619e9, 29,
@@ -27,10 +29,10 @@ namespace CoolingForce
 		Value(Value&& other) noexcept;
 		Value& operator=(Value&& other) noexcept;
 
-		void CalculateOriginal(std::filesystem::path descriptionFile, int index);
-		void CalculateHalfIntegrated(std::filesystem::path descriptionFile, int index, bool interpolate);
-		void CalculateFullIntegrated(std::filesystem::path descriptionFile, int index);
-		void CalculateFullIntegratedBetter(std::filesystem::path descriptionFile, int index);
+		void CalculateOriginal(std::filesystem::path descriptionFile, int index, Model::Parameter params);
+		void CalculateHalfIntegrated(std::filesystem::path descriptionFile, int index, Model::Parameter params, bool interpolate);
+		void CalculateFullIntegrated(std::filesystem::path descriptionFile, int index, Model::Parameter params);
+		void CalculateFullIntegratedBetter(std::filesystem::path descriptionFile, int index, Model::Parameter params);
 		double Integrand(double* position, double* params);
 
 		bool ShowListItem(bool selected) const;
@@ -48,7 +50,7 @@ namespace CoolingForce
 
 	private:
 		void PrepareCalculation(std::filesystem::path descriptionFile, int index);
-		void PrecalculateForce();
+		void PrecalculateForce(Model::Parameter params);
 		void CopyParameters();
 		void SetupLabel();
 		void SetupTags();

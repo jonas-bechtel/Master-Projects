@@ -120,7 +120,7 @@ namespace CoolingForce
 		return *this;
 	}
 
-	void Value::CalculateOriginal(std::filesystem::path descriptionFile, int index)
+	void Value::CalculateOriginal(std::filesystem::path descriptionFile, int index, Model::Parameter params)
 	{
 		PrepareCalculation(descriptionFile, index);
 
@@ -203,13 +203,13 @@ namespace CoolingForce
 		FillData();
 	}
 
-	void Value::CalculateHalfIntegrated(std::filesystem::path descriptionFile, int index, bool interpolate)
+	void Value::CalculateHalfIntegrated(std::filesystem::path descriptionFile, int index, Model::Parameter params, bool interpolate)
 	{
 		Timer t;
 		PrepareCalculation(descriptionFile, index);
 		std::cout << "prep time: " << t.ElapsedMillis() << std::endl;
 		t.Reset();
-		PrecalculateForce();
+		PrecalculateForce(params);
 		std::cout << "precalc time: " << t.ElapsedMillis() << std::endl;
 		t.Reset();
 		std::vector<Point3D> samples = IonBeam::GeneratePositions();
@@ -269,13 +269,13 @@ namespace CoolingForce
 		std::cout << "dividing and finish time: " << t.ElapsedMillis() << std::endl;
 	}
 
-	void Value::CalculateFullIntegrated(std::filesystem::path descriptionFile, int index)
+	void Value::CalculateFullIntegrated(std::filesystem::path descriptionFile, int index, Model::Parameter params)
 	{
 		Timer t;
 		PrepareCalculation(descriptionFile, index);
 		std::cout << "prep time: " << t.ElapsedMillis() << std::endl;
 		t.Reset();
-		PrecalculateForce();
+		PrecalculateForce(params);
 		std::cout << "precalc time: " << t.ElapsedMillis() << std::endl;
 		t.Reset();
 		TH3D* intermediate = (TH3D*)precalculatedForce.GetHist()->Clone("force times ion density");
@@ -285,10 +285,10 @@ namespace CoolingForce
 		std::cout << "mult and integral time: " << t.ElapsedMillis() << std::endl;
 	}
 
-	void Value::CalculateFullIntegratedBetter(std::filesystem::path descriptionFile, int index)
+	void Value::CalculateFullIntegratedBetter(std::filesystem::path descriptionFile, int index, Model::Parameter params)
 	{
 		PrepareCalculation(descriptionFile, index);
-		PrecalculateForce();
+		PrecalculateForce(params);
 
 		float sigmaX = IonBeam::GetSigmaX();
 		float sigmaY = IonBeam::GetSigmaY();
@@ -590,7 +590,7 @@ namespace CoolingForce
 		SetupHistogramsFromReference(IonBeam::Get());
 	}
 
-	void Value::PrecalculateForce()
+	void Value::PrecalculateForce(Model::Parameter params)
 	{
 		TVector3 ionVelocity = IonBeam::GetVelocity();
 		TH3D* hist = precalculatedForce.GetHist();
@@ -621,14 +621,13 @@ namespace CoolingForce
 					TVector3 electronVelocity = ElectronBeam::GetVelocity(z, labEnergy);
 					TVector3 relativeVelocity = ionVelocity - electronVelocity;
 
-					Model::Parameter params;
-					params.relativeVelocity = relativeVelocity;
-					params.electronDensity = ElectronBeam::GetDensity({ x,y,z });
-					params.ionCharge = IonBeam::GetCharge();
-					params.kT_long = ElectronBeam::GetLongitudinal_kT(labEnergy);
-					params.kT_trans = ElectronBeam::GetTransverse_kT();
+					Model::Parameter parameter = params;
+					parameter.relativeVelocity = relativeVelocity;
+					parameter.electronDensity = ElectronBeam::GetDensity({ x,y,z });
+					parameter.kT_long = ElectronBeam::GetLongitudinal_kT(labEnergy);
+					parameter.kT_trans = ElectronBeam::GetTransverse_kT();
 					//std::cout << "outside: " << params.String() << std::endl;
-					double value = Model::ForceZ(params);
+					double value = Model::ForceZ(parameter);
 					hist->SetBinContent(i, j, k, value);
 					int bin = hist->FindBin(x, y, -z);
 					hist->SetBinContent(bin, value);
@@ -653,14 +652,12 @@ namespace CoolingForce
 						TVector3 electronVelocity = electronVelocityMagnitude * longitudinalDirection;
 						TVector3 relativeVelocity = ionVelocity - electronVelocity;
 
-						Model::Parameter params;
 						params.relativeVelocity = relativeVelocity;
 						params.electronDensity = ElectronBeam::GetDensity({ x,y,z });
-						params.ionCharge = IonBeam::GetCharge();
 						params.kT_long = ElectronBeam::GetLongitudinal_kT(labEnergy);
 						params.kT_trans = ElectronBeam::GetTransverse_kT();
 
-						double value = Model::ForceZ(params);
+						double value = Model::ForceZ_Original(params);
 						hist->SetBinContent(i, j, k, value);
 						int bin = hist->FindBin(x, y, -z);
 						hist->SetBinContent(bin, value);

@@ -15,8 +15,8 @@ namespace Model
 	static int currentModelIndex = 0;
 	float Parameter::relativeVelocityRange[2] = { -100000.0f, 100000.0f };
 	int Parameter::numberPoints = 100;
-	bool Parameter::showLinesLong = true;
-	bool Parameter::showLinesTrans = true;
+	bool Parameter::showLinesLong = false;
+	bool Parameter::showLinesTrans = false;
 
 	std::string Parameter::String() const
 	{
@@ -252,6 +252,31 @@ namespace Model
 		}
 	}
 
+	double ForceZ(const Parameter& params)
+	{
+		if (params.electronDensity == 0)
+			return 0.0;
+
+		double result = 0;
+		switch (params.model)
+		{
+		case Model::Type::NonMagOriginal:
+			result = Model::ForceZ_Original(params);
+			break;
+		case Model::Type::Parkhomchuk:
+			result = Model::JSPEC::ForceZ_Parkhomchuk(params);
+			break;
+		case Model::Type::NonMagNumeric3D:
+			result = Model::JSPEC::ForceZ_NonMagNumeric3D(params);
+			break;
+		case Model::Type::DerbenovSkrinsky:
+			result = Model::JSPEC::ForceZ_DerbenovSkrinsky(params);
+			break;
+		}
+
+		return result;
+	}
+
 	// returns the 3d force in eV at one position for one relative velocity
 	TVector3 CoolingForce(const Parameter& params)
 	{
@@ -264,13 +289,13 @@ namespace Model
 	}
 
 	// integrates the longitudinal cooling force for a given density and temperature and mean relative velocity
-	double ForceZ(const Parameter& params)
+	double ForceZ_Original(const Parameter& params)
 	{
 		if (params.electronDensity == 0)
 			return 0.0;
 
-		double deltaTrans = sqrt(2 * params.kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
-		double deltaLong = sqrt(params.kT_long * TMath::Qe() / PhysicalConstants::electronMass);
+		double deltaTrans = Math::TransTempToVelocitySpread(params.kT_trans);
+		double deltaLong = Math::LongTempToVelocitySpread(params.kT_long);
 
 		int numberParams = ceil(sizeof(Model::Parameter) / sizeof(double));
 		//std::cout << "inside: " << params.String() << std::endl;
@@ -304,8 +329,8 @@ namespace Model
 		double factor = ionCharge * ionCharge * electronDensity * constantsFactor;
 		double v_r = sqrt(pow(relativeVelocity - vLong, 2) + pow(vTrans, 2));
 		double L_c = CoulombLogarithm(v_r, kT_trans, electronDensity, ionCharge);
-		double deltaTrans = sqrt(2 * kT_trans * TMath::Qe() / PhysicalConstants::electronMass);
-		double deltaLong = sqrt(kT_long * TMath::Qe() / PhysicalConstants::electronMass);
+		double deltaTrans = Math::TransTempToVelocitySpread(kT_trans);
+		double deltaLong = Math::LongTempToVelocitySpread(kT_long);
 		double f_v = FlattenedMaxwellDistributionPolar(vTrans, vLong, deltaTrans, deltaLong);
 
 		//std::cout << factor << std::endl;
@@ -466,10 +491,10 @@ namespace Model
 
 	namespace JSPEC
 	{
-		static UniformCylinder beam(1, 1);
-		static ForcePark parkhomchukModel;
-		static ForceNonMagNumeric3D nonMagNum3DModel(1000);
-		static ForceDSM derbenovSkrinskyModel;
+		static thread_local UniformCylinder beam(1, 1);
+		static thread_local ForcePark parkhomchukModel;
+		static thread_local ForceNonMagNumeric3D nonMagNum3DModel(1000);
+		static thread_local ForceDSM derbenovSkrinskyModel;
 
 		double ForceZ_Parkhomchuk(const Parameter& parameter)
 		{
@@ -521,7 +546,7 @@ namespace Model
 			derbenovSkrinskyModel.set_smooth_factor(parameter.smoothingFactor);
 			derbenovSkrinskyModel.set_mag_only(parameter.magneticOnly);
 			derbenovSkrinskyModel.set_steps(500);
-			derbenovSkrinskyModel.set_grid(70, 70, 20);
+			derbenovSkrinskyModel.set_grid(70, 70, 30);
 			std::vector<double> v_tr = { parameter.relativeVelocity.Perp() };
 			std::vector<double> v_l = { parameter.relativeVelocity.z() };
 			std::vector<double> n_e = { parameter.electronDensity };

@@ -146,10 +146,10 @@ namespace CoolingForce
 				for (int i = start; i <= end; i++)
 				{
 					Value newValue;
-					if (method == 0) newValue.CalculateOriginal(currentDescriptionFile, i);
-					if (method == 1) newValue.CalculateHalfIntegrated(currentDescriptionFile, i, interpolate);
-					if (method == 2) newValue.CalculateFullIntegrated(currentDescriptionFile, i);
-					if (method == 3) newValue.CalculateFullIntegratedBetter(currentDescriptionFile, i);
+					if (method == 0) newValue.CalculateOriginal(currentDescriptionFile, i, modelParameter);
+					if (method == 1) newValue.CalculateHalfIntegrated(currentDescriptionFile, i, modelParameter, interpolate);
+					if (method == 2) newValue.CalculateFullIntegrated(currentDescriptionFile, i, modelParameter);
+					if (method == 3) newValue.CalculateFullIntegratedBetter(currentDescriptionFile, i, modelParameter);
 					Curve& curve = curveList.at(currentCurveIndex);
 					curve.AddForceValue(std::move(newValue));
 				}
