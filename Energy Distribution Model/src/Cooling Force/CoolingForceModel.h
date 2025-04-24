@@ -8,7 +8,8 @@ namespace Model
 {
 	enum class Type
 	{
-		NonMagOriginal, Parkhomchuk, NonMagNumeric3D, DerbenovSkrinsky, Count
+		NonMagOriginal, JSPEC_Parkhomchuk, JSPEC_NonMagNumeric3D, JSPEC_DerbenovSkrinsky,
+		Betacool_Parkhomchuk, Betacool_NonMag, Betacool_NonMagNumeric3D, Betacool_DerbenovSkrinsky, Betacool_Toeppfler, Count
 	};
 
 	struct Parameter
@@ -70,6 +71,15 @@ namespace Model
 		double ForceZ_Parkhomchuk(const Parameter& parameter);
 		double ForceZ_NonMagNumeric3D(const Parameter& parameter);
 		double ForceZ_DerbenovSkrinsky(const Parameter& parameter);
+	}
+
+	namespace Betacool
+	{
+		double ForceZ_Parkhomchuk(const Parameter& parameter);
+		double ForceZ_NonMag(const Parameter& parameter);
+		double ForceZ_NonMagNumeric3D(const Parameter& parameter);
+		double ForceZ_DerbenovSkrinsky(const Parameter& parameter);
+		double ForceZ_Toepffler(const Parameter& parameter);
 	}
 
 	/*namespace Adiabatic
