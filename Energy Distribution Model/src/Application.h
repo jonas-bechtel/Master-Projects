@@ -1,16 +1,42 @@
 #pragma once
 
-class Application
+namespace Application
 {
-public:
+	struct Settings
+	{
+		bool tooltipsDisabled = false;
+		bool showImGuiDemoWindow = false;
+		bool showImPlotDemoWindow = false;
+	};
+
+	void InitImGui();
+	void Init();
 	void Run();
-	Application();
-	
-private:
 	void ShowWindows();
+	void ShutdownImGui();
 
-private:
-	//TApplication app = TApplication("app", nullptr, nullptr);
+	Settings& GetSettings();
+}
 
-};
+
+
+
+
+
+
+
+
+//class Application
+//{
+//public:
+//	void Run();
+//	Application();
+//	
+//private:
+//	void ShowWindows();
+//
+//private:
+//	//TApplication app = TApplication("app", nullptr, nullptr);
+//
+//};
 

@@ -9,6 +9,8 @@
 #include "HistUtils.h"
 #include "Timer.h"
 
+#include "Application.h"
+
 namespace CoolingForce
 {
 	bool Value::parallelForcePrecalculation = true;
@@ -331,7 +333,7 @@ namespace CoolingForce
 			clicked = true;
 		}
 
-		if (ImGui::BeginItemTooltip())
+		if (!Application::GetSettings().tooltipsDisabled && ImGui::BeginItemTooltip())
 		{
 			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
 			ImGui::TextUnformatted(GetHeaderString().c_str());

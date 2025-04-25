@@ -39,11 +39,11 @@ namespace Model
 
 		std::string result = std::string(modelTypes[(int)model]) + "_Q=" + std::to_string(ionCharge) + "_ne=" + density.str()
 			+ "_Tlong=" + Tlong.str() + "_Ttrans=" + Ttrans.str();
-		if (model == Type::JSPEC_Parkhomchuk)
+		if (model == Type::JSPEC_Parkhomchuk || model == Type::Betacool_Parkhomchuk)
 		{
 			result += "_B=" + Bfield.str() + "_Veff=" + effVel.str();
 		}
-		if (model == Type::JSPEC_DerbenovSkrinsky)
+		if (model == Type::JSPEC_DerbenovSkrinsky || model == Type::Betacool_DerbenovSkrinsky || model == Type::Betacool_Toeppfler)
 		{
 			result += "_B=" + Bfield.str();
 		}
@@ -140,24 +140,24 @@ namespace Model
 			ImGui::Checkbox("show##trans", &showLinesTrans);
 			ImGui::EndGroup();
 
-			switch (model)
+			if (model == Model::Type::JSPEC_Parkhomchuk || model == Model::Type::Betacool_Parkhomchuk)
 			{
-			case Model::Type::JSPEC_Parkhomchuk:
 				ImGui::InputDouble("effective vel trans", &effectiveVelocity);
 				ImGui::InputDouble("magnetic field", &magneticField);
-				break;
-			case Model::Type::NonMagOriginal:
+			}
+			if (model == Model::Type::NonMagOriginal || model == Model::Type::JSPEC_NonMagNumeric3D)
+			{
 				ImGui::InputDouble("relative tolerance", &relTolerance, 0, 0, "%.1e");
-				break;
-			case Model::Type::JSPEC_NonMagNumeric3D:
-				ImGui::InputDouble("relative tolerance", &relTolerance, 0, 0, "%.1e");
-				ImGui::Checkbox("use gsl", &useGSL);
-				break;
-			case Model::Type::JSPEC_DerbenovSkrinsky:
+			}
+			if (model == Model::Type::JSPEC_DerbenovSkrinsky || model == Model::Type::Betacool_DerbenovSkrinsky)
+			{
 				ImGui::InputDouble("magnetic field", &magneticField);
 				ImGui::InputDouble("smoothing factor", &smoothingFactor);
 				ImGui::Checkbox("magnetic only", &magneticOnly);
-				break;
+			}
+			if (model == Model::Type::Betacool_Toeppfler)
+			{
+				ImGui::InputDouble("magnetic field", &magneticField);
 			}
 
 			ImGui::PopItemWidth();
@@ -173,24 +173,27 @@ namespace Model
 		ImGui::Text("ion charge:");
 		ImGui::Text("longitudinal kT:");
 		ImGui::Text("transverse kT:");
-		switch (model)
+
+		if (model == Model::Type::JSPEC_Parkhomchuk || model == Model::Type::Betacool_Parkhomchuk)
 		{
-		case Model::Type::NonMagOriginal:
-			ImGui::Text("relative tolerance");
-			break;
-		case Model::Type::JSPEC_Parkhomchuk:
 			ImGui::Text("effective vel trans:");
 			ImGui::Text("magnetic field:");
-			break;
-		case Model::Type::JSPEC_NonMagNumeric3D:
-			ImGui::Text("relative tolerance:");
-			break;
-		case Model::Type::JSPEC_DerbenovSkrinsky:
+		}
+		if (model == Model::Type::NonMagOriginal || model == Model::Type::JSPEC_NonMagNumeric3D)
+		{
+			ImGui::Text("relative tolerance");
+		}
+		if (model == Model::Type::JSPEC_DerbenovSkrinsky || model == Model::Type::Betacool_DerbenovSkrinsky)
+		{
 			ImGui::Text("magnetic field:");
 			ImGui::Text("smoothing factor:");
 			ImGui::Text("magnetic only:");
-			break;
 		}
+		if (model == Model::Type::Betacool_Toeppfler)
+		{
+			ImGui::Text("magnetic field:");
+		}
+		
 		ImGui::EndGroup();
 
 		ImGui::SameLine();
@@ -200,23 +203,25 @@ namespace Model
 		ImGui::Text("%d", ionCharge);
 		ImGui::Text("%.2e [eV]", kT_long);
 		ImGui::Text("%.2e [eV]", kT_trans);
-		switch (model)
+
+		if (model == Model::Type::JSPEC_Parkhomchuk || model == Model::Type::Betacool_Parkhomchuk)
 		{
-		case Model::Type::NonMagOriginal:
-			ImGui::Text("%.1e", relTolerance);
-			break;
-		case Model::Type::JSPEC_Parkhomchuk:
 			ImGui::Text("%.0f [m/s]", effectiveVelocity);
 			ImGui::Text("%.3f [T]", magneticField);
-			break;
-		case Model::Type::JSPEC_NonMagNumeric3D:
+		}
+		if (model == Model::Type::NonMagOriginal || model == Model::Type::JSPEC_NonMagNumeric3D)
+		{
 			ImGui::Text("%.1e", relTolerance);
-			break;
-		case Model::Type::JSPEC_DerbenovSkrinsky:
+		}
+		if (model == Model::Type::JSPEC_DerbenovSkrinsky || model == Model::Type::Betacool_DerbenovSkrinsky)
+		{
 			ImGui::Text("%.3f [T]", magneticField);
 			ImGui::Text("%.1f", smoothingFactor);
 			ImGui::Text("%s", magneticOnly ? "True" : "False");
-			break;
+		}
+		if (model == Model::Type::Betacool_Toeppfler)
+		{
+			ImGui::Text("%.3f [T]", magneticField);
 		}
 		ImGui::EndGroup();
 	}
@@ -543,10 +548,10 @@ namespace Model
 			double transSigma = Math::TransTempToVelocitySpread(parameter.kT_trans);
 
 			beam.set_v_rms(transSigma, longSigma);
-			nonMagNum3DModel.set_mag_field(parameter.magneticField);
+			//nonMagNum3DModel.set_mag_field(parameter.magneticField);
 			nonMagNum3DModel.set_time_cooler(parameter.coolerTime);
 			nonMagNum3DModel.set_esprel(parameter.relTolerance);
-			nonMagNum3DModel.set_gsl(parameter.useGSL);
+			nonMagNum3DModel.set_gsl(true);
 			std::vector<double> v_tr = { parameter.relativeVelocity.Perp() };
 			std::vector<double> v_l = { parameter.relativeVelocity.z() };
 			std::vector<double> n_e = { parameter.electronDensity };
@@ -590,7 +595,6 @@ namespace Model
 			betacoolParams.mfield = parameter.magneticField;
 			betacoolParams.Z = parameter.ionCharge;
 			betacoolParams.n_e = parameter.electronDensity;
-			betacoolParams.Smoos = parameter.smoothingFactor;
 			betacoolParams.tau = parameter.coolerTime;
 			betacoolParams.V_long_e = Math::LongTempToVelocitySpread(parameter.kT_long);
 			betacoolParams.V_tr_e = Math::TransTempToVelocitySpread(parameter.kT_trans);
@@ -617,10 +621,10 @@ namespace Model
 			betacoolForce.v[2] = parameter.relativeVelocity.z();
 			betacoolForce.Vtr = parameter.relativeVelocity.Perp();
 			// steps for manual integration
-			betacoolForce.dt = 50;
-			betacoolForce.dl = 50;
+			betacoolForce.dt = 40;
+			betacoolForce.dl = 40;
 			betacoolForce.nfi = 20;
-			
+
 			betacoolForce.NonMag(betacoolParams);
 
 			return betacoolForce.f[2].v;
@@ -632,9 +636,9 @@ namespace Model
 			betacoolParams.n_e = parameter.electronDensity;
 			betacoolParams.tau = parameter.coolerTime;
 			betacoolParams.V_long_e = Math::LongTempToVelocitySpread(parameter.kT_long);
+			betacoolParams.V_tr_e = Math::TransTempToVelocitySpread(parameter.kT_trans);
 			betacoolParams.V_tr_x = betacoolParams.V_tr_e / sqrt(2);
 			betacoolParams.V_tr_y = betacoolParams.V_tr_e / sqrt(2);
-			betacoolParams.V_tr_e = Math::TransTempToVelocitySpread(parameter.kT_trans);
 			betacoolForce.v[0] = parameter.relativeVelocity.x();
 			betacoolForce.v[1] = parameter.relativeVelocity.y();
 			betacoolForce.v[2] = parameter.relativeVelocity.z();
@@ -662,14 +666,14 @@ namespace Model
 			betacoolForce.v[2] = parameter.relativeVelocity.z();
 			betacoolForce.Vtr = parameter.relativeVelocity.Perp();
 			betacoolForce.Magnetized = 1;
-			betacoolForce.Fast = 1;
-			betacoolForce.Adiabatic = 1;
+			betacoolForce.Fast = 1 - parameter.magneticOnly;
+			betacoolForce.Adiabatic = 1 - parameter.magneticOnly;
 			// steps for manual integration
 			betacoolForce.dt = 70;
 			betacoolForce.dl = 70;
 			betacoolForce.nfi = 30;
 			betacoolForce.N_M = 70;
-			
+
 			betacoolForce.DerSkr(betacoolParams);
 
 			return betacoolForce.f[2].v;

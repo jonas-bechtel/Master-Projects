@@ -10,6 +10,8 @@
 #include "Constants.h"
 #include "FileUtils.h"
 
+#include "Application.h"
+
 RNG_engine EnergyDistribution::generator = RNG_engine();
 
 std::normal_distribution<double> EnergyDistribution::longitudinalNormalDistribution = std::normal_distribution<double>();
@@ -675,7 +677,7 @@ void EnergyDistribution::ShowListItem()
 		ImGui::EndDragDropSource();
 	}
 
-	if (ImGui::BeginItemTooltip())
+	if (!Application::GetSettings().tooltipsDisabled && ImGui::BeginItemTooltip())
 	{
 		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
 		ImGui::TextUnformatted(GetHeaderString().c_str());
