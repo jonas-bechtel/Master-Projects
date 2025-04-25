@@ -153,7 +153,9 @@ namespace Model
 			{
 				ImGui::InputDouble("magnetic field", &magneticField);
 				ImGui::InputDouble("smoothing factor", &smoothingFactor);
-				ImGui::Checkbox("magnetic only", &magneticOnly);
+				ImGui::Checkbox("magnetic", &magnetic);
+				ImGui::Checkbox("adiabatic", &adiabatic);
+				ImGui::Checkbox("fast", &fast);
 			}
 			if (model == Model::Type::Betacool_Toeppfler)
 			{
@@ -187,7 +189,9 @@ namespace Model
 		{
 			ImGui::Text("magnetic field:");
 			ImGui::Text("smoothing factor:");
-			ImGui::Text("magnetic only:");
+			ImGui::Text("magnetic:");
+			ImGui::Text("adiabatic:");
+			ImGui::Text("fast:");
 		}
 		if (model == Model::Type::Betacool_Toeppfler)
 		{
@@ -217,7 +221,9 @@ namespace Model
 		{
 			ImGui::Text("%.3f [T]", magneticField);
 			ImGui::Text("%.1f", smoothingFactor);
-			ImGui::Text("%s", magneticOnly ? "True" : "False");
+			ImGui::Text("%s", magnetic ? "True" : "False");
+			ImGui::Text("%s", adiabatic ? "True" : "False");
+			ImGui::Text("%s", fast ? "True" : "False");
 		}
 		if (model == Model::Type::Betacool_Toeppfler)
 		{
@@ -571,7 +577,7 @@ namespace Model
 			derbenovSkrinskyModel.set_mag_field(parameter.magneticField);
 			derbenovSkrinskyModel.set_time_cooler(parameter.coolerTime);
 			derbenovSkrinskyModel.set_smooth_factor(parameter.smoothingFactor);
-			derbenovSkrinskyModel.set_mag_only(parameter.magneticOnly);
+			derbenovSkrinskyModel.set_mag_only(!parameter.adiabatic && !parameter.fast);
 			derbenovSkrinskyModel.set_steps(500);
 			derbenovSkrinskyModel.set_grid(70, 70, 30);
 			std::vector<double> v_tr = { parameter.relativeVelocity.Perp() };
@@ -665,14 +671,18 @@ namespace Model
 			betacoolForce.v[1] = parameter.relativeVelocity.y();
 			betacoolForce.v[2] = parameter.relativeVelocity.z();
 			betacoolForce.Vtr = parameter.relativeVelocity.Perp();
-			betacoolForce.Magnetized = 1;
-			betacoolForce.Fast = 1 - parameter.magneticOnly;
-			betacoolForce.Adiabatic = 1 - parameter.magneticOnly;
+			betacoolForce.Magnetized = parameter.magnetic;
+			betacoolForce.Fast = parameter.fast;
+			betacoolForce.Adiabatic = parameter.adiabatic;
 			// steps for manual integration
 			betacoolForce.dt = 70;
 			betacoolForce.dl = 70;
 			betacoolForce.nfi = 30;
 			betacoolForce.N_M = 70;
+
+			//betacoolForce.Pestrikov = 1;
+			//betacoolForce.Constant = 1;
+			//betacoolForce.nfiP = 70;
 
 			betacoolForce.DerSkr(betacoolParams);
 

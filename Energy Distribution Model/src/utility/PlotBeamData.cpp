@@ -90,7 +90,7 @@ PlotBeamData::~PlotBeamData()
 	delete fullHistogram;
 }
 
-TH3D* PlotBeamData::GetHist()
+TH3D* PlotBeamData::GetHist() const
 {
 	return fullHistogram;
 }

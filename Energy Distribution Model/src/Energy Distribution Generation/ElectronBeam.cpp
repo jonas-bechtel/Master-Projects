@@ -71,8 +71,7 @@ namespace ElectronBeam
 
 	void CalculateDetuningEnergy()
 	{
-		parameter.detuningEnergy = pow(sqrt(LabEnergy::GetCenterLabEnergy())
-			- sqrt(parameter.coolingEnergy), 2);
+		parameter.detuningEnergy = pow(sqrt(LabEnergy::GetCenterLabEnergy()) - sqrt(parameter.coolingEnergy), 2);
 	}
 
 	void CalculateDetuningVelocity()

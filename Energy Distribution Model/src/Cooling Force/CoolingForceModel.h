@@ -33,7 +33,9 @@ namespace Model
 
 		// Derbenov Skrinsky Model
 		double smoothingFactor = 2;
-		bool magneticOnly = false;
+		bool magnetic = true;
+		bool adiabatic = true;
+		bool fast = true;
 
 		static float relativeVelocityRange[2];
 		static int numberPoints;

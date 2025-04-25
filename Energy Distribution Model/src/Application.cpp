@@ -74,9 +74,9 @@ namespace Application
 {
     static Settings settings = Settings();
 
+    // Imgui things
     static WNDCLASSEXW wc;
     static HWND hwnd;
-
 
     Settings& GetSettings()
     {
@@ -86,7 +86,6 @@ namespace Application
 
 void Application::Run()
 {
-    
     // Main loop
     bool done = false;
     while (!done)
@@ -157,8 +156,6 @@ void Application::Run()
         g_fenceLastSignaledValue = fenceValue;
         frameCtx->FenceValue = fenceValue;
     }
-
-    
 }
 
 void Application::InitImGui()

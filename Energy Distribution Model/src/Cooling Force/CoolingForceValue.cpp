@@ -496,11 +496,18 @@ namespace CoolingForce
 		TNamed header("header", GetHeaderString());
 		header.Write();
 
+		std::ostringstream value_ss;
+		value_ss << std::scientific << forceZValue;
+
+		TNamed value("value", value_ss.str());
+		value.Write();
+
 		// Write histograms into the file
 		forceX->Write();
 		forceY->Write();
 		forceZ->Write();
 		positionSamples->Write();
+		precalculatedForce.GetHist()->Write();
 
 		outfile.Close();
 	}
@@ -519,26 +526,31 @@ namespace CoolingForce
 		}
 		SetupLabel();
 
+		TNamed* value = (TNamed*)infile.Get("value");
+		forceZValue = std::stod(value->GetTitle());
+
 		// Retrieve histograms
 		forceX = (TH3D*)infile.Get("cooling force X");
 		forceY = (TH3D*)infile.Get("cooling force Y");
 		forceZ = (TH3D*)infile.Get("cooling force Z");
 		positionSamples = (TH3D*)infile.Get("position samples");
+		precalculatedForce = PlotBeamData((TH3D*)infile.Get("precalculated force"));
 
 		forceX->SetDirectory(0);
 		forceY->SetDirectory(0);
 		forceZ->SetDirectory(0);
 		positionSamples->SetDirectory(0);
+		precalculatedForce.GetHist()->SetDirectory(0);
 
 		// Check if histograms were loaded correctly
-		if (!(forceX && forceY && forceZ && positionSamples))
+		if (!(precalculatedForce.GetHist() && forceX && forceY && forceZ && positionSamples))
 		{
 			std::cerr << "Error loading histograms!" << std::endl;
 		}
 
 		infile.Close();
 
-		FillData();
+		//FillData();
 	}
 
 	void Value::PrepareCalculation(std::filesystem::path descriptionFile, int index)

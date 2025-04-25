@@ -35,7 +35,7 @@ public:
 	PlotBeamData& operator=(PlotBeamData&& other) noexcept;
 	~PlotBeamData();
 
-	TH3D* GetHist();
+	TH3D* GetHist() const;
 	std::string GetLabel();
 	void SetLabel(std::string str);
 	void UpdateSlice(float zValue);
