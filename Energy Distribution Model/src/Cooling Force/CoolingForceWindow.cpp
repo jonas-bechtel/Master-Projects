@@ -109,6 +109,7 @@ namespace CoolingForce
 			if (!curveList.empty())
 			{
 				Curve& currentCurve = curveList.at(currentCurveIndex);
+				ImGui::BeginDisabled(currentCurve.IsMeasured());
 				if (!currentCurve.IsNumerical())
 				{
 					char buf[64] = "";
@@ -124,6 +125,7 @@ namespace CoolingForce
 				{
 					currentCurve.Save();
 				}
+				ImGui::EndDisabled();
 			}
 
 			ImGui::Separator();
@@ -230,8 +232,10 @@ namespace CoolingForce
 					{
 						currentCurveIndex = curveIndex;
 						curveList.at(curveIndex).ShowContent();
-						ImGui::SameLine();
-						ImGui::Checkbox("show force details", &showForceDetailWindow);
+						if (!curveList.at(curveIndex).IsMeasured() && !curveList.at(curveIndex).IsNumerical())
+						{
+							ImGui::Checkbox("show force details", &showForceDetailWindow);
+						}
 						ImGui::EndTabItem();
 					}
 					if (!open)
@@ -245,7 +249,7 @@ namespace CoolingForce
 			ImGui::PopStyleColor(2);
 
 			ImGui::Separator();
-			if (ImGui::Button("load MCMC Cool Curve"))
+			if (ImGui::Button("load MCMC Curve"))
 			{
 				std::filesystem::path folder = FileUtils::SelectFolder(FileUtils::GetCoolingForceCurveFolder());
 				if (!folder.empty())
@@ -255,7 +259,7 @@ namespace CoolingForce
 				}
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("load numerical Cool Curves"))
+			if (ImGui::Button("load numerical Curves"))
 			{
 				std::vector<std::filesystem::path> filenames = FileUtils::SelectFiles(FileUtils::GetNumericalCoolingForceCurveFolder());
 				if (!filenames.empty())
@@ -267,7 +271,19 @@ namespace CoolingForce
 					}
 				}
 			}
-			
+			ImGui::SameLine();
+			if (ImGui::Button("load measured Curves"))
+			{
+				std::vector<std::filesystem::path> filenames = FileUtils::SelectFiles(FileUtils::GetMeasuredCoolingForceCurveFolder(), {"*.curve"});
+				if (!filenames.empty())
+				{
+					for (auto& filename : filenames)
+					{
+						CreateNewCurve();
+						curveList.back().LoadMeasured(filename);
+					}
+				}
+			}
 		}
 		ImGui::EndChild();
 	}

@@ -16,8 +16,8 @@ namespace CoolingForce
 namespace Model
 {
 	static double constantsFactor = pow(TMath::Qe(), 3) / (4 * TMath::Pi() * pow(PhysicalConstants::epsilon_0, 2) * PhysicalConstants::electronMass);
-	static const char* modelTypes[] = { "NonMagOriginal", "JSPEC_Parkhomchuk", "JSPEC_NonMagNumeric3D", "JSPEC_DerbenovSkrinsky",
-		"Betacool_Parkhomchuk", "Betacool_NonMag", "Betacool_NonMagNumeric3D", "Betacool_DerbenovSkrinsky", "Betacool_Toeppfler" };
+	static const char* modelTypes[] = { "NonMagOriginal", "JSPEC-Parkhomchuk", "JSPEC-NonMagNumeric3D", "JSPEC-DerbenovSkrinsky",
+		"Betacool-Parkhomchuk", "Betacool-NonMag", "Betacool-NonMagNumeric3D", "Betacool-DerbenovSkrinsky", "Betacool-Toeppfler" };
 	static int currentModelIndex = 0;
 	float Parameter::relativeVelocityRange[2] = { -100000.0f, 100000.0f };
 	int Parameter::numberPoints = 100;
@@ -62,6 +62,7 @@ namespace Model
 			if (std::string(modelTypes[i]) == token)
 			{
 				model = (Type)i;
+				break;
 			}
 		}
 		while (std::getline(stream, token, '_'))
@@ -649,9 +650,9 @@ namespace Model
 			betacoolForce.v[1] = parameter.relativeVelocity.y();
 			betacoolForce.v[2] = parameter.relativeVelocity.z();
 			betacoolForce.Vtr = parameter.relativeVelocity.Perp();
-			betacoolForce.D3dl = 30;
-			betacoolForce.D3dx = 30;
-			betacoolForce.D3dy = 30;
+			betacoolForce.D3dl = 40;
+			betacoolForce.D3dx = 40;
+			betacoolForce.D3dy = 40;
 
 			betacoolForce.D4(betacoolParams);
 

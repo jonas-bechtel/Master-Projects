@@ -12,6 +12,7 @@ namespace FileUtils
 {
     static std::filesystem::path dataFolder = "data\\";
     static std::filesystem::path measuredRateCoefficientFolder = dataFolder / "Rate Coefficients\\";
+    static std::filesystem::path measuredCoolingForceCurveFolder = dataFolder / "Measured Cooling Force Curves\\";
 
     static std::filesystem::path outputFolder = "output\\";
     static std::filesystem::path plasmaRateFolder = outputFolder / "Plasma Rate Coefficients\\";
@@ -71,6 +72,11 @@ namespace FileUtils
     std::filesystem::path GetNumericalCoolingForceCurveFolder()
     {
         return numericalCoolingForceCurveFolder;
+    }
+
+    std::filesystem::path GetMeasuredCoolingForceCurveFolder()
+    {
+        return measuredCoolingForceCurveFolder;
     }
 
     std::filesystem::path SelectFile(const std::filesystem::path& startPath, const std::vector<const char*>& filterPatterns)
