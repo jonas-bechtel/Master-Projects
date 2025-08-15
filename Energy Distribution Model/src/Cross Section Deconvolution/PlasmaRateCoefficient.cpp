@@ -49,6 +49,78 @@ void PlasmaRateCoefficient::Convolve(const CrossSection& cs)
 	}
 }
 
+void PlasmaRateCoefficient::ConvolveFromErrorIterationArray(const CrossSection& cs)
+{
+	label = "plasma from " + cs.GetLabel();
+
+	double factor = TMath::Power((endTemperature / startTemperature), (1.0 / (numberValues)));
+
+	int errorIterations = cs.valueArray.size() / cs.hist->GetNbinsX();
+	//std::cout << "error iterations: " << errorIterations << std::endl;
+	if (errorIterations < 1)
+	{
+		std::cerr << "Error: Not enough data in valueArray to perform convolution." << std::endl;
+		return;
+	}
+
+	temperatures.clear();
+	values.clear();
+	temperatures.reserve(numberValues);
+	values.reserve(numberValues);
+
+	std::vector<double> plasmaValueArray;
+	plasmaValueArray.reserve(numberValues * errorIterations);
+
+	for (double T = startTemperature; T <= endTemperature; T *= factor)
+	{
+		temperatures.push_back(T);
+		for (int j = 0; j < errorIterations; j++)
+		{
+			plasmaValueArray.push_back(0);
+			for (int i = 0; i < cs.energies.size(); i++)
+			{
+				double energy = cs.energies.at(i);
+				//std::cout << "energy: " << energy << std::endl;
+				double csValue = cs.valueArray.at(i * errorIterations + j) * cs.hist->GetBinWidth(i + 1);
+				//std::cout << "csValue: " << csValue << std::endl;
+				double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
+				//std::cout << "velocity: " << velocity << std::endl;
+				double f_pl = BoltzmannDistribution::Function(energy, T);
+				//std::cout << "f_pl: " << f_pl << std::endl;
+				plasmaValueArray.back() += csValue * velocity * f_pl;
+			}
+			
+		}
+	}
+	//std::cout << "plasmaValueArray size: " << plasmaValueArray.size() << std::endl;
+	
+	// Calculate mean and errors
+	for (int j = 0; j < numberValues; j++)
+	{
+		double mean = 0;
+		double error = 0;
+
+		for (int i = 0; i < errorIterations; i++)
+		{
+			//std::cout << "i: " << i << std::endl;
+			double value = plasmaValueArray.at(i + j * errorIterations);
+			mean += value;
+		}
+		mean /= errorIterations;
+
+		for (int i = 0; i < errorIterations; i++)
+		{
+			error += pow(plasmaValueArray[i + j * errorIterations] - mean, 2);
+		}
+		error = sqrt(error / (errorIterations - 1));
+
+		values.push_back(mean);
+		errors.push_back(error);
+		//std::cout << "j: " << j << std::endl;
+		//std::cout << "T: " << T_start * pow(factor, j) << ", mean: " << mean << ", error: " << error << std::endl;
+	}
+}
+
 void PlasmaRateCoefficient::Plot(bool showMarkers) const
 {
 	if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
@@ -79,6 +151,15 @@ void PlasmaRateCoefficient::Load(std::filesystem::path file)
 		values.push_back(std::stod(tokens[1]));
 		errors.push_back(std::stod(tokens[2]));
 	}
+}
+
+void PlasmaRateCoefficient::ShowConvolutionParamterInputs()
+{
+	ImGui::PushItemWidth(100.0f);
+	ImGui::InputInt("number of values", &numberValues);
+	ImGui::InputDouble("start T [K]", &startTemperature);
+	ImGui::InputDouble("end T [K]", &endTemperature);
+	ImGui::PopItemWidth();
 }
 
 void PlasmaRateCoefficient::Save() const

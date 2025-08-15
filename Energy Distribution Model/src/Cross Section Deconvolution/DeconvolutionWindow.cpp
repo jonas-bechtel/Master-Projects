@@ -44,12 +44,19 @@ namespace DeconvolutionWindow
 	void Init()
 	{
 		BoltzmannDistribution::Update(nullptr);
+
+		// temp: load default rate coefficient
+		RateCoefficient rc;
+		rc.Load(FileUtils::GetMeasuredRateCoefficientFolder() / "amb-Ed_IeXXX_t0.5-14.0_pN0gt0_c00 - reversed.dat");
+
+		AddRateCoefficientToList(rc);
 	}
 
 	void AddRateCoefficientToList(RateCoefficient& rc)
 	{
 		rateCoefficientList.emplace_back(std::move(rc));
-		currentRateCoefficientIndex = rateCoefficientList.size() - 1;
+		if(rateCoefficientList.size() == 1)
+			currentRateCoefficientIndex = 0;
 	}
 
 	void RemoveRateCoefficient(int index)
@@ -141,8 +148,8 @@ namespace DeconvolutionWindow
 				RateCoefficient& currentRC = rateCoefficientList.at(currentRateCoefficientIndex);
 
 				CrossSection cs;
-				cs.Deconvolve(currentRC, currentSet, fitSettings, binSettings);
 				cs.SetLabel(CSnameInput);
+				cs.Deconvolve(currentRC, currentSet, fitSettings, binSettings);
 				cs.Save();
 				AddCrossSectionToList(cs);
 			}
@@ -264,6 +271,8 @@ namespace DeconvolutionWindow
 
 				ImPlot::EndPlot();
 			}
+
+			PlasmaRateCoefficient::ShowConvolutionParamterInputs();
 		}
 		ImGui::End();
 	}
@@ -342,7 +351,7 @@ namespace DeconvolutionWindow
 					if (ImGui::SmallButton("-> plasma rate"))
 					{
 						PlasmaRateCoefficient prc;
-						prc.Convolve(cs);
+						prc.ConvolveFromErrorIterationArray(cs);
 						prc.Save();
 						AddPlasmaRateToList(prc);
 					}
@@ -368,6 +377,14 @@ namespace DeconvolutionWindow
 				}
 			}
 			ImGui::SameLine();
+			if (ImGui::Button("show initial guess"))
+			{
+				CrossSection cs;
+				cs.SetupBinning(binSettings, rateCoefficientList.at(currentRateCoefficientIndex));
+				cs.SetInitialGuessValues(rateCoefficientList.at(currentRateCoefficientIndex));
+				cs.SetLabel("initial guess");
+				AddCrossSectionToList(cs);
+			}
 			if (ImGui::Button("create 1/E cs"))
 			{
 				CrossSection cs;

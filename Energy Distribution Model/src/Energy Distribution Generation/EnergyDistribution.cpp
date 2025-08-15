@@ -527,7 +527,7 @@ void EnergyDistribution::Generate(std::filesystem::path descriptionFile, int ind
 
 		// determine direction of velocity based on beam trajectory function
 		TVector3 longitudinalDirection = ElectronBeam::GetDirection(point.z);
-		TVector3 transverseDirection = longitudinalDirection.Orthogonal();
+		//TVector3 transverseDirection = longitudinalDirection.Orthogonal();
 
 		// add random values to velocity in transverse and longitudinal directions:
 		// - calculate longitudinal kT, transverse kT is fixed
@@ -549,7 +549,7 @@ void EnergyDistribution::Generate(std::filesystem::path descriptionFile, int ind
 		TVector3 helpVector = TVector3(1, 0, 0);
 		TVector3 transverseDirection1 = longitudinalDirection.Cross(helpVector);
 		TVector3 transverseDirection2 = longitudinalDirection.Cross(transverseDirection1);
-
+		
 		TVector3 finalElectronVelocity = (electronVelocityMagnitude + longitudinalAddition) * longitudinalDirection
 			+ transverseAdditionX * transverseDirection1
 			+ transverseAdditionY * transverseDirection2;
@@ -850,6 +850,7 @@ void PeakFitSettings::ShowWindow(bool& show)
 			ImGui::Checkbox("adjust range", &adjustRange[i]);
 			ImGui::EndGroup();
 			ImGui::SameLine();
+			ImGui::PopID();
 		}
 	}
 	ImGui::End();

@@ -265,7 +265,7 @@ namespace MCMC
 		//int z_nBins = target->GetZaxis()->GetNbins();
 
 		// compute probabilities
-		auto t_int_start = std::chrono::high_resolution_clock::now();
+		//auto t_int_start = std::chrono::high_resolution_clock::now();
 		double p_new = HistUtils::GetValueAtPosition(target, { x_proposed,y_proposed, z_proposed }, useInterpolation);
 		//if (useInterpolation)
 		//{
@@ -280,8 +280,8 @@ namespace MCMC
 		//	p_new = target->GetBinContent(target->FindBin(x_proposed, y_proposed, z_proposed));
 		//}
 
-		auto t_int_end = std::chrono::high_resolution_clock::now();
-		interpolationTime += std::chrono::duration<double, std::milli>(t_int_end - t_int_start).count();
+		//auto t_int_end = std::chrono::high_resolution_clock::now();
+		//interpolationTime += std::chrono::duration<double, std::milli>(t_int_end - t_int_start).count();
 
 		// acceptance ratio
 		double ratio = p_new / currentValue;

@@ -102,8 +102,10 @@ namespace ElectronBeam
 		double A = (1. + TMath::Power((parameter.expansionFactor - 1.) / parameter.expansionFactor, 2.))
 			* (TMath::Power(TMath::K() * parameter.cathodeTemperature, 2.)) / (2. * TMath::Qe() * labEnergy);
 		double B = 2.544008e-27;
+
 		double C = parameter.LLR * TMath::Power(parameter.cathodeRadius, -2 / 3.) * TMath::Power(parameter.electronCurrent, 1 / 3.)
 			* TMath::Power(parameter.extractionEnergy * TMath::Qe(), -1 / 6.) * parameter.extractionEnergy / labEnergy;
+
 		double D = TMath::Power(parameter.sigmaLabEnergy * TMath::Qe(), 2.) / (2. * TMath::Qe() * labEnergy);
 		return (A + B * C + D) / TMath::Qe();
 	}

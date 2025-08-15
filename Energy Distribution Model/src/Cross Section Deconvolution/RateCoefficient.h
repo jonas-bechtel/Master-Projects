@@ -12,11 +12,14 @@ public:
 	RateCoefficient(RateCoefficient&& other) = default;
 	RateCoefficient& operator=(RateCoefficient&& other) = default;
 
+	void VaryGraphValues();
+	void ResetGraphValues();
+
 	void SetLabel(std::string label);
 	std::string GetLabel();
 
 	void Convolve(const CrossSection& cs, EnergyDistributionSet& set);
-	double ConvolveFit(double Ed, double* csBins, const EnergyDistributionSet& set) const;
+	double ConvolveFit(double Ed, double* csBins, const EnergyDistributionSet& set, bool squareCS = true) const;
 
 	void Plot(bool showMarkers) const;
 	void PlotSubfunctions() const;
@@ -29,7 +32,7 @@ private:
 
 private:
 	// main data
-	TGraph* graph = new TGraph();
+	TGraphErrors* graph = new TGraphErrors();
 
 	std::vector<double> detuningEnergies;
 	std::vector<double> value;

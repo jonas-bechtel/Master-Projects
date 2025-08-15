@@ -98,6 +98,26 @@ namespace IonBeam
 				}
 			}
 		}
+		TH3D* beamSmalltest = (TH3D*)beam->Rebin3D(2, 2, 4, "ion beam small");
+		//remove all bin values that are below 100
+		for (int i = 0; i <= beamSmalltest->GetNbinsX() + 1; i++)
+		{
+			for (int j = 0; j <= beamSmalltest->GetNbinsY() + 1; j++)
+			{
+				for (int k = 0; k <= beamSmalltest->GetNbinsZ() + 1; k++)
+				{
+					if (beamSmalltest->GetBinContent(i, j, k) <= 100.0)
+					{
+						//std::cout << "Bin (" << i << ", " << j << ", " << k << "): " << beamSmalltest->GetBinContent(i, j, k) << "\n";
+						beamSmalltest->SetBinContent(i, j, k, 0.0);
+					}
+                    //std::cout << "Bin (" << i << ", " << j << ", " << k << "): " << beamSmalltest->GetBinContent(i, j, k) << "\n";
+				}
+			}
+		}
+
+		beamSmalltest->SaveAs("ion_beam_small.C");
+		delete beamSmalltest;
 	}
 
 	void UpdatePlotData()
@@ -228,7 +248,7 @@ namespace IonBeam
 		ImGui::BeginDisabled(!doubleGaussian);
 		somethingChanged |= ImGui::InputDouble("amplitude", parameter.amplitude, 0.0f, 0.0f, "%.4f");
 		ImGui::EndDisabled();
-		somethingChanged |= ImGui::InputFloat2("sigmas x and y [m]", parameter.sigma, "%.4f");
+		somethingChanged |= ImGui::InputFloat2("sigmas x and y [m]", parameter.sigma, "%.5f");
 		
 		if (ImGui::Button("Set Emittance Values"))
 		{
@@ -240,7 +260,7 @@ namespace IonBeam
 		somethingChanged |= ImGui::Checkbox("use second gaussian", &doubleGaussian);
 		ImGui::BeginDisabled(!doubleGaussian);
 		somethingChanged |= ImGui::InputDouble("amplitude 2", &amplitude2, 0.0f, 0.0f, "%.4f");
-		somethingChanged |= ImGui::InputFloat2("sigmas 2 x and y [m]", sigma2, "%.4f");
+		somethingChanged |= ImGui::InputFloat2("sigmas 2 x and y [m]", sigma2, "%.5f");
 		
 		if (ImGui::Button("Set Lucias Values"))
 		{

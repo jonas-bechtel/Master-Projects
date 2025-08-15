@@ -34,6 +34,7 @@
 #include "Math/Factory.h"
 #include "Math/Functor.h"
 #include <TGraph.h>
+#include <TGraphErrors.h>
 #include <TVector3.h>
 #include <TApplication.h>
 #include <TSystem.h>
@@ -44,3 +45,6 @@
 
 #include "imgui.h"
 #include "implot.h"
+
+#include "Eigen/Dense"
+#include "unsupported/Eigen/NNLS"

@@ -32,7 +32,7 @@ def organize_files_by_filename(source_dir, target_dirs_and_strings, extra_filter
                 break
 
 # Example usage:
-source_directory = "OH"
+source_directory = "C60\\mbrc_merged_11.3_v2"
 target_directories_and_strings = [
     (os.path.join(source_directory, "lab-energies"), "Ek.asc"),
     (os.path.join(source_directory, "e-densities"), "ne.asc"),

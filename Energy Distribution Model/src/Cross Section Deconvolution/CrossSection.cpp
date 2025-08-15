@@ -1,12 +1,12 @@
 #include "pch.h"
 
-#include "Eigen/Dense"
-
 #include "CrossSection.h"
 #include "Constants.h"
 #include "EnergyDistribution.h"
 #include "RateCoefficient.h"
+#include "PlasmaRateCoefficient.h"
 #include "EnergyDistributionSet.h"
+#include "DeconvolutionWindow.h"
 
 #include "FileUtils.h"
 
@@ -32,26 +32,30 @@ void CrossSection::SetLabel(std::string newLabel)
 
 void CrossSection::SetupBinning(const CrossSectionBinningSettings& binSettings, const RateCoefficient& rc)
 {
+	double kT_trans = 0.002; // representativeEnergyDist.eBeamParameter.transverse_kT;
+	double kT_long = 0.00047; // representativeEnergyDist->eBeamParameter.longitudinal_kT; //eBeam->GetLongitudinal_kT(labEnergiesParameter.centerLabEnergy);
+
 	// first edge needs to be 0
 	std::vector<double> binEdges;
 	double minEnergy = 0;    
 	double maxEnergy = 100;  //just a guess, not fixed
+	double secondEdge = kT_trans / 20;
+
+	binEdges.reserve(10);
+	binEdges.push_back(minEnergy);
+	binEdges.push_back(secondEdge);
+
+	// first bins are always the same
+	for (int i = 1; binEdges[i] < kT_trans; i++)
+	{
+		binEdges.push_back(2 * binEdges.back() * binSettings.binFactor);
+	}
 
 	// binning like in the paper 
 	if (binSettings.scheme == PaperBinning)
 	{
-		//EnergyDistribution& representativeEnergyDist = energyDistributionList.back();
-		double kT_trans = 0.002; // representativeEnergyDist.eBeamParameter.transverse_kT;
-		double kT_long = 0.00047; // representativeEnergyDist->eBeamParameter.longitudinal_kT; //eBeam->GetLongitudinal_kT(labEnergiesParameter.centerLabEnergy);
-
-		binEdges.push_back(0);
-		binEdges.push_back(kT_trans / 20);
 		int binFactor = 1;
 
-		for (int i = 1; binEdges[i] < kT_trans; i++)
-		{
-			binEdges.push_back(binFactor * 2 * binEdges.back());
-		}
 		while (binEdges.back() < maxEnergy)
 		{
 			double previousEdge = binEdges.back();
@@ -76,40 +80,43 @@ void CrossSection::SetupBinning(const CrossSectionBinningSettings& binSettings, 
 		// add one last edge
 		binEdges.push_back(binEdges.back() + 2 * (rc.detuningEnergies.front() - binEdges.back()));
 	}
-	// bin width increses by a constant factor
+
+	// bin width increases by a constant factor
 	if (binSettings.scheme == FactorBinning)
 	{
-		double min = minEnergy;
-		double factor = TMath::Power((maxEnergy / min), (1.0 / binSettings.numberBins));
-
-		binEdges.reserve(binSettings.numberBins + 1);
-		binEdges.push_back(min);
-		for (int i = 0; i < binSettings.numberBins; i++)
-		{
-			binEdges.push_back(binEdges[i] * factor);
-		}
-	}
-	if (binSettings.scheme == PaperFactorMix)
-	{
-		//EnergyDistribution& representativeEnergyDist = energyDistributionList.back();
-		double kT_trans = 0.002; // representativeEnergyDist.eBeamParameter.transverse_kT;
-		//double kT_long = 0.00047; // representativeEnergyDist->eBeamParameter.longitudinal_kT; //eBeam->GetLongitudinal_kT(labEnergiesParameter.centerLabEnergy);
-
-		binEdges.push_back(0);
-		binEdges.push_back(kT_trans / 20);
-
-		for (int i = 1; binEdges[i] < kT_trans; i++)
-		{
-			binEdges.push_back(2 * binEdges[i]);
-			//std::cout << binEdges[i + 1] << "\n";
-		}
-
-		double factor = TMath::Power((maxEnergy / binEdges.back()), (1.0 / binSettings.numberBins));
+		binEdges.reserve(binEdges.size() + binSettings.numberBins);
+		double factor = TMath::Power((maxEnergy / binEdges.back()), (1.0 / (binSettings.numberBins)));
 
 		for (int i = 0; i < binSettings.numberBins; i++)
 		{
 			binEdges.push_back(binEdges.back() * factor);
 		}
+	}
+
+	// start with factor binning, then use rc points
+	if (binSettings.scheme == PaperFactorMix)
+	{
+		binEdges.reserve(binEdges.size() + binSettings.numberBins);
+		double factor = TMath::Power((binSettings.boundaryEnergy / binEdges.back()), (1.0 / (binSettings.numberBins)));
+
+		for (int i = 0; i < binSettings.numberBins; i++)
+		{
+			binEdges.push_back(binEdges.back() * factor);
+		}
+
+		double lastEdgeSoFar = binEdges.back();
+
+		// add edges so rc points are in bin center
+		for (size_t i = rc.detuningEnergies.size() - 1; i > 0; i--)
+		{
+			if (rc.detuningEnergies.at(i) < lastEdgeSoFar) continue;
+
+			double Ed_i = rc.detuningEnergies.at(i);
+			double Ed_after_i = rc.detuningEnergies.at(i - 1);
+			binEdges.push_back((Ed_i + Ed_after_i) / 2);
+		}
+		// add one last edge
+		binEdges.push_back(binEdges.back() + 2 * (rc.detuningEnergies.front() - binEdges.back()));
 	}
 
 	//for (double edge : binEdges)
@@ -123,29 +130,28 @@ void CrossSection::SetupBinning(const CrossSectionBinningSettings& binSettings, 
 	std::cout << "number cross section bins: " << binEdges.size() - 1 << "\n";
 
 	hist = new TH1D("cross section fit", "cross section fit", binEdges.size() - 1, binEdges.data());
-}
-
-void CrossSection::SetupInitialGuess(const RateCoefficient& rc)
-{
-	if (!values.empty())
-	{
-		return;
-	}
 	values.clear();
-	values.reserve(hist->GetNbinsX());
 	errors.clear();
+	energies.clear();
+	values.resize(hist->GetNbinsX());
 	errors.resize(hist->GetNbinsX());
+	energies.resize(hist->GetNbinsX());
 
 	for (int i = 1; i <= hist->GetNbinsX(); i++)
 	{
-		double energy = hist->GetBinCenter(i);
+		energies.at(i - 1) = hist->GetBinCenter(i);
+	}
+}
+
+void CrossSection::SetInitialGuessValues(const RateCoefficient& rc)
+{
+	for (int i = 0; i < values.size(); i++)
+	{
+		double energy = hist->GetBinCenter(i + 1);
 		double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
 		double alpha = rc.graph->Eval(energy);
 		
-		values.push_back(alpha / velocity);
-		
-		//initialGuess.push_back(alpha / velocity);
-		energies.push_back(energy);
+		values.at(i) = (alpha / velocity);
 	}
 }
 
@@ -164,7 +170,7 @@ void CrossSection::FitWithSVD(const RateCoefficient& rc, const EnergyDistributio
 			// fill matrix and vector with 0 if p > n
 			PsiMatrix(i, j) = set.distributions[i].psi[j];
 		}
-		alphaVector[i] = rc.value[i];
+		alphaVector[i] = rc.graph->GetPointY(i);
 	}
 
 	Eigen::JacobiSVD<Eigen::MatrixXd> svd(PsiMatrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
@@ -179,7 +185,7 @@ void CrossSection::FitWithSVD(const RateCoefficient& rc, const EnergyDistributio
 	}
 }
 
-void CrossSection::FitWithROOT(const RateCoefficient& rc, const EnergyDistributionSet& set)
+void CrossSection::FitWithROOT(const RateCoefficient& rc, const EnergyDistributionSet& set, const FittingOptions& fitSettings)
 {
 	TF1 fitFunction("fit function", 
 		[&rc, &set](double* x, double* p) 
@@ -194,17 +200,90 @@ void CrossSection::FitWithROOT(const RateCoefficient& rc, const EnergyDistributi
 	squareRootValues.reserve(values.size());
 	for (double value : values)
 	{
-		squareRootValues.push_back(sqrt(value));
+		squareRootValues.push_back(sqrt(abs(value)));
 	}
 	fitFunction.SetParameters(squareRootValues.data());
 	
-	rc.graph->Fit(&fitFunction, "RN");
+	int numberFixedParameters = 0;
+	if (fitSettings.fixParameters)
+	{
+		int fixedParamLowIndex = hist->FindBin(fitSettings.fixedParameterRange[0]) - 1;
+		int fixedParamHighIndex = hist->FindBin(fitSettings.fixedParameterRange[1]) - 1;
+		//std::cout << "fixed parameters: " << fixedParamLowIndex << " to " << fixedParamHighIndex << std::endl;
+		//std::cout << "lower fixed parameter value:" << hist->GetBinCenter(fixedParamLowIndex + 1) << std::endl;
+		//std::cout << "upper fixed parameter value:" << hist->GetBinCenter(fixedParamHighIndex + 1) << std::endl;
+		for (size_t i = fixedParamLowIndex; i <= fixedParamHighIndex; i++)
+		{
+			int bla = std::min(i, squareRootValues.size() - 1);
+			fitFunction.FixParameter(i, squareRootValues.at(bla));
+			numberFixedParameters++;
+		}
+	}
+	rc.graph->Fit(&fitFunction, "RNM");
 
 	double* result = fitFunction.GetParameters();
 	for (int i = 0; i < values.size(); i++)
 	{
 		hist->SetBinContent(i + 1, result[i] * result[i]);
 		values[i] = result[i] * result[i];
+	}
+
+	int N = rc.graph->GetN();
+	int p = fitFunction.GetNpar();
+	int DOF = N - (p - numberFixedParameters);
+	std::cout << "N: " << N << ", p_tot: " << p << ", p_fix: " << numberFixedParameters << ", DOF: " << DOF << std::endl;
+	double chi2 = fitFunction.GetChisquare();
+
+	double reduced_chi2 = chi2 / DOF;
+	std::cout << "Reduced chi2: " << reduced_chi2 << std::endl;
+}
+
+void CrossSection::FitWithEigenNNLS(const RateCoefficient& rc, const EnergyDistributionSet& set, const FittingOptions& fitSettings)
+{
+	int n = set.distributions.size();
+	int p = hist->GetNbinsX();
+
+	Eigen::MatrixXd PsiMatrix(n, p);
+	Eigen::VectorXd alphaVector(n);
+
+	for (int i = 0; i < n; i++)
+	{
+		for (int j = 0; j < p; j++)
+		{
+			// fill matrix and vector with 0 if p > n
+			PsiMatrix(i, j) = set.distributions[i].psi[j];
+		}
+		alphaVector[i] = rc.graph->GetPointY(i);
+	}
+
+	auto x = Eigen::NNLS(PsiMatrix, fitSettings.maxIterations, fitSettings.tolerance);
+	auto res = x.solve(alphaVector);
+	//std::cout << "number of iterations: " << x.iterations() << std::endl;
+	//std::cout << res << std::endl;
+
+	for (int i = 0; i < values.size(); i++)
+	{
+		hist->SetBinContent(i + 1, res[i]);
+		values[i] = res[i];
+	}
+}
+
+void CrossSection::ResetNonFixedParameters(const RateCoefficient& rc, const FittingOptions& fitSettings)
+{
+	int fixedParamLowIndex = hist->FindBin(fitSettings.fixedParameterRange[0]) - 1;
+	int fixedParamHighIndex = hist->FindBin(fitSettings.fixedParameterRange[1]) - 1;
+	for (int i = 0; i < values.size(); i++)
+	{
+		//std::cout << "value[" << i << "] = " << values.at(i) << std::endl;
+		if (i < fixedParamLowIndex || i > fixedParamHighIndex)
+		{
+			double energy = hist->GetBinCenter(i + 1);
+			double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
+			double alpha = rc.graph->Eval(energy);
+
+			values.at(i) = alpha / velocity;
+		}
+		//std::cout << "value[" << i << "] = " << values.at(i) << std::endl;
 	}
 }
 
@@ -244,12 +323,13 @@ void CrossSection::FillWithOneOverE(int scale)
 	label = scale + std::string(" over E cs");
 }
 
-void CrossSection::Deconvolve(const RateCoefficient& rc, EnergyDistributionSet& set, const FittingOptions& fitSettings, const CrossSectionBinningSettings& binSettings)
+void CrossSection::Deconvolve(RateCoefficient& rc, EnergyDistributionSet& set, const FittingOptions& fitSettings, const CrossSectionBinningSettings& binSettings)
 {
 	if (rc.value.size() != set.distributions.size())
 	{
 		std::cout << "sizes of rate coefficients and energy distributions dont match: " <<
 			rc.value.size() << " != " << set.distributions.size() << std::endl;
+		return;
 	}
 	energyDistriubtionSetFolder = set.Label();
 	mergedBeamRateCoefficientFile = rc.label;
@@ -257,16 +337,98 @@ void CrossSection::Deconvolve(const RateCoefficient& rc, EnergyDistributionSet& 
 	SetupBinning(binSettings, rc);
 
 	set.CalculatePsisFromBinning(hist);
-	SetupInitialGuess(rc);
 
-	if (fitSettings.ROOT_fit)
+	const int arraySize = fitSettings.errorIterations * hist->GetNbinsX();
+	valueArray.clear();
+	valueArray.resize(arraySize);
+     
+	for (int i = 0; i < fitSettings.errorIterations; i++)
 	{
-		FitWithROOT(rc, set);
+		SetInitialGuessValues(rc);
+
+		if (fitSettings.ROOT_fit)
+		{
+			for (int i = 0; i < fitSettings.fit_iterations; i++)
+			{
+				FitWithROOT(rc, set, fitSettings);
+			}
+		}
+		else if (fitSettings.SVD_fit)
+		{
+			FitWithSVD(rc, set);
+		}
+		else if (fitSettings.EigenNNLS_fit)
+		{
+			FitWithEigenNNLS(rc, set, fitSettings);
+		}
+		else if (fitSettings.NNLS_ROOT_fit)
+		{
+			FitWithEigenNNLS(rc, set, fitSettings);
+
+			if (fitSettings.fixParameters)
+			{
+				ResetNonFixedParameters(rc, fitSettings);
+			}
+
+			for (int i = 0; i < fitSettings.fit_iterations; i++)
+			{
+				FitWithROOT(rc, set, fitSettings);
+			}
+		}
+
+		for(int j = 0; j < values.size(); j++)
+		{
+			valueArray[i + j * fitSettings.errorIterations] = values[j];
+		}
+
+		rc.VaryGraphValues();
 	}
-	else if (fitSettings.SVD_fit)
+	rc.ResetGraphValues();
+
+	for (int j = 0; j < values.size(); j++)
 	{
-		FitWithSVD(rc, set);
+		double mean = 0;
+		double error = 0;
+
+		for (int i = 0; i < fitSettings.errorIterations; i++)
+		{
+			double value = valueArray[i + j * fitSettings.errorIterations];
+			mean += value;
+		}
+		mean /= fitSettings.errorIterations;
+
+		for (int i = 0; i < fitSettings.errorIterations; i++)
+		{
+			error += pow(valueArray[i + j * fitSettings.errorIterations] - mean, 2);
+		}
+		error = sqrt(error / (fitSettings.errorIterations - 1));
+
+		values[j] = mean;
+		errors[j] = error;
+		hist->SetBinContent(j + 1, mean);
+		hist->SetBinError(j + 1, error);
 	}
+
+	// calculate chi2 of fit
+	double chi2 = 0;
+	for (int i = 0; i < rc.graph->GetN(); i++)
+	{
+		double fitValue = rc.ConvolveFit(rc.graph->GetPointX(i), values.data(), set, false);
+		double error = rc.graph->GetErrorY(i);
+		std::cout << "Point " << i << ": x = " << rc.graph->GetPointX(i) 
+			<< ", fit value = " << fitValue << ", error = " << error << std::endl;
+		if (error > 0)
+		{
+			double diff = rc.graph->GetPointY(i) - fitValue;
+			chi2 += diff * diff / (error * error);
+		}
+		else
+		{
+			std::cout << "Error is zero for point " << i << ", skipping chi2 calculation for this point." << std::endl;
+		}
+	}
+	double chi2_reduced = chi2 / (rc.graph->GetN() - hist->GetNbinsX());
+	std::cout << "Chi2 reduced: " << chi2_reduced << std::endl;
 }
 
 void CrossSection::Plot(bool showMarkers) const
@@ -350,10 +512,16 @@ void FittingOptions::ShowWindow(bool& show)
 		ImGui::Checkbox("ROOT fitting", &ROOT_fit);
 		ImGui::SameLine();
 		ImGui::Checkbox("SVD fitting", &SVD_fit);
-		//ImGui::Checkbox("GD fitting", &GD_fit);
-		//ImGui::InputInt("iterations", &iterations);
+		ImGui::Checkbox("Eigen NNLS fitting", &EigenNNLS_fit);
+		ImGui::Checkbox("NNLS ROOT combo", &NNLS_ROOT_fit);
+		
+		ImGui::InputInt("iterations", &fit_iterations);
+		ImGui::InputInt("max iterations", &maxIterations);
+		ImGui::InputDouble("tolerance", &tolerance, 0.0, 0.0, "%.1e");
 		//ImGui::InputDouble("learning rate", &learningRate);
-
+		ImGui::Checkbox("fix params", &fixParameters);
+		ImGui::InputFloat2("fixed parameter range", fixedParameterRange, "%.4f");
+		ImGui::InputInt("error iterations", &errorIterations);
 	}
 	ImGui::End();
 }
@@ -366,30 +534,23 @@ void CrossSectionBinningSettings::ShowWindow(bool& show)
 	}
 	if (ImGui::Begin("Cross Section Binning settings", &show, ImGuiWindowFlags_NoDocking))
 	{
+		ImGui::SetNextItemWidth(150.0f);
 		ImGui::Combo("binning options", (int*)&scheme, binningOptions, IM_ARRAYSIZE(binningOptions));
-
+		ImGui::PushItemWidth(100.0f);
+		ImGui::InputDouble("bin factor", &binFactor, 0.0, 0.0, "%.4f");
 		if (scheme == FactorBinning || scheme == PaperFactorMix)
 		{
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(100.0f);
 			ImGui::InputInt("number bins", &numberBins);
 		}
-		if (scheme == FactorBinning)
+		if (scheme == PaperFactorMix)
 		{
-			//ImGui::SameLine();
-			//ImGui::Checkbox("limit bin size", &limitBinSize);
-			//ImGui::SameLine();
-			//ImGui::BeginDisabled(!limitBinSize);
-			//ImGui::SetNextItemWidth(100.0f);
-			//ImGui::InputDouble("min bin size", &minBinSize, 0.0, 0.0, "%.1e");
-			//ImGui::EndDisabled();
+			ImGui::InputDouble("boundary energy", &boundaryEnergy, 0.0, 0.0, "%.4f");
 		}
 		if (scheme == PaperBinning)
 		{
-			ImGui::SameLine();
-			ImGui::InputInt("max ration", &maxRatio);
-			//ImGui::InputInt("factor", &binFactor);
+			ImGui::InputInt("max ratio", &maxRatio);
 		}
+		ImGui::PopItemWidth();
 	}
 	ImGui::End();
 }

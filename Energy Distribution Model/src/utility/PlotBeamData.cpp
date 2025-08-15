@@ -148,6 +148,14 @@ void PlotBeamData::UpdateData()
 		centerValue.push_back(energyValueIn);
 		outsideValue.push_back(energyValueOut);
 	}
+
+	//// quick hack to save the center values to a file
+	//std::ofstream outFile("potential_values.txt");
+	//for (size_t i = 0; i < centerValue.size(); i++)
+	//{
+	//	outFile << zAxis[i] << "\t" << centerValue[i] << "\t" << outsideValue[i] << "\n";
+	//}
+	//outFile.close();
 }
 
 void PlotBeamData::Plot3D(ROOTCanvas* canvas, int pos)

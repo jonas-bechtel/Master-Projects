@@ -57,6 +57,12 @@ namespace EnergyDistributionWindow
 	void Init()
 	{
 		AnalyticalDistribution::Update();
+
+		//EnergyDistributionSet set;
+		//set.Load(FileUtils::GetEnergyDistSetFolder() / "C60\\Ie_0.2547 (103 steps)" / "Tperp_1.5_Eext_0.266_test", true);
+		//setList.emplace_back(std::move(set));
+		//currentSetIndex = setList.size() - 1;
+		
 	}
 
 	EnergyDistributionSet& GetCurrentSet()

@@ -22,6 +22,31 @@ int RateCoefficient::GetIndexOfDetuningEnergy(double Ed) const
     return -1;
 }
 
+void RateCoefficient::VaryGraphValues()
+{
+	// Create a random number generator and normal distribution
+	static std::mt19937 rng(std::random_device{}());
+
+	for (int i = 0; i < graph->GetN(); i++)
+	{
+		// Use error.at(i) as the standard deviation if available, otherwise set to 1.0
+		double mean = value.at(i);
+		double stddev = (i < error.size()) ? error.at(i) : 1.0;
+		std::normal_distribution<double> dist(mean, stddev);
+
+		double variedValue = dist(rng);
+		graph->SetPointY(i, variedValue);
+	}
+}
+
+void RateCoefficient::ResetGraphValues()
+{
+	for (int i = 0; i < graph->GetN(); i++)
+	{
+		graph->SetPointY(i, value.at(i));
+	}
+}
+
 void RateCoefficient::SetLabel(std::string label)
 {
 	this->label = label;
@@ -69,11 +94,12 @@ void RateCoefficient::Convolve(const CrossSection& cs, EnergyDistributionSet& se
 	graph->Clear();
 	for (int i = 0; i < detuningEnergies.size(); i++)
 	{
-		graph->AddPoint(detuningEnergies.at(i), value.at(i));
+		graph->SetPoint(i, detuningEnergies.at(i), value.at(i));
+		graph->SetPointError(i, 0, error.at(i));
 	}
 }
 
-double RateCoefficient::ConvolveFit(double Ed, double* csBins, const EnergyDistributionSet& set) const
+double RateCoefficient::ConvolveFit(double Ed, double* csBins, const EnergyDistributionSet& set, bool squareCS) const
 {
 	double sum = 0;
 
@@ -87,14 +113,18 @@ double RateCoefficient::ConvolveFit(double Ed, double* csBins, const EnergyDistr
 
 	if (index >= set.distributions.size())
 	{
-		//std::cout << "no set for detuning energy " << detuningEnergy << std::endl;
+		std::cout << "index " << index << " is out of bounds for energy distribution set with size " << set.distributions.size() << std::endl;
 		return 0.0;
 	}
 	const EnergyDistribution& distribution = set.distributions.at(index);
 
 	for (int i = 0; i < distribution.psi.size(); i++)
 	{
-		sum += distribution.psi[i] * csBins[i] * csBins[i];
+		if(squareCS)
+			sum += distribution.psi[i] * csBins[i] * csBins[i];
+
+		else
+			sum += distribution.psi[i] * csBins[i];
 	}
 	//std::cout << "sum " << sum << "\n";
 	return sum;
@@ -137,13 +167,16 @@ void RateCoefficient::Load(std::filesystem::path& filename)
 	// skip first line
 
 	std::getline(file, line);
+	int i = 0;
 	while (std::getline(file, line))
 	{
 		std::vector<std::string> tokens = FileUtils::SplitLine(line, "\t");
 		detuningEnergies.push_back(std::stod(tokens[0]));
 		value.push_back(std::stod(tokens[1]));
 		error.push_back(std::stod(tokens[3]));
-		graph->AddPoint(std::stod(tokens[0]), std::stod(tokens[1]));
+		graph->SetPoint(i, std::stod(tokens[0]), std::stod(tokens[1]));
+		graph->SetPointError(i, 0, std::stod(tokens[3]));
+		i++;
 	}
 
 	measured = true;
@@ -169,7 +202,7 @@ void RateCoefficient::Save() const
 		return;
 	}
 
-	outfile << "# Ed [eV]\tRelative rate\terror\tstatistical error\n";
+	outfile << "# Ed [eV]\tRate Coefficient\terror\tstatistical error\n";
 
 	for (int i = 0; i < detuningEnergies.size(); i++)
 	{
