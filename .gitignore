@@ -6,6 +6,7 @@
 Energy Distribution Model/screenshots
 Energy Distribution Model/output
 Energy Distribution Model/data
+Energy Distribution Model/temp
 
 # data Files
 *.asc
@@ -14,6 +15,7 @@ Energy Distribution Model/data
 
 *.toml
 *.txt
+*.png
 
 # Binaries
 **/bin/
