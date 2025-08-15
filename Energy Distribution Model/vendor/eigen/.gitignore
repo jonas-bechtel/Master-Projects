@@ -10,7 +10,7 @@ save
 *.qm
 *.bak
 *~
-*build*
+*.build*
 *.moc.*
 *.moc
 ui_*
@@ -34,3 +34,4 @@ lapack/reference
 .settings
 Makefile
 !ci/build.gitlab-ci.yml
+!scripts/buildtests.in
