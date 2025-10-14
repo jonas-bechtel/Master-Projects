@@ -18,11 +18,7 @@ namespace Model
 	static double constantsFactor = pow(TMath::Qe(), 3) / (4 * TMath::Pi() * pow(PhysicalConstants::epsilon_0, 2) * PhysicalConstants::electronMass);
 	static const char* modelTypes[] = { "NonMagOriginal", "JSPEC-Parkhomchuk", "JSPEC-NonMagNumeric3D", "JSPEC-DerbenovSkrinsky",
 		"Betacool-Parkhomchuk", "Betacool-NonMag", "Betacool-NonMagNumeric3D", "Betacool-DerbenovSkrinsky", "Betacool-Toeppfler" };
-	static int currentModelIndex = 0;
-	float Parameter::relativeVelocityRange[2] = { -100000.0f, 100000.0f };
-	int Parameter::numberPoints = 100;
-	bool Parameter::showLinesLong = false;
-	bool Parameter::showLinesTrans = false;
+	
 
 	std::string Parameter::String() const
 	{
@@ -100,12 +96,15 @@ namespace Model
 		{
 			return;
 		}
+
 		if (ImGui::Begin("Numerical integration parameter", &show, ImGuiWindowFlags_NoDocking))
 		{
+			ImGui::BeginGroup();
 			ImGui::PushItemWidth(140.0f);
 			ImGui::InputFloat2("velocity range", relativeVelocityRange, "%.1e");
 			ImGui::InputInt("number points", &numberPoints);
 			ImGui::Separator();
+			int currentModelIndex = (int)model;
 			if (ImGui::Combo("models", &currentModelIndex, modelTypes, IM_ARRAYSIZE(modelTypes)))
 			{
 				model = static_cast<Model::Type>(currentModelIndex);
@@ -153,6 +152,7 @@ namespace Model
 			if (model == Model::Type::JSPEC_DerbenovSkrinsky || model == Model::Type::Betacool_DerbenovSkrinsky)
 			{
 				ImGui::InputDouble("magnetic field", &magneticField);
+				ImGui::InputDouble("cooler time", &coolerTime, 0, 0, "%.2e");
 				ImGui::InputDouble("smoothing factor", &smoothingFactor);
 				ImGui::Checkbox("magnetic", &magnetic);
 				ImGui::Checkbox("adiabatic", &adiabatic);
@@ -164,73 +164,100 @@ namespace Model
 			}
 
 			ImGui::PopItemWidth();
+
+			ImGui::EndGroup();
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Simple Cooling Force Curve"))
+				{
+					Parameter& params = *(Parameter*)payload->Data;
+					*this = params;
+				}
+				ImGui::EndDragDropTarget();
+			}
 		}
+
 		ImGui::End();
 	}
 
 	void Parameter::ShowValues()
 	{
-		ImGui::BeginGroup();
-		ImGui::Text("model:");
-		ImGui::Text("electron density:");
-		ImGui::Text("ion charge:");
-		ImGui::Text("longitudinal kT:");
-		ImGui::Text("transverse kT:");
+		if (ImGui::BeginChild("##parameter values", ImVec2(-1, 200.0f)))
+		{
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+			{
+				ImGui::SetDragDropPayload("Simple Cooling Force Curve", this, sizeof(Parameter));
+				ImGui::Text("drag to set params");
+				ImGui::EndDragDropSource();
+			}
+			ImGui::BeginGroup();
+			ImGui::Text("model:");
+			ImGui::Text("electron density:");
+			ImGui::Text("ion charge:");
+			ImGui::Text("longitudinal kT:");
+			ImGui::Text("transverse kT:");
 
-		if (model == Model::Type::JSPEC_Parkhomchuk || model == Model::Type::Betacool_Parkhomchuk)
-		{
-			ImGui::Text("effective vel trans:");
-			ImGui::Text("magnetic field:");
+			if (model == Model::Type::JSPEC_Parkhomchuk || model == Model::Type::Betacool_Parkhomchuk)
+			{
+				ImGui::Text("effective vel trans:");
+				ImGui::Text("magnetic field:");
+			}
+			if (model == Model::Type::NonMagOriginal || model == Model::Type::JSPEC_NonMagNumeric3D)
+			{
+				ImGui::Text("relative tolerance");
+			}
+			if (model == Model::Type::JSPEC_DerbenovSkrinsky || model == Model::Type::Betacool_DerbenovSkrinsky)
+			{
+				ImGui::Text("magnetic field:");
+				ImGui::Text("smoothing factor:");
+				ImGui::Text("magnetic:");
+				ImGui::Text("adiabatic:");
+				ImGui::Text("fast:");
+			}
+			if (model == Model::Type::Betacool_Toeppfler)
+			{
+				ImGui::Text("magnetic field:");
+			}
+
+			ImGui::EndGroup();
+
+			ImGui::SameLine();
+			ImGui::BeginGroup();
+			ImGui::Text("%s", modelTypes[(int)model]);
+			ImGui::Text("%.2e [1/m^3]", electronDensity);
+			ImGui::Text("%d", ionCharge);
+			ImGui::Text("%.2e [eV]", kT_long);
+			ImGui::Text("%.2e [eV]", kT_trans);
+
+			if (model == Model::Type::JSPEC_Parkhomchuk || model == Model::Type::Betacool_Parkhomchuk)
+			{
+				ImGui::Text("%.0f [m/s]", effectiveVelocity);
+				ImGui::Text("%.3f [T]", magneticField);
+			}
+			if (model == Model::Type::NonMagOriginal || model == Model::Type::JSPEC_NonMagNumeric3D)
+			{
+				ImGui::Text("%.1e", relTolerance);
+			}
+			if (model == Model::Type::JSPEC_DerbenovSkrinsky || model == Model::Type::Betacool_DerbenovSkrinsky)
+			{
+				ImGui::Text("%.3f [T]", magneticField);
+				ImGui::Text("%.1f", smoothingFactor);
+				ImGui::Text("%s", magnetic ? "True" : "False");
+				ImGui::Text("%s", adiabatic ? "True" : "False");
+				ImGui::Text("%s", fast ? "True" : "False");
+			}
+			if (model == Model::Type::Betacool_Toeppfler)
+			{
+				ImGui::Text("%.3f [T]", magneticField);
+			}
+			ImGui::EndGroup();
+
+
 		}
-		if (model == Model::Type::NonMagOriginal || model == Model::Type::JSPEC_NonMagNumeric3D)
-		{
-			ImGui::Text("relative tolerance");
-		}
-		if (model == Model::Type::JSPEC_DerbenovSkrinsky || model == Model::Type::Betacool_DerbenovSkrinsky)
-		{
-			ImGui::Text("magnetic field:");
-			ImGui::Text("smoothing factor:");
-			ImGui::Text("magnetic:");
-			ImGui::Text("adiabatic:");
-			ImGui::Text("fast:");
-		}
-		if (model == Model::Type::Betacool_Toeppfler)
-		{
-			ImGui::Text("magnetic field:");
-		}
+		ImGui::EndChild();
+
 		
-		ImGui::EndGroup();
-
-		ImGui::SameLine();
-		ImGui::BeginGroup();
-		ImGui::Text("%s", modelTypes[(int)model]);
-		ImGui::Text("%.2e [1/m^3]", electronDensity);
-		ImGui::Text("%d", ionCharge);
-		ImGui::Text("%.2e [eV]", kT_long);
-		ImGui::Text("%.2e [eV]", kT_trans);
-
-		if (model == Model::Type::JSPEC_Parkhomchuk || model == Model::Type::Betacool_Parkhomchuk)
-		{
-			ImGui::Text("%.0f [m/s]", effectiveVelocity);
-			ImGui::Text("%.3f [T]", magneticField);
-		}
-		if (model == Model::Type::NonMagOriginal || model == Model::Type::JSPEC_NonMagNumeric3D)
-		{
-			ImGui::Text("%.1e", relTolerance);
-		}
-		if (model == Model::Type::JSPEC_DerbenovSkrinsky || model == Model::Type::Betacool_DerbenovSkrinsky)
-		{
-			ImGui::Text("%.3f [T]", magneticField);
-			ImGui::Text("%.1f", smoothingFactor);
-			ImGui::Text("%s", magnetic ? "True" : "False");
-			ImGui::Text("%s", adiabatic ? "True" : "False");
-			ImGui::Text("%s", fast ? "True" : "False");
-		}
-		if (model == Model::Type::Betacool_Toeppfler)
-		{
-			ImGui::Text("%.3f [T]", magneticField);
-		}
-		ImGui::EndGroup();
 	}
 
 	void Parameter::ShowVelocityLines()
@@ -270,7 +297,8 @@ namespace Model
 		}
 	}
 
-	double ForceZ(const Parameter& params)
+	
+	double Force(const Parameter& params, int direction)
 	{
 		if (params.electronDensity == 0)
 			return 0.0;
@@ -279,31 +307,31 @@ namespace Model
 		switch (params.model)
 		{
 		case Model::Type::NonMagOriginal:
-			result = Model::ForceZ_Original(params);
+			result = Model::Force_Original(params)[direction];
 			break;
 		case Model::Type::JSPEC_Parkhomchuk:
-			result = Model::JSPEC::ForceZ_Parkhomchuk(params);
+			result = Model::JSPEC::Force_Parkhomchuk(params)[direction];
 			break;
 		case Model::Type::JSPEC_NonMagNumeric3D:
-			result = Model::JSPEC::ForceZ_NonMagNumeric3D(params);
+			result = Model::JSPEC::Force_NonMagNumeric3D(params)[direction];
 			break;
 		case Model::Type::JSPEC_DerbenovSkrinsky:
-			result = Model::JSPEC::ForceZ_DerbenovSkrinsky(params);
+			result = Model::JSPEC::Force_DerbenovSkrinsky(params)[direction];
 			break;
 		case Model::Type::Betacool_NonMag:
-			result = Model::Betacool::ForceZ_NonMag(params);
+			result = Model::Betacool::ForceZ_NonMag(params)[direction];
 			break;
 		case Model::Type::Betacool_DerbenovSkrinsky:
-			result = Model::Betacool::ForceZ_DerbenovSkrinsky(params);
+			result = Model::Betacool::ForceZ_DerbenovSkrinsky(params)[direction];
 			break;
 		case Model::Type::Betacool_Toeppfler:
-			result = Model::Betacool::ForceZ_Toepffler(params);
+			result = Model::Betacool::ForceZ_Toepffler(params)[direction];
 			break;
 		case Model::Type::Betacool_Parkhomchuk:
-			result = Model::Betacool::ForceZ_Parkhomchuk(params);
+			result = Model::Betacool::ForceZ_Parkhomchuk(params)[direction];
 			break;
 		case Model::Type::Betacool_NonMagNumeric3D:
-			result = Model::Betacool::ForceZ_NonMagNumeric3D(params);
+			result = Model::Betacool::ForceZ_NonMagNumeric3D(params)[direction];
 			break;
 		}
 		
@@ -323,11 +351,8 @@ namespace Model
 	}
 
 	// integrates the longitudinal cooling force for a given density and temperature and mean relative velocity
-	double ForceZ_Original(const Parameter& params)
+	std::array<double, 2> Force_Original(const Parameter& params)
 	{
-		if (params.electronDensity == 0)
-			return 0.0;
-
 		double deltaTrans = Math::TransTempToVelocitySpread(params.kT_trans);
 		double deltaLong = Math::LongTempToVelocitySpread(params.kT_long);
 
@@ -339,8 +364,27 @@ namespace Model
 
 		double result = func.Integral(0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, params.relTolerance);
 
-		return result;
+		return { result, 0.0 };
 	}
+
+	/*double ForceTrans_Original(const Parameter& params)
+	{
+		if (params.electronDensity == 0)
+			return 0.0;
+
+		double deltaTrans = Math::TransTempToVelocitySpread(params.kT_trans);
+		double deltaLong = Math::LongTempToVelocitySpread(params.kT_long);
+
+		int numberParams = ceil(sizeof(Model::Parameter) / sizeof(double));
+
+		thread_local TF2 func("func", Model::NumericalIntegrandPolarTrans, 0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, numberParams, 2);
+
+		func.SetParameters((double*)&params);
+
+		double result = func.Integral(0.0, 5.0 * deltaTrans, -5.0 * deltaLong, 5.0 * deltaLong, params.relTolerance);
+
+		return result;
+	}*/
 
 	double NumericalIntegrandPolar(double* vels, double* params)
 	{
@@ -361,7 +405,7 @@ namespace Model
 		std::cout << kT_long << std::endl;*/
 
 		double factor = ionCharge * ionCharge * electronDensity * constantsFactor;
-		double v_r = sqrt(pow(relativeVelocity - vLong, 2) + pow(vTrans, 2));
+		double v_r = sqrt(pow(relativeVelocity - vLong, 2) + pow(vTrans - parameter.relativeVelocity.x(), 2));
 		double L_c = CoulombLogarithm(v_r, kT_trans, electronDensity, ionCharge);
 		double deltaTrans = Math::TransTempToVelocitySpread(kT_trans);
 		double deltaLong = Math::LongTempToVelocitySpread(kT_long);
@@ -373,16 +417,35 @@ namespace Model
 		//std::cout << deltaLong << std::endl;
 		//std::cout << f_v << std::endl;
 		double result = -factor * 2 * TMath::Pi() * L_c * f_v * (relativeVelocity - vLong) * vTrans /
-			pow(sqrt(pow(relativeVelocity - vLong, 2) + vTrans * vTrans), 3);
-
-		if (ionCharge < 0)
-			result += -factor * 4 * TMath::Pi() * f_v * (relativeVelocity - vLong) * vTrans /
-			pow(sqrt(pow(relativeVelocity - vLong, 2) + vTrans * vTrans), 3);
-
-		//std::cout << result << std::endl;
+			pow(v_r, 3);
 
 		return result;
 	}
+
+	/*double NumericalIntegrandPolarTrans(double* vels, double* params)
+	{
+		double vTrans = vels[0];
+		double vLong = vels[1];
+
+		Parameter& parameter = *(Parameter*)params;
+		double relativeVelocity = parameter.relativeVelocity.z();
+		int ionCharge = parameter.ionCharge;
+		double electronDensity = parameter.electronDensity;
+		double kT_trans = parameter.kT_trans;
+		double kT_long = parameter.kT_long;
+
+		double factor = ionCharge * ionCharge * electronDensity * constantsFactor;
+		double v_r = sqrt(pow(relativeVelocity - vLong, 2) + pow(parameter.relativeVelocity.x() - vTrans, 2));
+		double L_c = CoulombLogarithm(v_r, kT_trans, electronDensity, ionCharge);
+		double deltaTrans = Math::TransTempToVelocitySpread(kT_trans);
+		double deltaLong = Math::LongTempToVelocitySpread(kT_long);
+		double f_v = FlattenedMaxwellDistributionPolar(vTrans, vLong, deltaTrans, deltaLong);
+
+		double result = -factor * 2 * TMath::Pi() * L_c * f_v * (parameter.relativeVelocity.x() - vTrans) * vTrans /
+			pow(v_r, 3);
+
+		return result;
+	}*/
 
 	double NumericalIntegrandCartesian(double* vels, double* params)
 	{
@@ -530,7 +593,7 @@ namespace Model
 		static thread_local ForceNonMagNumeric3D nonMagNum3DModel(1000);
 		static thread_local ForceDSM derbenovSkrinskyModel;
 
-		double ForceZ_Parkhomchuk(const Parameter& parameter)
+		std::array<double, 2> Force_Parkhomchuk(const Parameter& parameter)
 		{
 			double longSigma = Math::LongTempToVelocitySpread(parameter.kT_long);
 			double transSigma = Math::TransTempToVelocitySpread(parameter.kT_trans);
@@ -546,16 +609,15 @@ namespace Model
 			std::vector<double> f_l;
 			parkhomchukModel.friction_force(parameter.ionCharge, 1, v_tr, v_l, n_e, beam, f_tr, f_l);
 
-			return f_l.at(0) / TMath::Qe();
+			return { f_l.at(0) / TMath::Qe(), f_tr.at(0) / TMath::Qe() };
 		}
 
-		double ForceZ_NonMagNumeric3D(const Parameter& parameter)
+		std::array<double, 2> Force_NonMagNumeric3D(const Parameter& parameter)
 		{
 			double longSigma = Math::LongTempToVelocitySpread(parameter.kT_long);
 			double transSigma = Math::TransTempToVelocitySpread(parameter.kT_trans);
 
 			beam.set_v_rms(transSigma, longSigma);
-			//nonMagNum3DModel.set_mag_field(parameter.magneticField);
 			nonMagNum3DModel.set_time_cooler(parameter.coolerTime);
 			nonMagNum3DModel.set_esprel(parameter.relTolerance);
 			nonMagNum3DModel.set_gsl(true);
@@ -565,11 +627,11 @@ namespace Model
 			std::vector<double> f_tr;
 			std::vector<double> f_l;
 			nonMagNum3DModel.friction_force(parameter.ionCharge, 1, v_tr, v_l, n_e, beam, f_tr, f_l);
-			
-			return f_l.at(0) / TMath::Qe();
+
+			return { f_l.at(0) / TMath::Qe(), f_tr.at(0) / TMath::Qe() };
 		}
 
-		double ForceZ_DerbenovSkrinsky(const Parameter& parameter)
+		std::array<double, 2> Force_DerbenovSkrinsky(const Parameter& parameter)
 		{
 			double longSigma = Math::LongTempToVelocitySpread(parameter.kT_long);
 			double transSigma = Math::TransTempToVelocitySpread(parameter.kT_trans);
@@ -588,7 +650,7 @@ namespace Model
 			std::vector<double> f_l;
 			derbenovSkrinskyModel.friction_force(parameter.ionCharge, 1, v_tr, v_l, n_e, beam, f_tr, f_l);
 
-			return f_l.at(0) / TMath::Qe();
+			return { f_l.at(0) / TMath::Qe(), f_tr.at(0) / TMath::Qe() };
 		}
 	}
 
@@ -597,7 +659,7 @@ namespace Model
 		static thread_local xFrParam betacoolParams;
 		static thread_local xForce betacoolForce;
 
-		double ForceZ_Parkhomchuk(const Parameter& parameter)
+		std::array<double, 2> ForceZ_Parkhomchuk(const Parameter& parameter)
 		{
 			betacoolParams.mfield = parameter.magneticField;
 			betacoolParams.Z = parameter.ionCharge;
@@ -613,10 +675,10 @@ namespace Model
 			
 			betacoolForce.Parhom(betacoolParams);
 
-			return betacoolForce.f[2].v;
+			return { betacoolForce.f[2].v, betacoolForce.Ftr.v};
 		}
 
-		double ForceZ_NonMag(const Parameter& parameter)
+		std::array<double, 2> ForceZ_NonMag(const Parameter& parameter)
 		{
 			betacoolParams.Z = parameter.ionCharge;
 			betacoolParams.n_e = parameter.electronDensity;
@@ -634,10 +696,10 @@ namespace Model
 
 			betacoolForce.NonMag(betacoolParams);
 
-			return betacoolForce.f[2].v;
+			return { betacoolForce.f[2].v, betacoolForce.Ftr.v };
 		}
 
-		double ForceZ_NonMagNumeric3D(const Parameter& parameter)
+		std::array<double, 2> ForceZ_NonMagNumeric3D(const Parameter& parameter)
 		{
 			betacoolParams.Z = parameter.ionCharge;
 			betacoolParams.n_e = parameter.electronDensity;
@@ -656,10 +718,10 @@ namespace Model
 
 			betacoolForce.D4(betacoolParams);
 
-			return betacoolForce.f[2].v;
+			return { betacoolForce.f[2].v, betacoolForce.f[1].v };
 		}
 
-		double ForceZ_DerbenovSkrinsky(const Parameter& parameter)
+		std::array<double, 2> ForceZ_DerbenovSkrinsky(const Parameter& parameter)
 		{
 			betacoolParams.mfield = parameter.magneticField;
 			betacoolParams.Z = parameter.ionCharge;
@@ -680,6 +742,7 @@ namespace Model
 			betacoolForce.dl = 70;
 			betacoolForce.nfi = 30;
 			betacoolForce.N_M = 70;
+			betacoolForce.Mag_As = false;
 
 			//betacoolForce.Pestrikov = 1;
 			//betacoolForce.Constant = 1;
@@ -687,10 +750,10 @@ namespace Model
 
 			betacoolForce.DerSkr(betacoolParams);
 
-			return betacoolForce.f[2].v;
+			return { betacoolForce.f[2].v, betacoolForce.Ftr.v };
 		}
 
-		double ForceZ_Toepffler(const Parameter& parameter)
+		std::array<double, 2> ForceZ_Toepffler(const Parameter& parameter)
 		{
 			betacoolParams.mfield = parameter.magneticField;
 			betacoolParams.Z = parameter.ionCharge;
@@ -713,7 +776,7 @@ namespace Model
 
 			betacoolForce.Toepffer(betacoolParams);
 
-			return betacoolForce.f[2].v;
+			return { betacoolForce.f[2].v, betacoolForce.Ftr.v };
 		}
 	}
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 class EnergyDistributionSet;
+class EnergyDistribution;
 class RateCoefficient;
 
 enum CrossSectionBinningScheme { PaperBinning, FactorBinning, PaperFactorMix };
@@ -14,7 +15,7 @@ struct CrossSectionBinningSettings
 	double boundaryEnergy = 0.1;
 	double binFactor = 1.5;
 
-	CrossSectionBinningScheme scheme = CrossSectionBinningScheme::PaperBinning;
+	CrossSectionBinningScheme scheme = CrossSectionBinningScheme::PaperFactorMix;
 
 	void ShowWindow(bool& show);
 };
@@ -52,18 +53,21 @@ public:
 	std::string GetLabel() const;
 
 	void SetLabel(std::string label);
-	void FillWithOneOverE(int scale = 1);
+	void FillWithOneOverE(double scale = 1.0);
 	void SetupBinning(const CrossSectionBinningSettings& binSettings, const RateCoefficient& rc);
 	void SetInitialGuessValues(const RateCoefficient& rc);
 	void Deconvolve(RateCoefficient& rc, EnergyDistributionSet& set, const FittingOptions& fitSettings, const CrossSectionBinningSettings& binSettings);
 
 	void Plot(bool showMarkers) const;
 
+	void Clear();
 	void Save() const;
 	void Load(std::filesystem::path& filename);
 
 private:
-	
+	double ConvolveFit(double Ed, double* csBins, const EnergyDistributionSet& set,
+		bool squareCS = true,
+		std::unordered_map<double, EnergyDistribution*>& map = std::unordered_map<double, EnergyDistribution*>()) const;
 	void FitWithSVD(const RateCoefficient& rc, const EnergyDistributionSet& set);
 	void FitWithROOT(const RateCoefficient& rc, const EnergyDistributionSet& set, const FittingOptions& fitSettings);
 	void FitWithEigenNNLS(const RateCoefficient& rc, const EnergyDistributionSet& set, const FittingOptions& fitSettings);
@@ -71,7 +75,8 @@ private:
 	void ResetNonFixedParameters(const RateCoefficient& rc, const FittingOptions& fitSettings);
 private:
 	// main data
-	TH1D* hist;
+	TH1D* hist = nullptr;
+
 	std::vector<double> energies;
 	std::vector<double> values;
 	std::vector<double> errors;

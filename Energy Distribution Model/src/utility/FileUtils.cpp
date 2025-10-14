@@ -255,12 +255,9 @@ namespace FileUtils
         std::string line;
         std::string header = "";
 
-        while (std::getline(file, line))
+        while (file.peek() == '#' && std::getline(file, line))
         {
             header += line + "\n";
-
-            if (!(file.peek() == '#'))
-                break;
         }
 
         return header;
@@ -361,7 +358,7 @@ namespace FileUtils
         return tokens;
     }
 
-    std::vector<double> CalculateBinEdges(const std::vector<double>& binCenters, bool uniformDistances)
+    std::vector<double> CalculateBinEdges(const std::vector<double>& binCenters, bool uniformDistances, double firstEdge)
     {
         std::vector<double> binEdges;
         if (binCenters.empty())
@@ -371,6 +368,14 @@ namespace FileUtils
 
         int nBins = binCenters.size();
         binEdges.reserve(nBins + 1);
+
+		// special case for only one bin center
+        if(nBins == 1)
+        {
+            binEdges.push_back(binCenters[0] - 0.7);
+            binEdges.push_back(binCenters[0] + 0.7);
+            return binEdges;
+		}
 
         if (uniformDistances)
         {
@@ -390,8 +395,7 @@ namespace FileUtils
         }
         else
         {
-            // first edge is assumed to be 0
-            binEdges.push_back(0);
+            binEdges.push_back(firstEdge);
 
             for (int i = 0; i < nBins; i++)
             {
@@ -399,11 +403,6 @@ namespace FileUtils
                 binEdges.push_back(edge);
             }
         }
-
-        //for (const auto edge : binEdges)
-        //{
-        //    std::cout << "edge: " << edge << std::endl;
-        //}
 
         return binEdges;
     }

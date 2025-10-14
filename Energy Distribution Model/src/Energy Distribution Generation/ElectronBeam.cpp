@@ -33,7 +33,7 @@ namespace ElectronBeam
 	// plotting data
 	static ROOTCanvas* canvas = nullptr;
 
-	static std::vector<PlotBeamData> plotBeams;
+	static std::vector<HistData3D> plotBeams;
 	static int selectedIndex = -1;
 
 	static float SliceZ = 0.0f;
@@ -146,6 +146,11 @@ namespace ElectronBeam
 		return parameter;
 	}
 
+	void SetParameters(const ElectronBeamParameters& params)
+	{
+		parameter = params;
+	}
+
 	std::string GetSelectedBeamLabel()
 	{
 		if (selectedIndex < 0) return nullptr;
@@ -177,7 +182,7 @@ namespace ElectronBeam
 		return nullptr;
 	}
 
-	PlotBeamData* GetSelected()
+	HistData3D* GetSelected()
 	{
 		if (selectedIndex >= 0)
 			return &plotBeams.at(selectedIndex);
@@ -187,13 +192,13 @@ namespace ElectronBeam
 
 	void SelectedItemChanged()
 	{
-		PlotBeamData& newlySelected = plotBeams.at(selectedIndex);
+		HistData3D& newlySelected = plotBeams.at(selectedIndex);
 		newlySelected.UpdateSlice(SliceZ);
 
 		if (canvas->IsShown()) newlySelected.Plot3D(canvas, 2);
 	}
 
-	void AddBeamToList(PlotBeamData& eBeam)
+	void AddBeamToList(HistData3D& eBeam)
 	{
 		plotBeams.push_back(std::move(eBeam));
 		if (plotBeams.size() == 1)
@@ -536,7 +541,7 @@ namespace ElectronBeam
 					{
 							TH3D* hist = LoadDensityFile(file);
 							std::cout << hist->GetName() << std::endl;
-							PlotBeamData newBeam(hist);
+							HistData3D newBeam(hist);
 							std::string index = file.filename().string().substr(0, 4);
 							std::string label = file.parent_path().parent_path().filename().string() + ": index " + index;
 							newBeam.SetLabel(label);
@@ -550,7 +555,7 @@ namespace ElectronBeam
 				{
 					TH3D* hist = GenerateElectronBeamDensity();
 
-					PlotBeamData newBeam(hist);
+					HistData3D newBeam(hist);
 					std::string shape = gaussianElectronBeam ? "gaussian" : "cylindrical";
 					std::string bend = noElectronBeamBend ? "no bend" : "";
 					std::string radius = std::to_string(electronBeamRadius);
@@ -572,7 +577,7 @@ namespace ElectronBeam
 				{
 					if (selectedIndex >= 0)
 					{
-						PlotBeamData& eBeam = plotBeams.at(selectedIndex);
+						HistData3D& eBeam = plotBeams.at(selectedIndex);
 						eBeam.UpdateSlice(SliceZ);
 					}
 				}
@@ -582,7 +587,7 @@ namespace ElectronBeam
 				ImGui::Separator();
 				canvas->MakeShowHideButton();
 				ImGui::SameLine();
-				PlotBeamData::ShowRebinningFactorsInput();
+				HistData3D::ShowRebinningFactorsInput();
 
 				ImGui::SeparatorText("arrow sliders");
 				ImGui::SetNextItemWidth(220.0f);
@@ -614,7 +619,7 @@ namespace ElectronBeam
 			for (int i = 0; i < plotBeams.size(); i++)
 			{
 				ImGui::PushID(i);
-				PlotBeamData& eBeam = plotBeams.at(i);
+				HistData3D& eBeam = plotBeams.at(i);
 
 				if (ImGui::Selectable(eBeam.GetLabel().c_str(), i == selectedIndex, ImGuiSelectableFlags_AllowItemOverlap))
 				{
@@ -703,7 +708,7 @@ namespace ElectronBeam
 			if (ImPlot::BeginPlot("Projection X"))
 			{
 				ImPlot::SetupAxes("x", "normalised value");
-				for (const PlotBeamData& eBeam : plotBeams)
+				for (const HistData3D& eBeam : plotBeams)
 				{
 					eBeam.PlotProjectionX();
 				}
@@ -713,7 +718,7 @@ namespace ElectronBeam
 			if (ImPlot::BeginPlot("Projection Y"))
 			{
 				ImPlot::SetupAxes("y", "normalised value");
-				for (const PlotBeamData& eBeam : plotBeams)
+				for (const HistData3D& eBeam : plotBeams)
 				{
 					eBeam.PlotProjectionY();
 				}
@@ -723,7 +728,7 @@ namespace ElectronBeam
 			if (ImPlot::BeginPlot("Projection Z"))
 			{
 				ImPlot::SetupAxes("z", "normalised value");
-				for (const PlotBeamData& eBeam : plotBeams)
+				for (const HistData3D& eBeam : plotBeams)
 				{
 					eBeam.PlotProjectionZ();
 				}
@@ -733,7 +738,7 @@ namespace ElectronBeam
 			if (ImPlot::BeginPlot("Inside/Outside"))
 			{
 				ImPlot::SetupAxes("z", "value");
-				for (const PlotBeamData& eBeam : plotBeams)
+				for (const HistData3D& eBeam : plotBeams)
 				{
 					eBeam.PlotInsideOutsideValue();
 				}
@@ -742,7 +747,7 @@ namespace ElectronBeam
 
 			if (selectedIndex >= 0)
 			{
-				const PlotBeamData& sliceBeam = plotBeams.at(selectedIndex);
+				const HistData3D& sliceBeam = plotBeams.at(selectedIndex);
 				sliceBeam.PlotSlice();
 			}
 

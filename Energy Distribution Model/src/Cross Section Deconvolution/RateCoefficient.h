@@ -19,21 +19,23 @@ public:
 	std::string GetLabel();
 
 	void Convolve(const CrossSection& cs, EnergyDistributionSet& set);
-	double ConvolveFit(double Ed, double* csBins, const EnergyDistributionSet& set, bool squareCS = true) const;
 
 	void Plot(bool showMarkers) const;
 	void PlotSubfunctions() const;
 
+	void Clear();
 	void Load(std::filesystem::path& file);
 	void Save() const;
 
 private:
 	int GetIndexOfDetuningEnergy(double Ed) const;
+	void SortValuesByDetuningEnergy();
 
 private:
 	// main data
 	TGraphErrors* graph = new TGraphErrors();
 
+	// ordered in asceding detuning energy
 	std::vector<double> detuningEnergies;
 	std::vector<double> value;
 	std::vector<double> error;

@@ -20,4 +20,7 @@ namespace CSR
 
 	// used for estimating the second peak [eV]
 	const double energyOutsideDriftTube = 44.2;
+
+	// drift Tube length where cooling force is doing something [m]
+	const double coolerLength = 0.8;
 }

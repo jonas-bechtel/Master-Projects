@@ -13,10 +13,11 @@ namespace LabEnergy
 
 	// optional parameters
 	static bool uniformLabEnergies = false;
+	static bool noSpaceCharge = false;
 	static bool interpolateEnergy = true;
 
 	// plotting things
-	static std::vector<PlotBeamData> plotEnergies;
+	static std::vector<HistData3D> plotEnergies;
 	static int selectedIndex = -1;
 
 	// z value for the xy slice of the lab energies
@@ -36,12 +37,40 @@ namespace LabEnergy
 	{
 		z = TMath::Abs(z);
 
+		if(noSpaceCharge)
+		{
+			double minValue = std::numeric_limits<double>::max();  // start with large number
+
+			int nx = hist->GetNbinsX();
+			int ny = hist->GetNbinsY();
+			int iz = hist->GetZaxis()->FindBin(z);
+
+			for (int ix = 1; ix <= nx; ++ix) 
+			{   
+				for (int iy = 1; iy <= ny; ++iy)
+				{
+					double val = hist->GetBinContent(ix, iy, iz);
+					if (val < minValue)
+					{
+						minValue = val;
+					}
+				}
+			}
+			return minValue;
+			//return HistUtils::GetValueAtPosition(hist, { 0, 0, z }, interpolateEnergy);
+		}
+
 		return HistUtils::GetValueAtPosition(hist, {x, y, z}, interpolateEnergy);
 	}
 
 	LabEnergyParameters GetParameters()
 	{
 		return parameters;
+	}
+
+	void SetParameters(const LabEnergyParameters& params)
+	{
+		parameters = params;
 	}
 
 	double GetCenterLabEnergy()
@@ -64,6 +93,7 @@ namespace LabEnergy
 		std::string tags = "";
 		if (uniformLabEnergies) tags += "uniform energy, ";
 		if (!interpolateEnergy) tags += "no energy interpolation, ";
+		if (noSpaceCharge) tags += "no space charge, ";
 
 		return tags;
 	}
@@ -114,11 +144,11 @@ namespace LabEnergy
 
 	void SelectedItemChanged()
 	{
-		PlotBeamData& newlySelected = plotEnergies.at(selectedIndex);
+		HistData3D& newlySelected = plotEnergies.at(selectedIndex);
 		newlySelected.UpdateSlice(SliceZ);
 	}
 
-	void AddBeamToList(PlotBeamData& beamData)
+	void AddBeamToList(HistData3D& beamData)
 	{
 		plotEnergies.push_back(std::move(beamData));
 		if (plotEnergies.size() == 1)
@@ -154,7 +184,7 @@ namespace LabEnergy
 					{
 						TH3D* hist = LoadLabEnergyFile(file);
 
-						PlotBeamData newEnergy(hist);
+						HistData3D newEnergy(hist);
 						std::string index = file.filename().string().substr(0, 4);
 						std::string label = file.parent_path().parent_path().filename().string() + ": index " + index;
 						newEnergy.SetLabel(label);
@@ -176,12 +206,13 @@ namespace LabEnergy
 				{
 					if (selectedIndex >= 0)
 					{
-						PlotBeamData& energy = plotEnergies.at(selectedIndex);
+						HistData3D& energy = plotEnergies.at(selectedIndex);
 						energy.UpdateSlice(SliceZ);
 					}
 				}
 
 				ImGui::Checkbox("show markers", &showMarkers);
+				ImGui::Separator();
 
 				ShowParameterControls();
 
@@ -202,7 +233,7 @@ namespace LabEnergy
 			for (int i = 0; i < plotEnergies.size(); i++)
 			{
 				ImGui::PushID(i);
-				PlotBeamData& le = plotEnergies.at(i);
+				HistData3D& le = plotEnergies.at(i);
 
 				if (ImGui::Selectable(le.GetLabel().c_str(), i == selectedIndex, ImGuiSelectableFlags_AllowItemOverlap))
 				{
@@ -226,6 +257,7 @@ namespace LabEnergy
 		ImGui::BeginGroup();
 
 		ImGui::Checkbox("interpolate", &interpolateEnergy);
+		ImGui::Checkbox("no space charge", &noSpaceCharge);
 		ImGui::Checkbox("uniform energies", &uniformLabEnergies);
 		ImGui::EndGroup();
 	}
@@ -239,7 +271,7 @@ namespace LabEnergy
 			if (ImPlot::BeginPlot("Projection X"))
 			{
 				ImPlot::SetupAxes("x", "normalised value");
-				for (const PlotBeamData& energy : plotEnergies)
+				for (const HistData3D& energy : plotEnergies)
 				{
 					energy.PlotProjectionX();
 				}
@@ -249,7 +281,7 @@ namespace LabEnergy
 			if (ImPlot::BeginPlot("Projection Y"))
 			{
 				ImPlot::SetupAxes("y", "normalised value");
-				for (const PlotBeamData& energy : plotEnergies)
+				for (const HistData3D& energy : plotEnergies)
 				{
 					energy.PlotProjectionY();
 				}
@@ -259,7 +291,7 @@ namespace LabEnergy
 			if (ImPlot::BeginPlot("Projection Z"))
 			{
 				ImPlot::SetupAxes("z", "normalised value");
-				for (const PlotBeamData& energy : plotEnergies)
+				for (const HistData3D& energy : plotEnergies)
 				{
 					energy.PlotProjectionZ();
 				}
@@ -269,7 +301,7 @@ namespace LabEnergy
 			if (ImPlot::BeginPlot("Inside/Outside"))
 			{
 				ImPlot::SetupAxes("z", "value");
-				for (const PlotBeamData& energy : plotEnergies)
+				for (const HistData3D& energy : plotEnergies)
 				{
 					energy.PlotInsideOutsideValue();
 				}
@@ -279,7 +311,7 @@ namespace LabEnergy
 
 			if (selectedIndex >= 0)
 			{
-				const PlotBeamData& sliceLE = plotEnergies.at(selectedIndex);
+				const HistData3D& sliceLE = plotEnergies.at(selectedIndex);
 				sliceLE.PlotSlice();
 			}
 

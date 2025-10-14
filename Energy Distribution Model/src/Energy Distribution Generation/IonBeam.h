@@ -7,6 +7,8 @@
 namespace IonBeam
 {
 	IonBeamParameters GetParameters();
+	void SetParameters(const IonBeamParameters& params);
+
 	void Init();
 
 	void CreateFromReference(TH3D* reference);
@@ -20,6 +22,8 @@ namespace IonBeam
 	int GetCharge();
 	float GetSigmaX();
 	float GetSigmaY();
+	float* GetLimitedRange();
+	bool IsRangeLimited();
 	TH3D* Get();
 	std::string GetTags();
 

@@ -27,7 +27,7 @@ namespace FileUtils
 	std::filesystem::path FindFileWithIndex(const std::filesystem::path& folder, int index);
 	int GetMaxIndex(std::filesystem::path energiesFile);
 	std::array<float, 3> GetParametersFromDescriptionFileAtIndex(const std::filesystem::path& descriptionFile, int index);
-	std::vector<double> CalculateBinEdges(const std::vector<double>& binCenters, bool uniformDistances = true);
+	std::vector<double> CalculateBinEdges(const std::vector<double>& binCenters, bool uniformDistances = true, double firstEdge = 0);
 }
 
 

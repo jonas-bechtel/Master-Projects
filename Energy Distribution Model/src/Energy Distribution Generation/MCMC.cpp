@@ -28,8 +28,8 @@ namespace MCMC
 	static ROOTCanvas* canvas = nullptr;
 	static TCanvas* canvas2 = nullptr;
 
-	static std::vector<PlotBeamData> plotTargetBeams;
-	static std::vector<PlotBeamData> plotResultBeams;
+	static std::vector<HistData3D> plotTargetBeams;
+	static std::vector<HistData3D> plotResultBeams;
 	static int selectedIndex = -1;
 	static float SliceZ = 0.0f;
 
@@ -84,6 +84,11 @@ namespace MCMC
 	MCMC_Parameters GetParameters()
 	{
 		return parameters;
+	}
+
+	void SetParameters(const MCMC_Parameters& params)
+	{
+		parameters = params;
 	}
 
 	std::vector<Point3D>& GetSamples()
@@ -302,8 +307,8 @@ namespace MCMC
 
 	void SelectedItemChanged()
 	{
-		PlotBeamData& newTarget = plotTargetBeams.at(selectedIndex);
-		PlotBeamData& newResult = plotResultBeams.at(selectedIndex);
+		HistData3D& newTarget = plotTargetBeams.at(selectedIndex);
+		HistData3D& newResult = plotResultBeams.at(selectedIndex);
 		newTarget.UpdateSlice(SliceZ);
 		newResult.UpdateSlice(SliceZ);
 
@@ -314,7 +319,7 @@ namespace MCMC
 		}
 	}
 
-	void AddMCMCDataToList(PlotBeamData& target, PlotBeamData& result)
+	void AddMCMCDataToList(HistData3D& target, HistData3D& result)
 	{
 		plotTargetBeams.push_back(std::move(target));
 		plotResultBeams.push_back(std::move(result));
@@ -417,8 +422,8 @@ namespace MCMC
 						temp1->SetTitle("target to look at");
 						temp2->SetTitle("generated to look at");
 
-						PlotBeamData targetPlotData(temp1);
-						PlotBeamData resultPlotData(temp2);
+						HistData3D targetPlotData(temp1);
+						HistData3D resultPlotData(temp2);
 
 						targetPlotData.SetLabel(ElectronBeam::GetSelectedBeamLabel());
 						resultPlotData.SetLabel(ElectronBeam::GetSelectedBeamLabel());
@@ -432,8 +437,8 @@ namespace MCMC
 				{
 					if (selectedIndex >= 0)
 					{
-						PlotBeamData& targetbeam = plotTargetBeams.at(selectedIndex);
-						PlotBeamData& resultbeam = plotResultBeams.at(selectedIndex);
+						HistData3D& targetbeam = plotTargetBeams.at(selectedIndex);
+						HistData3D& resultbeam = plotResultBeams.at(selectedIndex);
 						targetbeam.UpdateSlice(SliceZ);
 						resultbeam.UpdateSlice(SliceZ);
 					}
@@ -453,7 +458,7 @@ namespace MCMC
 				ImGui::Separator();
 				canvas->MakeShowHideButton();
 				ImGui::SameLine();
-				PlotBeamData::ShowRebinningFactorsInput();
+				HistData3D::ShowRebinningFactorsInput();
 			}
 			ImGui::EndChild();
 
@@ -474,7 +479,7 @@ namespace MCMC
 			for (int i = 0; i < plotTargetBeams.size(); i++)
 			{
 				ImGui::PushID(i);
-				PlotBeamData& mcmcData = plotTargetBeams.at(i);
+				HistData3D& mcmcData = plotTargetBeams.at(i);
 
 				if (ImGui::Selectable(mcmcData.GetLabel().c_str(), i == selectedIndex, ImGuiSelectableFlags_AllowItemOverlap))
 				{
@@ -576,8 +581,8 @@ namespace MCMC
 
 			if (selectedIndex >= 0)
 			{
-				const PlotBeamData& targetBeam = plotTargetBeams.at(selectedIndex);
-				const PlotBeamData& resultBeam = plotResultBeams.at(selectedIndex);
+				const HistData3D& targetBeam = plotTargetBeams.at(selectedIndex);
+				const HistData3D& resultBeam = plotResultBeams.at(selectedIndex);
 				targetBeam.PlotSlice();
 				ImGui::SameLine();
 				resultBeam.PlotSlice();

@@ -3,7 +3,7 @@
 #include "Point3D.h"
 #include "HeatMapData.h"
 #include "ROOTCanvas.h"
-#include "PlotBeamData.h"
+#include "HistData3D.h"
 #include "ParameterImplementations.h"
 
 using RNG_engine = std::mersenne_twister_engine<std::uint_fast64_t,
@@ -19,6 +19,7 @@ namespace MCMC
 	void Init();
 
 	MCMC_Parameters GetParameters();
+	void SetParameters(const MCMC_Parameters& params);
 	std::vector<Point3D>& GetSamples();
 
 	std::string GetTags();
@@ -31,7 +32,7 @@ namespace MCMC
 	bool GenerateSingleSample(Point3D& current, double& currentValue, RNG_engine& generator);
 
 	void SelectedItemChanged();
-	void AddMCMCDataToList(PlotBeamData& target, PlotBeamData& result);
+	void AddMCMCDataToList(HistData3D& target, HistData3D& result);
 	void RemoveMCMCDataFromList(int index);
 
 	void UpdateAutocorrelationData();

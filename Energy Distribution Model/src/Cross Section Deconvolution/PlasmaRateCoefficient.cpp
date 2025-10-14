@@ -7,6 +7,7 @@
 
 std::string PlasmaRateCoefficient::GetLabel()
 {
+	
 	return label;
 }
 
@@ -84,6 +85,7 @@ void PlasmaRateCoefficient::ConvolveFromErrorIterationArray(const CrossSection& 
 				double csValue = cs.valueArray.at(i * errorIterations + j) * cs.hist->GetBinWidth(i + 1);
 				//std::cout << "csValue: " << csValue << std::endl;
 				double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
+				velocity *= 100; // convert to cm/s
 				//std::cout << "velocity: " << velocity << std::endl;
 				double f_pl = BoltzmannDistribution::Function(energy, T);
 				//std::cout << "f_pl: " << f_pl << std::endl;

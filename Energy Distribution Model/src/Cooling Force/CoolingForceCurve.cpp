@@ -15,38 +15,46 @@ namespace CoolingForce
 		double step = (params.relativeVelocityRange[1] - params.relativeVelocityRange[0]) / (params.numberPoints - 1);
 
 		detuningVelocites.reserve(params.numberPoints);
-		detuningVelocitesMoved.reserve(params.numberPoints);
-		forceZ.reserve(params.numberPoints);
-		forceZmovedScaled.reserve(params.numberPoints);
+		detuningVelocitesMovedScaled.reserve(params.numberPoints);
+		force.reserve(params.numberPoints);
+		forceMovedScaled.reserve(params.numberPoints);
 		
-		numerical = true;
+		simpleModel = true;
 		modelParams = params;
 
 		for (int i = 0; i < params.numberPoints; i++)
 		{
-			modelParams.relativeVelocity.SetZ(params.relativeVelocityRange[0] + i * step);
-			detuningVelocites.push_back(modelParams.relativeVelocity.z());
-			detuningVelocitesMoved.push_back(modelParams.relativeVelocity.z());
+			double forceValue = 0.0;
+			if (Value::calculateTransverseForce)
+			{
+				modelParams.relativeVelocity.SetX(params.relativeVelocityRange[0] + i * step);
+				forceValue = Model::Force(modelParams, 1);
 
-			double force = Model::ForceZ(modelParams);
+				detuningVelocites.push_back(modelParams.relativeVelocity.x());
+				detuningVelocitesMovedScaled.push_back(modelParams.relativeVelocity.x());
+			}
+			else
+			{
+				modelParams.relativeVelocity.SetZ(params.relativeVelocityRange[0] + i * step);
+				forceValue = Model::Force(modelParams);
+
+				detuningVelocites.push_back(modelParams.relativeVelocity.z());
+				detuningVelocitesMovedScaled.push_back(modelParams.relativeVelocity.z());
+			}
 			
-			forceZ.push_back(force);
-			forceZmovedScaled.push_back(force);
+			force.push_back(forceValue);
+			forceMovedScaled.push_back(forceValue);
 		}
-
-		
 	}
 
 	void Curve::AddForceValue(Value&& value)
 	{
-		forceX.push_back(value.forceXValue);
-		forceY.push_back(value.forceYValue);
-		forceZ.push_back(value.forceZValue);
-		forceZmovedScaled.push_back(value.forceZValue);
+		force.push_back(value.forceValue);
+		forceMovedScaled.push_back(value.forceValue);
 
 		// will call move Constructor
 		detuningVelocites.push_back(value.eBeamParameter.detuningVelocity);
-		detuningVelocitesMoved.push_back(value.eBeamParameter.detuningVelocity);
+		detuningVelocitesMovedScaled.push_back(value.eBeamParameter.detuningVelocity);
 		values.emplace_back(std::move(value));
 
 		if (values.size() == 1)
@@ -58,13 +66,11 @@ namespace CoolingForce
 
 	void Curve::RemoveForceValue(int index)
 	{
-		forceX.erase(forceX.begin() + index);
-		forceY.erase(forceY.begin() + index);
-		forceZ.erase(forceZ.begin() + index);
-		forceZmovedScaled.erase(forceZmovedScaled.begin() + index);
+		force.erase(force.begin() + index);
+		forceMovedScaled.erase(forceMovedScaled.begin() + index);
 
 		detuningVelocites.erase(detuningVelocites.begin() + index);
-		detuningVelocitesMoved.erase(detuningVelocitesMoved.begin() + index);
+		detuningVelocitesMovedScaled.erase(detuningVelocitesMovedScaled.begin() + index);
 		values.erase(values.begin() + index);
 
 		selectedIndex = std::min(selectedIndex, (int)values.size() - 1);
@@ -96,7 +102,7 @@ namespace CoolingForce
 
 	std::string Curve::GetLabel() const
 	{
-		if (numerical)
+		if (simpleModel)
 			return modelParams.String();
 		else if (measured)
 			return subFolder.string();
@@ -109,9 +115,9 @@ namespace CoolingForce
 		return values.empty();
 	}
 
-	bool Curve::IsNumerical() const
+	bool Curve::IsSimpleModel() const
 	{
-		return numerical;
+		return simpleModel;
 	}
 
 	bool Curve::IsMeasured() const
@@ -122,11 +128,18 @@ namespace CoolingForce
 	void Curve::ShowContent()
 	{
 		ImGui::Text("label: %s", GetLabel().c_str());
-		if (numerical)
+		if (simpleModel)
 		{
 			ImGui::Separator();
 			modelParams.ShowValues();
-			ImGui::Separator();
+
+			//if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+			//{
+			//	ImGui::SetDragDropPayload("Cooling Force Curve", this, sizeof(Curve));
+			//	ImGui::Text("drag to set params");
+			//	ImGui::EndDragDropSource();
+			//}
+			//ImGui::Separator();
 		}
 		else if (measured)
 		{
@@ -195,39 +208,29 @@ namespace CoolingForce
 
 	void Curve::UpdateMovedScaledValues()
 	{
-		for (int i = 0; i < forceZ.size(); i++)
+		for (int i = 0; i < force.size(); i++)
 		{
-			forceZmovedScaled[i] = forceZ[i] * scale + moveForce;
+			forceMovedScaled[i] = force[i] * scale + moveForce;
 			if (measured)
-				forceZErrorScaled[i] = forceZError[i] * scale;
-			detuningVelocitesMoved[i] = detuningVelocites[i] + moveVelocity;
+				forceErrorMovedScaled[i] = forceError[i] * scale;
+			detuningVelocitesMovedScaled[i] = detuningVelocites[i] + moveVelocity;
 		}
 	}
 
-	void Curve::PlotForceX() const
+	void Curve::PlotForce() const
 	{
-		ImPlot::PlotScatter(GetLabel().c_str(), detuningVelocites.data(), forceX.data(), forceX.size());
-	}
-
-	void Curve::PlotForceY() const
-	{
-		ImPlot::PlotScatter(GetLabel().c_str(), detuningVelocites.data(), forceY.data(), forceY.size());
-	}
-
-	void Curve::PlotForceZ() const
-	{
-		if (numerical)
+		if (simpleModel)
 		{
-			ImPlot::PlotLine(GetLabel().c_str(), detuningVelocitesMoved.data(), forceZmovedScaled.data(), forceZmovedScaled.size());
+			ImPlot::PlotLine(GetLabel().c_str(), detuningVelocitesMovedScaled.data(), forceMovedScaled.data(), forceMovedScaled.size());
 		}
 		else if (measured)
 		{
-			ImPlot::PlotScatter(GetLabel().c_str(), detuningVelocitesMoved.data(), forceZmovedScaled.data(), forceZmovedScaled.size());
-			ImPlot::PlotErrorBars(GetLabel().c_str(), detuningVelocitesMoved.data(), forceZmovedScaled.data(), forceZErrorScaled.data(), forceZmovedScaled.size());
+			ImPlot::PlotScatter(GetLabel().c_str(), detuningVelocitesMovedScaled.data(), forceMovedScaled.data(), forceMovedScaled.size());
+			ImPlot::PlotErrorBars(GetLabel().c_str(), detuningVelocitesMovedScaled.data(), forceMovedScaled.data(), forceErrorMovedScaled.data(), forceMovedScaled.size());
 		}
 		else
 		{
-			ImPlot::PlotScatter(GetLabel().c_str(), detuningVelocitesMoved.data(), forceZmovedScaled.data(), forceZmovedScaled.size());
+			ImPlot::PlotScatter(GetLabel().c_str(), detuningVelocitesMovedScaled.data(), forceMovedScaled.data(), forceMovedScaled.size());
 		}
 	}
 
@@ -237,7 +240,7 @@ namespace CoolingForce
 		const Value& value = values.at(selectedIndex);
 
 		//ImPlot::BeginPlot("##details");
-		value.PlotPreForceSlize();
+		value.PlotForceSlice();
 		//ImPlot::EndPlot();
 
 	}
@@ -251,7 +254,7 @@ namespace CoolingForce
 
 	void Curve::Save() const
 	{
-		if (numerical)
+		if (simpleModel)
 		{
 			std::filesystem::path outfolder = FileUtils::GetNumericalCoolingForceCurveFolder();
 
@@ -260,7 +263,7 @@ namespace CoolingForce
 				std::filesystem::create_directories(outfolder);
 			}
 
-			std::filesystem::path file = outfolder / (modelParams.String() + ".asc");
+			std::filesystem::path file = outfolder / (modelParams.String() + ".curve");
 			std::ofstream outfile(file);
 
 			if (!outfile.is_open())
@@ -272,7 +275,7 @@ namespace CoolingForce
 			outfile << "# detuning velocity [m/s]\tcooling force [eV/m]\n";
 			for (int i = 0; i < detuningVelocites.size(); i++)
 			{
-				outfile << detuningVelocites.at(i) << "\t" << forceZ.at(i) << "\n";
+				outfile << detuningVelocites.at(i) << "\t" << force.at(i) << "\n";
 			}
 
 			outfile.close();
@@ -290,6 +293,24 @@ namespace CoolingForce
 		{
 			value.Save(outfolder);
 		}
+
+		// also save the important data 
+		std::string filename = folder.parent_path().filename().string() + "_" + folder.filename().string() + "_" + subFolder.string() + ".curve";
+		std::filesystem::path file = outfolder / filename;
+		std::ofstream outfile(file);
+
+		if (!outfile.is_open())
+		{
+			std::cerr << "Error opening file" << std::endl;
+			return;
+		}
+		outfile << "# detuning velocity [m/s]\tcooling force [eV/m]\n";
+		for (int i = 0; i < detuningVelocites.size(); i++)
+		{
+			outfile << detuningVelocites.at(i) << "\t" << force.at(i) << "\n";
+		}
+
+		outfile.close();
 	}
 
 	void Curve::Load(const std::filesystem::path& input)
@@ -305,7 +326,7 @@ namespace CoolingForce
 		{
 			for (const auto& entry : std::filesystem::directory_iterator(input))
 			{
-				if (entry.is_regular_file() && entry.path().extension() == ".asc")
+				if (entry.is_regular_file() && (entry.path().extension() == ".asc" || entry.path().extension() == ".root"))
 				{
 					std::filesystem::path file = entry.path();
 					Value value;
@@ -339,14 +360,14 @@ namespace CoolingForce
 				std::vector<std::string> tokens = FileUtils::SplitLine(line, "\t");
 
 				detuningVelocites.push_back(std::stod(tokens[0]));
-				detuningVelocitesMoved.push_back(std::stod(tokens[0]));
-				forceZ.push_back(std::stod(tokens[1]));
-				forceZmovedScaled.push_back(std::stod(tokens[1]));
+				detuningVelocitesMovedScaled.push_back(std::stod(tokens[0]));
+				force.push_back(std::stod(tokens[1]));
+				forceMovedScaled.push_back(std::stod(tokens[1]));
 			}
 			infile.close();
 
 			modelParams.FromString(input.filename().replace_extension().string());
-			numerical = true;
+			simpleModel = true;
 		}
 	}
 
@@ -368,7 +389,6 @@ namespace CoolingForce
 		}
 
 		std::string header = FileUtils::GetHeaderFromFile(infile);
-		//measuredParams.FromString(header);
 
 		std::string line;
 		while (std::getline(infile, line))
@@ -376,11 +396,11 @@ namespace CoolingForce
 			std::vector<std::string> tokens = FileUtils::SplitLine(line, "\t");
 
 			detuningVelocites.push_back(std::stod(tokens[1]));
-			detuningVelocitesMoved.push_back(std::stod(tokens[1]));
-			forceZ.push_back(std::stod(tokens[2]));
-			forceZmovedScaled.push_back(std::stod(tokens[2]));
-			forceZError.push_back(std::stod(tokens[3]));
-			forceZErrorScaled.push_back(std::stod(tokens[3]));
+			detuningVelocitesMovedScaled.push_back(std::stod(tokens[1]));
+			force.push_back(std::stod(tokens[2]));
+			forceMovedScaled.push_back(std::stod(tokens[2]));
+			forceError.push_back(std::stod(tokens[3]));
+			forceErrorMovedScaled.push_back(std::stod(tokens[3]));
 		}
 		infile.close();
 		
@@ -388,38 +408,4 @@ namespace CoolingForce
 
 		measured = true;
 	}
-
-	/*void MeasuredCurveParameter::FromString(std::string& input)
-	{
-		std::istringstream stream(input);
-		std::string token;
-
-		while (std::getline(stream, token, '_'))
-		{
-			if (token.find("Q=") == 0)
-			{
-				ionCharge = std::stoi(token.substr(2));
-			}
-			else if (token.find("ne=") == 0)
-			{
-				electronDensity = std::stod(token.substr(3));
-			}
-			else if (token.find("Tlong=") == 0)
-			{
-				kT_long = std::stod(token.substr(6));
-			}
-			else if (token.find("Ttrans=") == 0)
-			{
-				kT_trans = std::stod(token.substr(7));
-			}
-			else if (token.find("B=") == 0)
-			{
-				magneticField = std::stod(token.substr(2));
-			}
-			else if (token.find("Veff=") == 0)
-			{
-				effectiveVelocity = std::stod(token.substr(5));
-			}
-		}
-	}*/
 }

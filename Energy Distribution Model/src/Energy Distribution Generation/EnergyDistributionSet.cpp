@@ -126,14 +126,28 @@ void EnergyDistributionSet::RemoveDistribution(int index)
 	distributions.erase(distributions.begin() + index);
 }
 
-EnergyDistribution* EnergyDistributionSet::FindByEd(double detuningEnergy)
+EnergyDistribution* EnergyDistributionSet::FindByEd(double detuningEnergy) const
 {
-	if (EdToDistMap.find(detuningEnergy) == EdToDistMap.end())
+	// return energy distribution with closest detuning energy to the requested one
+	int closestDistIdx = -1;
+	double smallestDiff = std::numeric_limits<double>::max();
+	for (int i = 0; i < distributions.size(); i++)
+	{
+		const EnergyDistribution& dist = distributions.at(i);
+		double diff = std::abs(dist.GetDetuningEnergy() - detuningEnergy);
+		if (diff < smallestDiff)
+		{
+			smallestDiff = diff;
+			closestDistIdx = i;
+		}
+	}
+	
+	if (closestDistIdx < 0)
 	{
 		std::cout << "no energy distribution with E_d = " << detuningEnergy << " was found\n";
 		return nullptr;
 	}
-	return EdToDistMap.at(detuningEnergy);
+	return const_cast<EnergyDistribution*>(&distributions.at(closestDistIdx));
 }
 
 void EnergyDistributionSet::SetFolder(std::filesystem::path path)
@@ -192,7 +206,7 @@ void EnergyDistributionSet::CalculatePsisFromBinning(TH1D* crossSection)
 
 void EnergyDistributionSet::ShowList()
 {
-	float sizeY = ImGui::GetContentRegionAvail().y - 100.0f;
+	float sizeY = ImGui::GetContentRegionAvail().y - 140.0f;
 	if (ImGui::BeginListBox("##edist listbox", ImVec2(-1, sizeY)))
 	{
 		for (int i = 0; i < distributions.size(); i++)

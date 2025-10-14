@@ -37,11 +37,11 @@ namespace Model
 		bool adiabatic = true;
 		bool fast = true;
 
-		static float relativeVelocityRange[2];
-		static int numberPoints;
+		inline static float relativeVelocityRange[2] = { -30000.0f, 30000.0f };
+		inline static int numberPoints = 100;
 
-		static bool showLinesLong;
-		static bool showLinesTrans;
+		inline static bool showLinesLong = false;
+		inline static bool showLinesTrans = false;
 
 		std::string String() const;
 		void FromString(std::string& input);
@@ -50,12 +50,15 @@ namespace Model
 		void ShowVelocityLines();
 	};
 
-	double ForceZ(const Parameter& params);
+	// cooling force, direction = 0: longitudinal, 1: transverse
+	double Force(const Parameter& params, int direction = 0);
 
 	TVector3 CoolingForce(const Parameter& params);
-	double ForceZ_Original(const Parameter& params);
+	std::array<double, 2> Force_Original(const Parameter& params);
+	//double ForceTrans_Original(const Parameter& params);
 
 	double NumericalIntegrandPolar(double* vels, double* params);
+	//double NumericalIntegrandPolarTrans(double* vels, double* params);
 	double NumericalIntegrandCartesian(double* vels, double* params);
 	double FlattenedMaxwellDistributionPolar(double vTrans, double vLong, double deltaTrans, double deltaLong);
 	double FlattenedMaxwellDistributionCartesian(double vX, double vY, double vZ, double sigmaX, double sigmaY, double sigmaZ);
@@ -70,18 +73,18 @@ namespace Model
 
 	namespace JSPEC
 	{
-		double ForceZ_Parkhomchuk(const Parameter& parameter);
-		double ForceZ_NonMagNumeric3D(const Parameter& parameter);
-		double ForceZ_DerbenovSkrinsky(const Parameter& parameter);
+		std::array<double,2> Force_Parkhomchuk(const Parameter& parameter);
+		std::array<double, 2> Force_NonMagNumeric3D(const Parameter& parameter);
+		std::array<double, 2> Force_DerbenovSkrinsky(const Parameter& parameter);
 	}
 
 	namespace Betacool
 	{
-		double ForceZ_Parkhomchuk(const Parameter& parameter);
-		double ForceZ_NonMag(const Parameter& parameter);
-		double ForceZ_NonMagNumeric3D(const Parameter& parameter);
-		double ForceZ_DerbenovSkrinsky(const Parameter& parameter);
-		double ForceZ_Toepffler(const Parameter& parameter);
+		std::array<double, 2> ForceZ_Parkhomchuk(const Parameter& parameter);
+		std::array<double, 2> ForceZ_NonMag(const Parameter& parameter);
+		std::array<double, 2> ForceZ_NonMagNumeric3D(const Parameter& parameter);
+		std::array<double, 2> ForceZ_DerbenovSkrinsky(const Parameter& parameter);
+		std::array<double, 2> ForceZ_Toepffler(const Parameter& parameter);
 	}
 
 	/*namespace Adiabatic

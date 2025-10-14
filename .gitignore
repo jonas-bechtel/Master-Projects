@@ -12,10 +12,12 @@ Energy Distribution Model/temp
 *.asc
 *.samples
 *.dat
+*.root
 
 *.toml
 *.txt
 *.png
+*.PNG
 
 # Binaries
 **/bin/

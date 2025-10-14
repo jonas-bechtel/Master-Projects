@@ -2,7 +2,7 @@
 
 #include "Point3D.h"
 
-#include "PlotBeamData.h"
+#include "HistData3D.h"
 #include "ParameterImplementations.h"
 
 namespace ElectronBeam
@@ -13,6 +13,8 @@ namespace ElectronBeam
 
 	TH3D* Get();
 	ElectronBeamParameters GetParameters();
+	void SetParameters(const ElectronBeamParameters& params);
+
 	TVector3 GetDirection(double z);
 	TVector3 GetVelocity(double z, double energy);
 	double GetVelocityMagnitude(double energy);
@@ -38,10 +40,10 @@ namespace ElectronBeam
 	TH3D* LoadDensityFile(std::filesystem::path file);
 	TH3D* GenerateElectronBeamDensity();
 
-	PlotBeamData* GetSelected();
+	HistData3D* GetSelected();
 	std::string GetSelectedBeamLabel();
 	void SelectedItemChanged();
-	void AddBeamToList(PlotBeamData& eBeam);
+	void AddBeamToList(HistData3D& eBeam);
 	void RemoveBeamFromList(int index);
 
 	TH3D* CutZerosFromDistribution(TH3D* input);

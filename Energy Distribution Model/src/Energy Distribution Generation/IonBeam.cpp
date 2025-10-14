@@ -38,6 +38,11 @@ namespace IonBeam
 		return parameter;
 	}
 
+	void SetParameters(const IonBeamParameters& params)
+	{
+		parameter = params;
+	}
+
 	void Init()
 	{
 		beam = new TH3D("ion beam", "ion beam", 100, -0.04, 0.04, 100, -0.04, 0.04, 200, -0.7, 0.7);
@@ -71,6 +76,11 @@ namespace IonBeam
 			{
 				for (int k = 1; k <= nZBins; k++) 
 				{
+					if(parameter.sigma.get().x == 0 || parameter.sigma.get().y == 0)
+					{
+						beam->SetBinContent(i, j, k, 0);
+						continue;
+					}
 					
 					// Calculate the coordinates for this bin
 					double x = beam->GetXaxis()->GetBinCenter(i);
@@ -85,39 +95,56 @@ namespace IonBeam
 					x -= parameter.angles.get().x * z;
 					y -= parameter.angles.get().y * z;
 
-					double value = 0;
-					double normalisation = 1 / (parameter.sigma.get().x * parameter.sigma.get().y * 2 * TMath::Pi());
-					value = normalisation * exp(-0.5 * ((x * x) / pow(parameter.sigma.get().x, 2) + (y * y) / pow(parameter.sigma.get().y, 2)));
+					double value = 0.0;
+
+					double normalisation1 = 1 / (parameter.sigma.get().x * parameter.sigma.get().y * 2 * TMath::Pi());
+					double gauss1 = normalisation1 * exp(-0.5 * ((x * x) / pow(parameter.sigma.get().x, 2) + (y * y) / pow(parameter.sigma.get().y, 2)));
 					
 					if (doubleGaussian)
 					{
-						value += amplitude2 * exp(-0.5 * ((x * x) / pow(sigma2[0], 2) + (y * y) / pow(sigma2[1], 2)));
+						double amplitudeSum = parameter.amplitude + amplitude2;
+
+						if (sigma2[0] == 0 || sigma2[1] == 0 || amplitudeSum == 0)
+						{
+							beam->SetBinContent(i, j, k, 0);
+							continue;
+						}
+
+						double normalisation2 = 1.0 / (2 * TMath::Pi() * sigma2[0] * sigma2[1]);
+						double gauss2 = normalisation2 * exp(-0.5 * ((x * x) / pow(sigma2[0], 2) + (y * y) / pow(sigma2[1], 2)));
+
+						value = (parameter.amplitude * gauss1 + amplitude2 * gauss2) / amplitudeSum;
 					}
-					
+					else
+					{
+						value = gauss1;
+					}
+
 					beam->SetBinContent(i, j, k, value);
 				}
 			}
 		}
-		TH3D* beamSmalltest = (TH3D*)beam->Rebin3D(2, 2, 4, "ion beam small");
-		//remove all bin values that are below 100
-		for (int i = 0; i <= beamSmalltest->GetNbinsX() + 1; i++)
-		{
-			for (int j = 0; j <= beamSmalltest->GetNbinsY() + 1; j++)
-			{
-				for (int k = 0; k <= beamSmalltest->GetNbinsZ() + 1; k++)
-				{
-					if (beamSmalltest->GetBinContent(i, j, k) <= 100.0)
-					{
-						//std::cout << "Bin (" << i << ", " << j << ", " << k << "): " << beamSmalltest->GetBinContent(i, j, k) << "\n";
-						beamSmalltest->SetBinContent(i, j, k, 0.0);
-					}
-                    //std::cout << "Bin (" << i << ", " << j << ", " << k << "): " << beamSmalltest->GetBinContent(i, j, k) << "\n";
-				}
-			}
-		}
+		
+		//TH3D* beamSmalltest = (TH3D*)beam->Rebin3D(2, 2, 4, "ion beam small");
+		////remove all bin values that are below 100
+		//for (int i = 0; i <= beamSmalltest->GetNbinsX() + 1; i++)
+		//{
+		//	for (int j = 0; j <= beamSmalltest->GetNbinsY() + 1; j++)
+		//	{
+		//		for (int k = 0; k <= beamSmalltest->GetNbinsZ() + 1; k++)
+		//		{
+		//			if (beamSmalltest->GetBinContent(i, j, k) <= 100.0)
+		//			{
+		//				//std::cout << "Bin (" << i << ", " << j << ", " << k << "): " << beamSmalltest->GetBinContent(i, j, k) << "\n";
+		//				beamSmalltest->SetBinContent(i, j, k, 0.0);
+		//			}
+  //                  //std::cout << "Bin (" << i << ", " << j << ", " << k << "): " << beamSmalltest->GetBinContent(i, j, k) << "\n";
+		//		}
+		//	}
+		//}
 
-		beamSmalltest->SaveAs("ion_beam_small.C");
-		delete beamSmalltest;
+		//beamSmalltest->SaveAs("ion_beam_small.C");
+		//delete beamSmalltest;
 	}
 
 	void UpdatePlotData()
@@ -388,6 +415,16 @@ namespace IonBeam
 	float GetSigmaY()
 	{
 		return parameter.sigma.get().y;
+	}
+
+	float* GetLimitedRange()
+	{
+		return limitedZRange;
+	}
+
+	bool IsRangeLimited()
+	{
+		return limitZRange;
 	}
 
 	TH3D* Get()

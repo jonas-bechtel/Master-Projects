@@ -17,7 +17,7 @@ def organize_files_by_filename(source_dir, target_dirs_and_strings, extra_filter
     # Create target directories
     for target_dir, _ in target_dirs_and_strings:
         os.makedirs(target_dir, exist_ok=True)
-
+    
     for filename in os.listdir(source_dir):
         file_path = os.path.join(source_dir, filename)
 
@@ -32,7 +32,7 @@ def organize_files_by_filename(source_dir, target_dirs_and_strings, extra_filter
                 break
 
 # Example usage:
-source_directory = "C60\\mbrc_merged_11.3_v2"
+source_directory = "ArH+\\Ie_9.165"
 target_directories_and_strings = [
     (os.path.join(source_directory, "lab-energies"), "Ek.asc"),
     (os.path.join(source_directory, "e-densities"), "ne.asc"),

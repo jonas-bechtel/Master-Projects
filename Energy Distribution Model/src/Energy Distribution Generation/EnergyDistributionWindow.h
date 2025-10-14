@@ -12,6 +12,7 @@ namespace EnergyDistributionWindow
 
 	void CreateNewSet();
 	void SetupSet(std::filesystem::path folder, std::filesystem::path subfolder = "");
+	void LoadSet();
 
 	void ShowWindow();
 	void ShowSettings();

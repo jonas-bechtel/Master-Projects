@@ -99,37 +99,6 @@ void RateCoefficient::Convolve(const CrossSection& cs, EnergyDistributionSet& se
 	}
 }
 
-double RateCoefficient::ConvolveFit(double Ed, double* csBins, const EnergyDistributionSet& set, bool squareCS) const
-{
-	double sum = 0;
-
-	// find correct distribution
-	int index = GetIndexOfDetuningEnergy(Ed);
-	if (index < 0)
-	{
-		std::cout << "did not find index of detuning energy " << Ed << std::endl;
-		return 0.0;
-	}
-
-	if (index >= set.distributions.size())
-	{
-		std::cout << "index " << index << " is out of bounds for energy distribution set with size " << set.distributions.size() << std::endl;
-		return 0.0;
-	}
-	const EnergyDistribution& distribution = set.distributions.at(index);
-
-	for (int i = 0; i < distribution.psi.size(); i++)
-	{
-		if(squareCS)
-			sum += distribution.psi[i] * csBins[i] * csBins[i];
-
-		else
-			sum += distribution.psi[i] * csBins[i];
-	}
-	//std::cout << "sum " << sum << "\n";
-	return sum;
-}
-
 void RateCoefficient::Plot(bool showMarkers) const
 {
 	if (showMarkers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
@@ -152,6 +121,19 @@ void RateCoefficient::PlotSubfunctions() const
 	ImPlot::PopColormap();
 }
 
+void RateCoefficient::Clear()
+{
+	graph->Clear();
+	detuningEnergies.clear();
+	value.clear();
+	error.clear();
+	psiSubfunctions.clear();
+	measured = false;
+	label = "mbrc";
+	energyDistriubtionSetFolder.clear();
+	crossSectionFile.clear();
+}
+
 void RateCoefficient::Load(std::filesystem::path& filename)
 {
 	std::ifstream file(filename);
@@ -163,20 +145,35 @@ void RateCoefficient::Load(std::filesystem::path& filename)
 		return;
 	}
 
-	std::string line;
-	// skip first line
+	Clear();
 
-	std::getline(file, line);
-	int i = 0;
+	std::string header = FileUtils::GetHeaderFromFile(file);
+
+	std::string line;
 	while (std::getline(file, line))
 	{
 		std::vector<std::string> tokens = FileUtils::SplitLine(line, "\t");
+
+		if (tokens.size() < 4)
+		{
+			std::cerr << "Error: Invalid line format in file " << filename << std::endl;
+			Clear();
+			return;
+		}
+
 		detuningEnergies.push_back(std::stod(tokens[0]));
 		value.push_back(std::stod(tokens[1]));
 		error.push_back(std::stod(tokens[3]));
-		graph->SetPoint(i, std::stod(tokens[0]), std::stod(tokens[1]));
-		graph->SetPointError(i, 0, std::stod(tokens[3]));
-		i++;
+	}
+
+	// sort values in ascending order of detuning energy
+	SortValuesByDetuningEnergy();
+
+	// put values into graph
+	for (size_t i = 0; i < detuningEnergies.size(); i++)
+	{
+		graph->SetPoint(i, detuningEnergies.at(i), value.at(i));
+		graph->SetPointError(i, 0, error.at(i));
 	}
 
 	measured = true;
@@ -212,6 +209,34 @@ void RateCoefficient::Save() const
 	outfile.close();
 }
 
+void RateCoefficient::SortValuesByDetuningEnergy()
+{
+	// Create a vector of indices
+	std::vector<size_t> idx(detuningEnergies.size());
+	for (size_t i = 0; i < idx.size(); ++i) 
+		idx[i] = i;
 
+	// Sort indices based on detuningEnergies
+	std::sort(idx.begin(), idx.end(), [this](size_t a, size_t b) {
+		return detuningEnergies[a] < detuningEnergies[b];
+		});
+
+	// Create sorted copies
+	std::vector<double> sortedDetuningEnergies, sortedValue, sortedError;
+	sortedDetuningEnergies.reserve(idx.size());
+	sortedValue.reserve(idx.size());
+	sortedError.reserve(idx.size());
+
+	for (size_t i : idx) {
+		sortedDetuningEnergies.push_back(detuningEnergies[i]);
+		sortedValue.push_back(value[i]);
+		sortedError.push_back(error[i]);
+	}
+
+	// Assign sorted vectors back
+	detuningEnergies = std::move(sortedDetuningEnergies);
+	value = std::move(sortedValue);
+	error = std::move(sortedError);
+}
 
 

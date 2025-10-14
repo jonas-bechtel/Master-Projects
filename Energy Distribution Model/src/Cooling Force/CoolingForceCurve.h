@@ -36,16 +36,14 @@ namespace CoolingForce
 		std::filesystem::path GetSubfolder() const;
 		std::string GetLabel() const;
 		bool Empty() const;
-		bool IsNumerical() const;
+		bool IsSimpleModel() const;
 		bool IsMeasured() const;
 
 		void ShowContent();
 		void SelectedItemChanged();
 		void UpdateMovedScaledValues();
 
-		void PlotForceX() const;
-		void PlotForceY() const;
-		void PlotForceZ() const;
+		void PlotForce() const;
 		void PlotDetails() const;
 
 		void UpdateSlice(float zValue);
@@ -56,16 +54,14 @@ namespace CoolingForce
 
 	private:
 		std::vector<Value> values;
-		std::vector<double> forceX;
-		std::vector<double> forceY;
-		std::vector<double> forceZ;
-		std::vector<double> forceZError;
+		std::vector<double> force;
+		std::vector<double> forceError;
 		std::vector<double> detuningVelocites;
 
 		// moved and scaled versions of the force, velocity lists
-		std::vector<double> forceZmovedScaled;
-		std::vector<double> forceZErrorScaled;
-		std::vector<double> detuningVelocitesMoved;
+		std::vector<double> forceMovedScaled;
+		std::vector<double> forceErrorMovedScaled;
+		std::vector<double> detuningVelocitesMovedScaled;
 
 		float scale = 1.0f;
 		float moveForce = 0.0f;
@@ -75,7 +71,7 @@ namespace CoolingForce
 		std::filesystem::path subFolder = "subfolder";
 
 		int selectedIndex = -1;
-		bool numerical = false; // as opposed to mcmc generated
+		bool simpleModel = false; // as opposed to 3D model
 		bool measured = false;
 		Model::Parameter modelParams;
 		MeasuredCurveParameter measuredParams;

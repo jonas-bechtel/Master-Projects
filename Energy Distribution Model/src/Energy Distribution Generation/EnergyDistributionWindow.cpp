@@ -106,6 +106,25 @@ namespace EnergyDistributionWindow
 		}
 	}
 
+	void LoadSet()
+	{
+		std::filesystem::path folder = FileUtils::SelectFolder(FileUtils::GetEnergyDistSetFolder());
+		if (!folder.empty())
+		{
+			EnergyDistributionSet set;
+			set.Load(folder, loadSamples);
+			if (set.GetDistributions().empty())
+			{
+				std::cout << "there was no energy distribution in that folder" << std::endl;
+			}
+			else
+			{
+				setList.emplace_back(std::move(set));
+				currentSetIndex = setList.size() - 1;
+			}
+		}
+	}
+
 	void ShowWindow()
 	{
 		if (ImGui::Begin("Energy Distribution Window"))
@@ -146,6 +165,18 @@ namespace EnergyDistributionWindow
 			ImGui::Checkbox("Binning settings", &showBinningSettings);
 			ImGui::SameLine();
 			ImGui::Checkbox("All Parameters", &showAllParamsWindow);
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Energy distribution"))
+				{
+					EnergyDistribution& eDist = *(EnergyDistribution*)payload->Data;
+					IonBeam::SetParameters(eDist.GetIonBeamParameters());
+					ElectronBeam::SetParameters(eDist.GetElectronBeamParameters());
+					LabEnergy::SetParameters(eDist.GetLabEnergyParameters());
+					MCMC::SetParameters(eDist.GetMCMCParameters());
+				}
+				ImGui::EndDragDropTarget();
+			}
 
 
 			ImGui::SeparatorText("output things");
@@ -212,7 +243,6 @@ namespace EnergyDistributionWindow
 		ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX | ImGuiChildFlags_ResizeY;
 		if (ImGui::BeginChild("listbox", ImVec2(400.0f, -1), flags))
 		{
-			ImGui::Text("energy distributions");
 			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.7f, 0.15f, 0.15f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
 			if (ImGui::BeginTabBar("##tab bar", ImGuiTabBarFlags_AutoSelectNewTabs))
@@ -250,6 +280,11 @@ namespace EnergyDistributionWindow
 				}
 			}
 			ImGui::SameLine();
+			if (ImGui::Button("load set"))
+			{
+				LoadSet();
+			}
+			ImGui::SameLine();
 			if (ImGui::Button("load hists"))
 			{
 				std::vector<std::filesystem::path> filenames = FileUtils::SelectFiles(FileUtils::GetEnergyDistSetFolder());
@@ -270,7 +305,6 @@ namespace EnergyDistributionWindow
 			}
 			ImGui::SameLine();
 			ImGui::Checkbox("load samples", &loadSamples);
-			ImGui::SameLine();
 			ImGui::Checkbox("show set information", &showSetInformation);
 		}
 		ImGui::EndChild();
@@ -330,6 +364,16 @@ namespace EnergyDistributionWindow
 				MCMC::ShowParameterControls();
 			}
 			ImGui::EndChild();
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Energy distribution"))
+				{
+					EnergyDistribution& eDist = *(EnergyDistribution*)payload->Data;
+					MCMC::SetParameters(eDist.GetMCMCParameters());
+				}
+				ImGui::EndDragDropTarget();
+			}
+
 			ImGui::SameLine();
 			if (ImGui::BeginChild("labe", ImVec2(100, -1), flags))
 			{
@@ -337,6 +381,16 @@ namespace EnergyDistributionWindow
 				LabEnergy::ShowParameterControls();
 			}
 			ImGui::EndChild();
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Energy distribution"))
+				{
+					EnergyDistribution& eDist = *(EnergyDistribution*)payload->Data;
+					LabEnergy::SetParameters(eDist.GetLabEnergyParameters());
+				}
+				ImGui::EndDragDropTarget();
+			}
+
 			ImGui::SameLine();
 			if (ImGui::BeginChild("ebeam", ImVec2(100, -1), flags))
 			{
@@ -344,6 +398,16 @@ namespace EnergyDistributionWindow
 				ElectronBeam::ShowParameterControls();
 			}
 			ImGui::EndChild();
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Energy distribution"))
+				{
+					EnergyDistribution& eDist = *(EnergyDistribution*)payload->Data;
+					ElectronBeam::SetParameters(eDist.GetElectronBeamParameters());
+				}
+				ImGui::EndDragDropTarget();
+			}
+
 			ImGui::SameLine();
 			if (ImGui::BeginChild("ibeam", ImVec2(100, -1), flags))
 			{
@@ -351,8 +415,19 @@ namespace EnergyDistributionWindow
 				IonBeam::ShowParameterControls();
 			}
 			ImGui::EndChild();
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Energy distribution"))
+				{
+					EnergyDistribution& eDist = *(EnergyDistribution*)payload->Data;
+					IonBeam::SetParameters(eDist.GetIonBeamParameters());
+				}
+				ImGui::EndDragDropTarget();
+			}
+			
 		}
 		ImGui::End();
+		
 	}
 
 	void ShowSetInformationWindow()
@@ -480,6 +555,7 @@ namespace EnergyDistributionWindow
 		ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX | ImGuiChildFlags_ResizeY;
 		if (ImGui::BeginChild("energy distribution sets", ImVec2(100, 100), flags))
 		{
+			ImGui::Text("energy distribution sets");
 			if (ImGui::BeginListBox("##setlist", ImVec2(-1, 150)))
 			{
 				for (int i = 0; i < setList.size(); i++)
@@ -506,21 +582,7 @@ namespace EnergyDistributionWindow
 			}
 			if (ImGui::Button("load energy distribution set"))
 			{
-				std::filesystem::path folder = FileUtils::SelectFolder(FileUtils::GetEnergyDistSetFolder());
-				if (!folder.empty())
-				{
-					EnergyDistributionSet set;
-					set.Load(folder, loadSamples);
-					if (set.GetDistributions().empty())
-					{
-						std::cout << "there was no energy distribution in that folder" << std::endl;
-					}
-					else
-					{
-						setList.emplace_back(std::move(set));
-						currentSetIndex = setList.size() - 1;
-					}
-				}
+				LoadSet();
 			}
 
 		}

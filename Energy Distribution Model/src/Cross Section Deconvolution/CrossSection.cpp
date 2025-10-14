@@ -36,10 +36,13 @@ void CrossSection::SetupBinning(const CrossSectionBinningSettings& binSettings, 
 	double kT_long = 0.00047; // representativeEnergyDist->eBeamParameter.longitudinal_kT; //eBeam->GetLongitudinal_kT(labEnergiesParameter.centerLabEnergy);
 
 	// first edge needs to be 0
-	std::vector<double> binEdges;
 	double minEnergy = 0;    
 	double maxEnergy = 100;  //just a guess, not fixed
 	double secondEdge = kT_trans / 20;
+
+	Clear();
+
+	std::vector<double> binEdges;
 
 	binEdges.reserve(10);
 	binEdges.push_back(minEnergy);
@@ -68,17 +71,16 @@ void CrossSection::SetupBinning(const CrossSectionBinningSettings& binSettings, 
 		double lastEdgeSoFar = binEdges.back();
 
 		// add edges so rc points are in bin center
-		for (size_t i = rc.detuningEnergies.size() - 1; i > 0; i--)
+		for (size_t i = 0; i < rc.detuningEnergies.size() - 1; i++)
 		{
 			if (rc.detuningEnergies.at(i) < lastEdgeSoFar) continue;
-			
+
 			double Ed_i = rc.detuningEnergies.at(i);
-			double Ed_after_i = rc.detuningEnergies.at(i - 1);
-			//std::cout << "Ed[i] = " << Ed_i << " Ed[i + 1] = " << Ed_after_i << " i = " << i << std::endl;
+			double Ed_after_i = rc.detuningEnergies.at(i + 1);
 			binEdges.push_back((Ed_i + Ed_after_i) / 2);
 		}
 		// add one last edge
-		binEdges.push_back(binEdges.back() + 2 * (rc.detuningEnergies.front() - binEdges.back()));
+		binEdges.push_back(binEdges.back() + 2 * (rc.detuningEnergies.back() - binEdges.back()));
 	}
 
 	// bin width increases by a constant factor
@@ -106,17 +108,18 @@ void CrossSection::SetupBinning(const CrossSectionBinningSettings& binSettings, 
 
 		double lastEdgeSoFar = binEdges.back();
 
-		// add edges so rc points are in bin center
-		for (size_t i = rc.detuningEnergies.size() - 1; i > 0; i--)
+		// add edges so rc points are in bin center (rc is sorted in ascending order)
+		for (size_t i = 0; i < rc.detuningEnergies.size() - 1; i++)
 		{
 			if (rc.detuningEnergies.at(i) < lastEdgeSoFar) continue;
 
 			double Ed_i = rc.detuningEnergies.at(i);
-			double Ed_after_i = rc.detuningEnergies.at(i - 1);
+			double Ed_after_i = rc.detuningEnergies.at(i + 1);
 			binEdges.push_back((Ed_i + Ed_after_i) / 2);
+			std::cout << binEdges.back() << std::endl;
 		}
 		// add one last edge
-		binEdges.push_back(binEdges.back() + 2 * (rc.detuningEnergies.front() - binEdges.back()));
+		binEdges.push_back(binEdges.back() + 2 * (rc.detuningEnergies.back() - binEdges.back()));
 	}
 
 	//for (double edge : binEdges)
@@ -130,9 +133,7 @@ void CrossSection::SetupBinning(const CrossSectionBinningSettings& binSettings, 
 	std::cout << "number cross section bins: " << binEdges.size() - 1 << "\n";
 
 	hist = new TH1D("cross section fit", "cross section fit", binEdges.size() - 1, binEdges.data());
-	values.clear();
-	errors.clear();
-	energies.clear();
+
 	values.resize(hist->GetNbinsX());
 	errors.resize(hist->GetNbinsX());
 	energies.resize(hist->GetNbinsX());
@@ -153,6 +154,41 @@ void CrossSection::SetInitialGuessValues(const RateCoefficient& rc)
 		
 		values.at(i) = (alpha / velocity);
 	}
+}
+
+double CrossSection::ConvolveFit(double Ed, double* csBins, const EnergyDistributionSet& set, bool squareCS,
+	std::unordered_map<double, EnergyDistribution*>& map) const
+{
+	double sum = 0;
+	const EnergyDistribution* distribution = nullptr;
+
+	//check if Ed is in map
+	if (map.find(Ed) != map.end())
+	{
+		distribution = map.at(Ed);
+	}
+	else
+	{
+		distribution = set.FindByEd(Ed);
+		map.insert({ Ed, const_cast<EnergyDistribution*>(distribution) });
+	}
+	
+	if (distribution == nullptr)
+	{
+		std::cout << "did not find distribution for detuning energy " << Ed << std::endl;
+		return 0.0;
+	}
+
+	for (int i = 0; i < distribution->psi.size(); i++)
+	{
+		if (squareCS)
+			sum += distribution->psi[i] * csBins[i] * csBins[i];
+
+		else
+			sum += distribution->psi[i] * csBins[i];
+	}
+
+	return sum;
 }
 
 void CrossSection::FitWithSVD(const RateCoefficient& rc, const EnergyDistributionSet& set)
@@ -187,10 +223,13 @@ void CrossSection::FitWithSVD(const RateCoefficient& rc, const EnergyDistributio
 
 void CrossSection::FitWithROOT(const RateCoefficient& rc, const EnergyDistributionSet& set, const FittingOptions& fitSettings)
 {
+	// temporary cache of energy dists for deconvolution
+	std::unordered_map<double, EnergyDistribution*> EdToDistMap;
+
 	TF1 fitFunction("fit function", 
-		[&rc, &set](double* x, double* p) 
+		[this, &set, &EdToDistMap](double* x, double* p)
 		{
-			return rc.ConvolveFit(x[0], p, set);
+			return this->ConvolveFit(x[0], p, set, true, EdToDistMap);
 		}, 
 		0, 100, hist->GetNbinsX());
 
@@ -228,14 +267,14 @@ void CrossSection::FitWithROOT(const RateCoefficient& rc, const EnergyDistributi
 		values[i] = result[i] * result[i];
 	}
 
-	int N = rc.graph->GetN();
-	int p = fitFunction.GetNpar();
-	int DOF = N - (p - numberFixedParameters);
-	std::cout << "N: " << N << ", p_tot: " << p << ", p_fix: " << numberFixedParameters << ", DOF: " << DOF << std::endl;
-	double chi2 = fitFunction.GetChisquare();
-
-	double reduced_chi2 = chi2 / DOF;
-	std::cout << "Reduced chi2: " << reduced_chi2 << std::endl;
+	//int N = rc.graph->GetN();
+	//int p = fitFunction.GetNpar();
+	//int DOF = N - (p - numberFixedParameters);
+	//std::cout << "N: " << N << ", p_tot: " << p << ", p_fix: " << numberFixedParameters << ", DOF: " << DOF << std::endl;
+	//double chi2 = fitFunction.GetChisquare();
+	//
+	//double reduced_chi2 = chi2 / DOF;
+	//std::cout << "Reduced chi2: " << reduced_chi2 << std::endl;
 }
 
 void CrossSection::FitWithEigenNNLS(const RateCoefficient& rc, const EnergyDistributionSet& set, const FittingOptions& fitSettings)
@@ -287,8 +326,10 @@ void CrossSection::ResetNonFixedParameters(const RateCoefficient& rc, const Fitt
 	}
 }
 
-void CrossSection::FillWithOneOverE(int scale)
+void CrossSection::FillWithOneOverE(double scale)
 {
+	Clear();
+
 	// setup binning
 	std::vector<double> binEdges;
 	double minEnergy = 1e-4;
@@ -318,9 +359,13 @@ void CrossSection::FillWithOneOverE(int scale)
 		
 		energies.push_back(energy);
 		values.push_back(value);
+		valueArray.push_back(value);
 		hist->SetBinContent(i, value);
 	}
-	label = scale + std::string(" over E cs");
+	std::ostringstream oss;
+	oss << std::scientific << std::setprecision(2) << scale;
+	std::string scaleString = oss.str();
+	label = scaleString + std::string(" over E cs");
 }
 
 void CrossSection::Deconvolve(RateCoefficient& rc, EnergyDistributionSet& set, const FittingOptions& fitSettings, const CrossSectionBinningSettings& binSettings)
@@ -385,6 +430,7 @@ void CrossSection::Deconvolve(RateCoefficient& rc, EnergyDistributionSet& set, c
 	}
 	rc.ResetGraphValues();
 
+	// Calculate mean and errors of error iterations
 	for (int j = 0; j < values.size(); j++)
 	{
 		double mean = 0;
@@ -413,10 +459,10 @@ void CrossSection::Deconvolve(RateCoefficient& rc, EnergyDistributionSet& set, c
 	double chi2 = 0;
 	for (int i = 0; i < rc.graph->GetN(); i++)
 	{
-		double fitValue = rc.ConvolveFit(rc.graph->GetPointX(i), values.data(), set, false);
+		double fitValue = ConvolveFit(rc.graph->GetPointX(i), values.data(), set, false);
 		double error = rc.graph->GetErrorY(i);
-		std::cout << "Point " << i << ": x = " << rc.graph->GetPointX(i) 
-			<< ", fit value = " << fitValue << ", error = " << error << std::endl;
+		//std::cout << "Point " << i << ": x = " << rc.graph->GetPointX(i) 
+		//	<< ", fit value = " << fitValue << ", error = " << error << std::endl;
 		if (error > 0)
 		{
 			double diff = rc.graph->GetPointY(i) - fitValue;
@@ -438,6 +484,16 @@ void CrossSection::Plot(bool showMarkers) const
 	ImPlot::PlotErrorBars(label.c_str(), energies.data(), values.data(), errors.data(), errors.size());
 }
 
+void CrossSection::Clear()
+{
+	delete hist;
+	hist = nullptr;
+	energies.clear();
+	values.clear();
+	errors.clear();
+	valueArray.clear();
+}
+
 void CrossSection::Load(std::filesystem::path& file)
 {
 	std::ifstream infile(file);
@@ -449,6 +505,8 @@ void CrossSection::Load(std::filesystem::path& file)
 		return;
 	}
 
+	Clear();
+
 	std::string line;
 	// skip first line
 	std::getline(infile, line);
@@ -458,6 +516,8 @@ void CrossSection::Load(std::filesystem::path& file)
 		energies.push_back(std::stod(tokens[0]));
 		values.push_back(std::stod(tokens[1]));
 		errors.push_back(std::stod(tokens[2]));
+
+		valueArray.push_back(std::stod(tokens[1]));
 	}
 
 	std::vector<double> binEdges = FileUtils::CalculateBinEdges(energies, false);
@@ -489,7 +549,7 @@ void CrossSection::Save() const
 		std::cerr << "Error opening file" << std::endl;
 		return;
 	}
-	outfile << std::setprecision(std::numeric_limits<double>::digits10 + 1) << std::fixed;
+	outfile << std::scientific << std::setprecision(6);
 
 	outfile << "# Energy [eV]\tCross Section Value\terror\n";
 

@@ -3,7 +3,7 @@
 #include "HeatMapData.h"
 #include "ROOTCanvas.h"
 
-class PlotBeamData
+class HistData3D
 {
 private:
 	TH3D* fullHistogram = nullptr;
@@ -27,13 +27,13 @@ private:
 	static int rebinningFactors[3];
 
 public:
-	PlotBeamData() {};
-	PlotBeamData(TH3D* hist);
-	PlotBeamData(const PlotBeamData& other) = delete;
-	PlotBeamData& operator=(const PlotBeamData& other) = delete;
-	PlotBeamData(PlotBeamData&& other) noexcept;
-	PlotBeamData& operator=(PlotBeamData&& other) noexcept;
-	~PlotBeamData();
+	HistData3D() {};
+	HistData3D(TH3D* hist);
+	HistData3D(const HistData3D& other) = delete;
+	HistData3D& operator=(const HistData3D& other) = delete;
+	HistData3D(HistData3D&& other) noexcept;
+	HistData3D& operator=(HistData3D&& other) noexcept;
+	~HistData3D();
 
 	TH3D* GetHist() const;
 	std::string GetLabel();

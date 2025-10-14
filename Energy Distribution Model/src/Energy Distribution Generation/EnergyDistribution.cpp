@@ -593,6 +593,8 @@ void EnergyDistribution::CalculatePsisFromBinning(TH1D* crossSection)
 		}
 		//if (bin < 10) std::cout << "bin " << bin << ": " << energy << std::endl;
 		double velocity = TMath::Sqrt(2 * energy * TMath::Qe() / PhysicalConstants::electronMass);
+		velocity *= 100; // convert to cm/s
+
 		if (bin - 1 >= psi.size())
 		{
 			//std::cout << "want to access " << bin - 1 << " but size is " << distribution.psi.size() << std::endl;
@@ -650,9 +652,34 @@ void EnergyDistribution::SetNormalised(bool normalised)
 	showNormalisedByWidth = normalised;
 }
 
-double EnergyDistribution::GetDetuningEnergy()
+double EnergyDistribution::GetDetuningEnergy() const
 {
-	return eBeamParameter.detuningEnergy;
+	return eBeamParameter.detuningEnergy.get();
+}
+
+ElectronBeamParameters EnergyDistribution::GetElectronBeamParameters() const
+{
+	return eBeamParameter;
+}
+
+IonBeamParameters EnergyDistribution::GetIonBeamParameters() const
+{
+	return ionBeamParameter;
+}
+
+LabEnergyParameters EnergyDistribution::GetLabEnergyParameters() const
+{
+	return labEnergiesParameter;
+}
+
+MCMC_Parameters EnergyDistribution::GetMCMCParameters() const
+{
+	return mcmcParameter;
+}
+
+OutputParameters EnergyDistribution::GetOutputParameters() const
+{
+	return outputParameter;
 }
 
 void EnergyDistribution::ShowListItem()
@@ -672,7 +699,7 @@ void EnergyDistribution::ShowListItem()
 
 	if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
 	{
-		ImGui::SetDragDropPayload("Analytical_Pars", &outputParameter, sizeof(OutputParameters));
+		ImGui::SetDragDropPayload("Energy distribution", this, sizeof(EnergyDistribution));
 		ImGui::Text("dragging stuff");
 		ImGui::EndDragDropSource();
 	}
@@ -834,7 +861,7 @@ void PeakFitSettings::ShowWindow(bool& show)
 		ImGui::InputDouble("##", &initialRange[0], 0.0, 0.0, "%.4e");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(100.0f);
-		ImGui::InputDouble("initial Range", &initialRange[1], 0.0, 0.0, "%.4e");
+		ImGui::InputDouble("initial fit Range", &initialRange[1], 0.0, 0.0, "%.4e");
 		ImGui::EndDisabled();
 
 		//ImGui::SetNextItemWidth(160.0f);

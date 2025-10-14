@@ -43,7 +43,7 @@ public:
 	void RemoveDistribution(int index);
 
 	std::string Label();
-	EnergyDistribution* FindByEd(double detuningEnergy);
+	EnergyDistribution* FindByEd(double detuningEnergy) const;
 
 	void SetFolder(std::filesystem::path path);
 	void SetSubfolder(std::filesystem::path path);

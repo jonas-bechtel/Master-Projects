@@ -37,7 +37,7 @@ namespace DeconvolutionWindow
 	static char RCnameInput[64] = "rate coefficient name";
 
 	// scale for 1/E cs
-	static int scale = 1;
+	static double scale = 1.0;
 
 	static const ImVec4 inputTextColor = ImVec4(0.6f, 0.2f, 0.1f, 1.0f);
 
@@ -144,14 +144,21 @@ namespace DeconvolutionWindow
 
 			if (ImGui::Button("Deconvolve Cross Section"))
 			{
-				EnergyDistributionSet& currentSet = EnergyDistributionWindow::GetCurrentSet();
-				RateCoefficient& currentRC = rateCoefficientList.at(currentRateCoefficientIndex);
+				if (setList.empty() || rateCoefficientList.empty())
+				{
+					std::cout << "no energy distribution set or rate coefficient selected\n";
+				}
+				else
+				{
+					EnergyDistributionSet& currentSet = EnergyDistributionWindow::GetCurrentSet();
+					RateCoefficient& currentRC = rateCoefficientList.at(currentRateCoefficientIndex);
 
-				CrossSection cs;
-				cs.SetLabel(CSnameInput);
-				cs.Deconvolve(currentRC, currentSet, fitSettings, binSettings);
-				cs.Save();
-				AddCrossSectionToList(cs);
+					CrossSection cs;
+					cs.SetLabel(CSnameInput);
+					cs.Deconvolve(currentRC, currentSet, fitSettings, binSettings);
+					cs.Save();
+					AddCrossSectionToList(cs);
+				}
 			}
 		}
 		ImGui::EndChild();
@@ -172,14 +179,21 @@ namespace DeconvolutionWindow
 
 			if (ImGui::Button("Convolve Rate Coefficient"))
 			{
-				EnergyDistributionSet& currentSet = EnergyDistributionWindow::GetCurrentSet();
-				CrossSection& currentCS = crossSectionList.at(currentCrossSectionIndex);
+				if(setList.empty() || crossSectionList.empty())
+				{
+					std::cout << "no energy distribution set or cross section selected\n";
+				}
+				else
+				{
+					EnergyDistributionSet& currentSet = EnergyDistributionWindow::GetCurrentSet();
+					CrossSection& currentCS = crossSectionList.at(currentCrossSectionIndex);
 
-				RateCoefficient rc;
-				rc.Convolve(currentCS, currentSet);
-				rc.SetLabel(RCnameInput);
-				rc.Save();
-				AddRateCoefficientToList(rc);
+					RateCoefficient rc;
+					rc.Convolve(currentCS, currentSet);
+					rc.SetLabel(RCnameInput);
+					rc.Save();
+					AddRateCoefficientToList(rc);
+				}
 			}
 		}
 		ImGui::EndChild();
@@ -282,6 +296,7 @@ namespace DeconvolutionWindow
 		ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX | ImGuiChildFlags_ResizeY;
 		if (ImGui::BeginChild("merged beam rate coefficients", ImVec2(100, 100), flags))
 		{
+			ImGui::Text("rate coefficients");
 			if (ImGui::BeginListBox("##mbrclist", ImVec2(-1, 150)))
 			{
 				for (int i = 0; i < rateCoefficientList.size(); i++)
@@ -335,6 +350,7 @@ namespace DeconvolutionWindow
 		ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX | ImGuiChildFlags_ResizeY;
 		if (ImGui::BeginChild("cross sections", ImVec2(100, 100), flags))
 		{
+			ImGui::Text("cross sections");
 			if (ImGui::BeginListBox("##cslist", ImVec2(-1, 150)))
 			{
 				for (int i = 0; i < crossSectionList.size(); i++)
@@ -392,8 +408,8 @@ namespace DeconvolutionWindow
 				AddCrossSectionToList(cs);
 			}
 			ImGui::SameLine();
-			ImGui::SetNextItemWidth(50.0f);
-			ImGui::InputInt("scale", &scale, 0, 0);
+			ImGui::SetNextItemWidth(100.0f);
+			ImGui::InputDouble("scale", &scale, 0, 0, "%.2e");
 
 		}
 		ImGui::EndChild();
@@ -404,6 +420,7 @@ namespace DeconvolutionWindow
 		ImGuiChildFlags flags = ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX | ImGuiChildFlags_ResizeY;
 		if (ImGui::BeginChild("plasma rate coefficients", ImVec2(100, 100), flags))
 		{
+			ImGui::Text("plasma rate coefficients");
 			if (ImGui::BeginListBox("##plasmaRatelist", ImVec2(-1, 150)))
 			{
 				for (int i = 0; i < plasmaRateCoefficientList.size(); i++)
@@ -443,42 +460,3 @@ namespace DeconvolutionWindow
 	}
 }
 
-
-//
-//double* DeconvolutionManager::DeconvolveWithGradientDescent(const RateCoefficient& rc, const EnergyDistributionSet& set, const CrossSection& cs)
-//{
-//	int n = set.distributions.size();
-//	int p = cs.hist->GetNbinsX();
-//
-//	Eigen::MatrixXd PsiMatrix(n, p);
-//	Eigen::VectorXd alphaVector(n);
-//
-//	for (int i = 0; i < n; i++)
-//	{
-//		for (int j = 0; j < p; j++)
-//		{
-//			PsiMatrix(i, j) = set.distributions[i].psi[j];
-//		}
-//		alphaVector[i] = rc.value[i];
-//	}
-//
-//	Eigen::VectorXd x = Eigen::VectorXd::Map(cs.values.data(), cs.values.size());
-//
-//	for (int iter = 0; iter < iterations; iter++)
-//	{
-//		// Compute the residual: r = A*x - b
-//		Eigen::VectorXd r = PsiMatrix * x - alphaVector;
-//		
-//		// Compute the gradient: grad = A^T * r
-//		Eigen::VectorXd grad = PsiMatrix.transpose() * r;
-//		//std::cout << "gradient: " << grad << std::endl;
-//		//std::cout << "gradient modified: " << grad.cwiseMin(0.001 / learningRate).cwiseMax(-0.001 / learningRate) << std::endl;
-//
-//		// Update x using gradient descent step
-//		x = x - learningRate * grad.cwiseMin(0.0001 / learningRate).cwiseMax(-0.0001 / learningRate);
-//		//std::cout << "new x: " << x << std::endl;
-//		x = x.cwiseAbs();
-//	}
-//
-//	return x.data();
-//}

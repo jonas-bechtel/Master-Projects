@@ -2,7 +2,7 @@
 #include "Point3D.h"
 #include "HeatMapData.h"
 #include "ROOTCanvas.h"
-#include "PlotBeamData.h"
+#include "HistData3D.h"
 #include "ParameterImplementations.h"
 
 namespace LabEnergy
@@ -12,6 +12,8 @@ namespace LabEnergy
 	TH3D* Get();
 	double GetValue(double x, double y, double z);
 	LabEnergyParameters GetParameters();
+	void SetParameters(const LabEnergyParameters& params);
+
 	double GetCenterLabEnergy();
 	void SetDriftTubeVoltage(double voltage);
 	void SetCenterEnergy(double energy);
@@ -24,7 +26,7 @@ namespace LabEnergy
 	TH3D* GenerateLabEnergies();
 
 	void SelectedItemChanged();
-	void AddBeamToList(PlotBeamData& beamData);
+	void AddBeamToList(HistData3D& beamData);
 	void RemoveBeamFromList(int index);
 
 	void ShowWindow();

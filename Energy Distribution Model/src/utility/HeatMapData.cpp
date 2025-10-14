@@ -67,7 +67,7 @@ void HeatMapData::ShowColorValueTooltip() const
 		ImGui::BeginTooltip();
 		ImGui::Text("X: %.3f", mouse.x);
 		ImGui::Text("Y: %.3f", mouse.y);
-		ImGui::Text("Z: %.2e", z_value);
+		ImGui::Text("Z: %.4e", z_value);
 		ImGui::EndTooltip();
 	}
 }

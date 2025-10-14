@@ -10,10 +10,6 @@ namespace CoolingForce
 	static std::vector<Curve> curveList;
 	static int currentCurveIndex = -1;
 
-	// optional parameter
-	static int method = 3;
-	static bool interpolate = true;
-
 	// currently loaded description file
 	static std::filesystem::path currentDescriptionFile;
 	static int maxIndex = 0;
@@ -46,7 +42,7 @@ namespace CoolingForce
 
 	void SetupCurve(std::filesystem::path folder, std::filesystem::path subfolder)
 	{
-		if (curveList.empty() || curveList.at(currentCurveIndex).IsNumerical())
+		if (curveList.empty() || curveList.at(currentCurveIndex).IsSimpleModel())
 		{
 			CreateNewCurve();
 		}
@@ -104,13 +100,26 @@ namespace CoolingForce
 			ImGui::Text("file: %s", (currentDescriptionFile.parent_path().filename() / currentDescriptionFile.filename()).string().c_str());
 			
 			ImGui::Checkbox("All Parameters", &showAllParamsWindow);
+			
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Cooling Force Value"))
+				{
+					Value& cfValue = *(Value*)payload->Data;
+					LabEnergy::SetParameters(cfValue.GetLabEnergyParameters());
+					ElectronBeam::SetParameters(cfValue.GetElectronBeamParameters());
+					IonBeam::SetParameters(cfValue.GetIonBeamParameters());
+				}
+				ImGui::EndDragDropTarget();
+			}
+
 			ImGui::SeparatorText("output things");
 
 			if (!curveList.empty())
 			{
 				Curve& currentCurve = curveList.at(currentCurveIndex);
 				ImGui::BeginDisabled(currentCurve.IsMeasured());
-				if (!currentCurve.IsNumerical())
+				if (!currentCurve.IsSimpleModel())
 				{
 					char buf[64] = "";
 					strncpy_s(buf, currentCurve.GetSubfolder().string().c_str(), sizeof(buf) - 1);
@@ -131,7 +140,7 @@ namespace CoolingForce
 			ImGui::Separator();
 
 			ImGui::BeginDisabled(currentDescriptionFile.empty());
-			if (ImGui::Button("Generate Cooling curve from File"))
+			if (ImGui::Button("Generate from 3D model"))
 			{
 				std::filesystem::path folder = currentDescriptionFile.parent_path().parent_path().filename() /
 					currentDescriptionFile.parent_path().filename();
@@ -148,10 +157,8 @@ namespace CoolingForce
 				for (int i = start; i <= end; i++)
 				{
 					Value newValue;
-					if (method == 0) newValue.CalculateOriginal(currentDescriptionFile, i, modelParameter);
-					if (method == 1) newValue.CalculateHalfIntegrated(currentDescriptionFile, i, modelParameter, interpolate);
-					if (method == 2) newValue.CalculateFullIntegrated(currentDescriptionFile, i, modelParameter);
-					if (method == 3) newValue.CalculateFullIntegratedBetter(currentDescriptionFile, i, modelParameter);
+					newValue.Calculate(currentDescriptionFile, i, modelParameter);
+
 					Curve& curve = curveList.at(currentCurveIndex);
 					curve.AddForceValue(std::move(newValue));
 				}
@@ -159,38 +166,18 @@ namespace CoolingForce
 			
 			ImGui::EndDisabled();
 			ImGui::SameLine();
-			if (ImGui::Button("Generate Cooling curve from numerical Model"))
+			if (ImGui::Button("Generate from simple model"))
 			{
 				CreateNewCurve();
 				Curve& curve = curveList.at(currentCurveIndex);
 				curve.IntegrateNumerically(modelParameter);
 			}
 			ImGui::SameLine();
-			ImGui::Checkbox("parameter", &showModelParameterWindow);
+			ImGui::Checkbox("model parameter", &showModelParameterWindow);
 
-			if (ImGui::RadioButton("original", method == 0))
-			{
-				method = 0;
-			}
-			ImGui::SameLine();
-			if (ImGui::RadioButton("half integrated", method == 1))
-			{
-				method = 1;
-			}
-			ImGui::SameLine();
-			if (ImGui::RadioButton("full integrated", method == 2))
-			{
-				method = 2;
-			}
-			ImGui::SameLine();
-			if (ImGui::RadioButton("full integrated better", method == 3))
-			{
-				method = 3;
-			}
-			ImGui::SameLine();
-			ImGui::Checkbox("interpolate pre calc force", &interpolate);
 			ImGui::SameLine();
 			Value::ShowParallelPrecalculationCheckbox();
+			Value::ShowCalcTransForceCheckbox();
 
 			ImGui::SetNextItemWidth(80.0f);
 			ImGui::BeginDisabled(doAll);
@@ -232,7 +219,7 @@ namespace CoolingForce
 					{
 						currentCurveIndex = curveIndex;
 						curveList.at(curveIndex).ShowContent();
-						if (!curveList.at(curveIndex).IsMeasured() && !curveList.at(curveIndex).IsNumerical())
+						if (!curveList.at(curveIndex).IsMeasured() && !curveList.at(curveIndex).IsSimpleModel())
 						{
 							ImGui::Checkbox("show force details", &showForceDetailWindow);
 						}
@@ -261,7 +248,7 @@ namespace CoolingForce
 			ImGui::SameLine();
 			if (ImGui::Button("load numerical Curves"))
 			{
-				std::vector<std::filesystem::path> filenames = FileUtils::SelectFiles(FileUtils::GetNumericalCoolingForceCurveFolder());
+				std::vector<std::filesystem::path> filenames = FileUtils::SelectFiles(FileUtils::GetNumericalCoolingForceCurveFolder(), { "*.curve" });
 				if (!filenames.empty())
 				{
 					for (auto& filename : filenames)
@@ -306,7 +293,7 @@ namespace CoolingForce
 					ImGui::PushID(i++);
 					//curve.PlotForceX();
 					//curve.PlotForceY();
-					curve.PlotForceZ();
+					curve.PlotForce();
 					ImGui::PopID();
 
 					ImPlot::PopStyleColor(2);
@@ -334,6 +321,16 @@ namespace CoolingForce
 				LabEnergy::ShowParameterControls();
 			}
 			ImGui::EndChild();
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Cooling Force Value"))
+				{
+					Value& cfValue = *(Value*)payload->Data;
+					LabEnergy::SetParameters(cfValue.GetLabEnergyParameters());
+				}
+				ImGui::EndDragDropTarget();
+			}
+
 			ImGui::SameLine();
 			if (ImGui::BeginChild("ebeam", ImVec2(100, -1), flags))
 			{
@@ -341,6 +338,16 @@ namespace CoolingForce
 				ElectronBeam::ShowParameterControls();
 			}
 			ImGui::EndChild();
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Cooling Force Value"))
+				{
+					Value& cfValue = *(Value*)payload->Data;
+					ElectronBeam::SetParameters(cfValue.GetElectronBeamParameters());
+				}
+				ImGui::EndDragDropTarget();
+			}
+
 			ImGui::SameLine();
 			if (ImGui::BeginChild("ibeam", ImVec2(100, -1), flags))
 			{
@@ -350,7 +357,15 @@ namespace CoolingForce
 				IonBeam::ShowCoolingForceParameterControls();
 			}
 			ImGui::EndChild();
-
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Cooling Force Value"))
+				{
+					Value& cfValue = *(Value*)payload->Data;
+					IonBeam::SetParameters(cfValue.GetIonBeamParameters());
+				}
+				ImGui::EndDragDropTarget();
+			}
 		}
 		ImGui::End();
 	}

@@ -2,6 +2,7 @@
 
 #include "AnalyticalDistribution.h"
 #include "ParameterImplementations.h"
+#include "EnergyDistribution.h"
 
 namespace AnalyticalDistribution
 {
@@ -240,9 +241,10 @@ namespace AnalyticalDistribution
 
 			if (ImGui::BeginDragDropTarget())
 			{
-				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Analytical_Pars"))
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Energy distribution"))
 				{
-					OutputParameters& parameter = *(OutputParameters*)payload->Data;
+					EnergyDistribution& eDist = *(EnergyDistribution*)payload->Data;
+					auto& parameter = eDist.GetOutputParameters();
 					energyRange[0] = std::max(1e-6f, parameter.fitRange.get().x);
 					energyRange[1] = parameter.fitRange.get().y;
 					scale = parameter.fitScalingFactor;

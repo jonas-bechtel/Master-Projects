@@ -1,12 +1,18 @@
 #include "pch.h"
-#include "PlotBeamData.h"
+#include "HistData3D.h"
 
 #include "ElectronBeam.h"
 
-int PlotBeamData::rebinningFactors[3] = { 10, 10, 10 };
+int HistData3D::rebinningFactors[3] = { 10, 10, 10 };
 
-PlotBeamData::PlotBeamData(TH3D* hist)
+HistData3D::HistData3D(TH3D* hist)
 {
+	if(!hist)
+	{
+		fullHistogram = nullptr;
+		return;
+	}
+
 	delete fullHistogram;
 	fullHistogram = hist;
 
@@ -37,7 +43,7 @@ PlotBeamData::PlotBeamData(TH3D* hist)
 	UpdateData();
 }
 
-PlotBeamData::PlotBeamData(PlotBeamData&& other) noexcept
+HistData3D::HistData3D(HistData3D&& other) noexcept
 {
 	fullHistogram = other.fullHistogram;
 	other.fullHistogram = nullptr;
@@ -58,7 +64,7 @@ PlotBeamData::PlotBeamData(PlotBeamData&& other) noexcept
 	label = std::move(other.label);
 }
 
-PlotBeamData& PlotBeamData::operator=(PlotBeamData&& other) noexcept
+HistData3D& HistData3D::operator=(HistData3D&& other) noexcept
 {
 	if (this == &other) return *this;
 
@@ -84,33 +90,33 @@ PlotBeamData& PlotBeamData::operator=(PlotBeamData&& other) noexcept
 	return *this;
 }
 
-PlotBeamData::~PlotBeamData()
+HistData3D::~HistData3D()
 {
 	delete fullHistogramSmall;
 	delete fullHistogram;
 }
 
-TH3D* PlotBeamData::GetHist() const
+TH3D* HistData3D::GetHist() const
 {
 	return fullHistogram;
 }
 
-std::string PlotBeamData::GetLabel()
+std::string HistData3D::GetLabel()
 {
 	return label;
 }
 
-void PlotBeamData::SetLabel(std::string str)
+void HistData3D::SetLabel(std::string str)
 {
 	label = str;
 }
 
-void PlotBeamData::UpdateSlice(float zValue)
+void HistData3D::UpdateSlice(float zValue)
 {
 	slice.FromTH3D(fullHistogram, zValue);
 }
 
-void PlotBeamData::UpdateData()
+void HistData3D::UpdateData()
 {
 	TH1D* projectionX = fullHistogram->ProjectionX();
 	TH1D* projectionY = fullHistogram->ProjectionY();
@@ -158,7 +164,7 @@ void PlotBeamData::UpdateData()
 	//outFile.close();
 }
 
-void PlotBeamData::Plot3D(ROOTCanvas* canvas, int pos)
+void HistData3D::Plot3D(ROOTCanvas* canvas, int pos)
 {
 	if (!canvas->IsShown() || !fullHistogram) return;
 
@@ -177,33 +183,33 @@ void PlotBeamData::Plot3D(ROOTCanvas* canvas, int pos)
 	fullHistogramSmall->Draw("BOX2 COLZ");
 }
 
-void PlotBeamData::PlotSlice() const
+void HistData3D::PlotSlice() const
 {
 	slice.Plot(label);
 }
 
-void PlotBeamData::PlotProjectionX(ImPlotLineFlags_ flags) const
+void HistData3D::PlotProjectionX(ImPlotLineFlags_ flags) const
 {
 	ImPlot::PlotLine(label.c_str(), xAxis.data(), projectionValuesX.data(), xAxis.size());
 }
 
-void PlotBeamData::PlotProjectionY(ImPlotLineFlags_ flags) const
+void HistData3D::PlotProjectionY(ImPlotLineFlags_ flags) const
 {
 	ImPlot::PlotLine(label.c_str(), yAxis.data(), projectionValuesY.data(), yAxis.size());
 }
 
-void PlotBeamData::PlotProjectionZ(ImPlotLineFlags_ flags) const
+void HistData3D::PlotProjectionZ(ImPlotLineFlags_ flags) const
 {
 	ImPlot::PlotLine(label.c_str(), zAxis.data(), projectionValuesZ.data(), zAxis.size());
 }
 
-void PlotBeamData::PlotInsideOutsideValue() const
+void HistData3D::PlotInsideOutsideValue() const
 {
 	ImPlot::PlotLine(label.c_str(), zAxis.data(), centerValue.data(), zAxis.size());
 	ImPlot::PlotLine(label.c_str(), zAxis.data(), outsideValue.data(), zAxis.size(), ImPlotLineFlags_Segments);
 }
 
-bool PlotBeamData::ShowRebinningFactorsInput()
+bool HistData3D::ShowRebinningFactorsInput()
 {
 	ImGui::SetNextItemWidth(120.0f);
 	return ImGui::InputInt3("Rebinning factors", rebinningFactors);

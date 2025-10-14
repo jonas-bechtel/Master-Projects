@@ -60,7 +60,12 @@ public:
 	void SetPlot(bool plot);
 	void SetNormalised(bool normalised);
 
-	double GetDetuningEnergy();
+	double GetDetuningEnergy() const;
+	OutputParameters GetOutputParameters() const;
+	ElectronBeamParameters GetElectronBeamParameters() const;
+	IonBeamParameters GetIonBeamParameters() const;
+	LabEnergyParameters GetLabEnergyParameters() const;
+	MCMC_Parameters GetMCMCParameters() const;
 
 	void ShowListItem();
 
@@ -106,9 +111,6 @@ private:
 
 	// fitting things done by the Cross Section class
 	std::vector<double> psi;
-
-	// cooling force
-	//Value cfData;
 
 	// plot parameters
 	bool showPlot = false;
