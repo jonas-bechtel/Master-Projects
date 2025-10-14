@@ -30,7 +30,7 @@ namespace CoolingForce
 
 	void Init()
 	{
-		currentDescriptionFile = std::filesystem::path("data\\C60\\C60 0.012 peak\\100x100x100_Ie0.012_Ucath44.2_RelTol0_Ni0_mbrc2_energies.asc");
+		currentDescriptionFile = std::filesystem::path("input\\3D Models\\C60\\C60 0.012 peak\\100x100x100_Ie0.012_Ucath44.2_RelTol0_Ni0_mbrc2_energies.asc");
 		maxIndex = FileUtils::GetMaxIndex(currentDescriptionFile);
 	}
 
@@ -94,13 +94,15 @@ namespace CoolingForce
 			ImGui::SeparatorText("input things");
 			if (ImGui::Button("select description file"))
 			{
-				currentDescriptionFile = FileUtils::SelectFile();
-				maxIndex = FileUtils::GetMaxIndex(currentDescriptionFile);
+				currentDescriptionFile = FileUtils::SelectFile(FileUtils::Get3D_ModelFolder());
+				if(currentDescriptionFile.empty())
+					maxIndex = 0;
+				else
+					maxIndex = FileUtils::GetMaxIndex(currentDescriptionFile);
 			}
 			ImGui::Text("file: %s", (currentDescriptionFile.parent_path().filename() / currentDescriptionFile.filename()).string().c_str());
 			
 			ImGui::Checkbox("All Parameters", &showAllParamsWindow);
-			
 			if (ImGui::BeginDragDropTarget())
 			{
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Cooling Force Value"))
@@ -236,7 +238,7 @@ namespace CoolingForce
 			ImGui::PopStyleColor(2);
 
 			ImGui::Separator();
-			if (ImGui::Button("load MCMC Curve"))
+			if (ImGui::Button("load 3D model curve"))
 			{
 				std::filesystem::path folder = FileUtils::SelectFolder(FileUtils::GetCoolingForceCurveFolder());
 				if (!folder.empty())
@@ -246,9 +248,9 @@ namespace CoolingForce
 				}
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("load numerical Curves"))
+			if (ImGui::Button("load simple model curves"))
 			{
-				std::vector<std::filesystem::path> filenames = FileUtils::SelectFiles(FileUtils::GetNumericalCoolingForceCurveFolder(), { "*.curve" });
+				std::vector<std::filesystem::path> filenames = FileUtils::SelectFiles(FileUtils::GetSimpleModelCoolingForceCurveFolder(), { "*.curve" });
 				if (!filenames.empty())
 				{
 					for (auto& filename : filenames)
@@ -259,7 +261,7 @@ namespace CoolingForce
 				}
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("load measured Curves"))
+			if (ImGui::Button("load measured curves"))
 			{
 				std::vector<std::filesystem::path> filenames = FileUtils::SelectFiles(FileUtils::GetMeasuredCoolingForceCurveFolder(), {"*.curve"});
 				if (!filenames.empty())

@@ -9,6 +9,7 @@ int main(int argc, char** argv)
     Application::InitImGui();
     Application::Run();
     Application::ShutdownImGui();
+    //int i = 0;
     //try
     //{
     //    app.Run();

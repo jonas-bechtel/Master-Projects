@@ -71,12 +71,14 @@ project "Energy Distribution Model"
 			"d3dcompiler",
 			"dxgi"
 		}
-
+		
 		postbuildcommands
 		{
-			'cmd /c if exist vendor\\JSPEC\\lib\\*.dll xcopy /Q /Y /I vendor\\JSPEC\\lib\\*.dll "%{cfg.targetdir}" > nul'
+			'cmd /c if exist vendor\\JSPEC\\lib\\*.dll xcopy /Q /Y /I vendor\\JSPEC\\lib\\*.dll "%{cfg.targetdir}" > nul',
+			'{COPY} "%{cfg.buildtarget.relpath}" "..\\..\\Energy Distribution Model Release"',
+			'{COPY} "imgui.ini" "..\\..\\Energy Distribution Model Release"'
 		}
-
+    
 
 	filter "configurations:Debug"
 		defines "_DEBUG"

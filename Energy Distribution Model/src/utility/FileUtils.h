@@ -4,20 +4,23 @@
 
 namespace FileUtils
 {
-	std::filesystem::path GetDataFolder();
+	
+	std::filesystem::path GetInputFolder();
 	std::filesystem::path GetMeasuredRateCoefficientFolder();
+	std::filesystem::path GetMeasuredCoolingForceCurveFolder();
+	std::filesystem::path Get3D_ModelFolder();
 	std::filesystem::path GetOutputFolder();
 	std::filesystem::path GetPlasmaRateFolder();
 	std::filesystem::path GetCrossSectionFolder();
 	std::filesystem::path GetRateCoefficientFolder();
 	std::filesystem::path GetEnergyDistSetFolder();
 	std::filesystem::path GetCoolingForceCurveFolder();
-	std::filesystem::path GetNumericalCoolingForceCurveFolder();
-	std::filesystem::path GetMeasuredCoolingForceCurveFolder();
+	std::filesystem::path Get3D_ModelCoolingForceCurveFolder();
+	std::filesystem::path GetSimpleModelCoolingForceCurveFolder();
 
-	std::filesystem::path SelectFile(const std::filesystem::path& startPath = "data\\", const std::vector<const char*>& filterPatterns = { "*.asc" });
-	std::filesystem::path SelectFolder(const std::filesystem::path& startPath = "data\\");
-	std::vector<std::filesystem::path> SelectFiles(const std::filesystem::path& startPath = "data\\", const std::vector<const char*>& filterPatterns = { "*.asc" });
+	std::filesystem::path SelectFile(const std::filesystem::path& startPath, const std::vector<const char*>& filterPatterns = { "*.asc" });
+	std::filesystem::path SelectFolder(const std::filesystem::path& startPath);
+	std::vector<std::filesystem::path> SelectFiles(const std::filesystem::path& startPath, const std::vector<const char*>& filterPatterns = { "*.asc" });
 	
 	TH3D* LoadMatrixFile(const std::filesystem::path& filename);
 	TH3D* CreateTH3DfromHeader(std::ifstream& file);

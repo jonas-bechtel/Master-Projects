@@ -256,7 +256,7 @@ namespace CoolingForce
 	{
 		if (simpleModel)
 		{
-			std::filesystem::path outfolder = FileUtils::GetNumericalCoolingForceCurveFolder();
+			std::filesystem::path outfolder = FileUtils::GetSimpleModelCoolingForceCurveFolder();
 
 			if (!std::filesystem::exists(outfolder))
 			{

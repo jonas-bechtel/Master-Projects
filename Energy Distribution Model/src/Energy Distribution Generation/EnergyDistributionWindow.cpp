@@ -157,7 +157,7 @@ namespace EnergyDistributionWindow
 			ImGui::SeparatorText("input things");
 			if (ImGui::Button("select description file"))
 			{
-				currentDescriptionFile = FileUtils::SelectFile();
+				currentDescriptionFile = FileUtils::SelectFile(FileUtils::Get3D_ModelFolder());
 				maxIndex = FileUtils::GetMaxIndex(currentDescriptionFile);
 			}
 			ImGui::Text("file: %s", (currentDescriptionFile.parent_path().filename() / currentDescriptionFile.filename()).string().c_str());

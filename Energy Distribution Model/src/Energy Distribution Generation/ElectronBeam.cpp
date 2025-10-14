@@ -536,7 +536,7 @@ namespace ElectronBeam
 
 				if (ImGui::Button("Load e-density file"))
 				{
-					std::vector<std::filesystem::path> files = FileUtils::SelectFiles();
+					std::vector<std::filesystem::path> files = FileUtils::SelectFiles(FileUtils::Get3D_ModelFolder());
 					for (const std::filesystem::path& file : files)
 					{
 							TH3D* hist = LoadDensityFile(file);

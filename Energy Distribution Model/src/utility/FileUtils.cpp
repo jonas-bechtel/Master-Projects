@@ -10,9 +10,10 @@
 
 namespace FileUtils
 {
-    static std::filesystem::path dataFolder = "data\\";
-    static std::filesystem::path measuredRateCoefficientFolder = dataFolder / "Rate Coefficients\\";
-    static std::filesystem::path measuredCoolingForceCurveFolder = dataFolder / "Measured Cooling Force Curves\\";
+    static std::filesystem::path inputFolder = "input\\";
+    static std::filesystem::path measuredRateCoefficientFolder = inputFolder / "Rate Coefficients\\";
+    static std::filesystem::path measuredCoolingForceCurveFolder = inputFolder / "Measured Cooling Force Curves\\";
+    static std::filesystem::path model3D_Folder = inputFolder / "3D Models\\";
 
     static std::filesystem::path outputFolder = "output\\";
     static std::filesystem::path plasmaRateFolder = outputFolder / "Plasma Rate Coefficients\\";
@@ -20,7 +21,9 @@ namespace FileUtils
     static std::filesystem::path rateCoefficientFolder = outputFolder / "Rate Coefficients\\";
     static std::filesystem::path energyDistSetFolder = outputFolder / "Energy Distribution Sets\\";
     static std::filesystem::path coolingForceCurveFolder = outputFolder / "Cooling Force Curves\\";
-    static std::filesystem::path numericalCoolingForceCurveFolder = coolingForceCurveFolder / "Numerical\\";
+    static std::filesystem::path model3D_CoolingForceCurveFolder = coolingForceCurveFolder / "3D Model\\";
+    static std::filesystem::path simpleModelCoolingForceCurveFolder = coolingForceCurveFolder / "Simple Model\\";
+
     static int headerSize = 9;
     static std::string xDelimiter = "\t";
     static std::string zDelimiter = ";";
@@ -29,14 +32,19 @@ namespace FileUtils
     static int matrixSize[3] = { 100, 100, 100 };
 
 
-    std::filesystem::path GetDataFolder()
+    std::filesystem::path GetInputFolder()
     {
-        return dataFolder;
+        return inputFolder;
     }
 
     std::filesystem::path GetMeasuredRateCoefficientFolder()
     {
         return measuredRateCoefficientFolder;
+    }
+
+    std::filesystem::path Get3D_ModelFolder()
+    {
+        return model3D_Folder;
     }
 
     std::filesystem::path GetOutputFolder()
@@ -69,9 +77,14 @@ namespace FileUtils
         return coolingForceCurveFolder;
     }
 
-    std::filesystem::path GetNumericalCoolingForceCurveFolder()
+    std::filesystem::path Get3D_ModelCoolingForceCurveFolder()
     {
-        return numericalCoolingForceCurveFolder;
+        return model3D_CoolingForceCurveFolder;
+    }
+
+    std::filesystem::path GetSimpleModelCoolingForceCurveFolder()
+    {
+        return simpleModelCoolingForceCurveFolder;
     }
 
     std::filesystem::path GetMeasuredCoolingForceCurveFolder()
