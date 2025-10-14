@@ -102,7 +102,7 @@ namespace CoolingForce
 		double z = position[2];
 
 		double forceValue = HistUtils::GetValueAtPosition(force3D.GetHist(), { x,y,z });
-		return IonBeam::GetValue({ x,y,z }) * forceValue;
+		return IonBeam::GetValue(x, y, z) * forceValue;
 	}
 
 	bool Value::ShowListItem(bool selected) const

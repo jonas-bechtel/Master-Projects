@@ -35,6 +35,8 @@ public:
 	HistData3D& operator=(HistData3D&& other) noexcept;
 	~HistData3D();
 
+	void Setup(TH3D* hist);
+
 	TH3D* GetHist() const;
 	std::string GetLabel();
 	void SetLabel(std::string str);

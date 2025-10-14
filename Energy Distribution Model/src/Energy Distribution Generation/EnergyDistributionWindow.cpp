@@ -21,7 +21,7 @@ namespace EnergyDistributionWindow
 	static int currentSetIndex;
 
 	// currently loaded description file
-	static std::filesystem::path currentDescriptionFile = std::filesystem::path("data\\C60\\dataset1\\100x100x100_Ie0.95_Ucath44.2_RelTol0_mbrc1_energies.asc");
+	static std::filesystem::path currentDescriptionFile;
 	static int maxIndex = 0;
 
 	// start/end index in description file to generate distribution for
@@ -58,6 +58,7 @@ namespace EnergyDistributionWindow
 	{
 		AnalyticalDistribution::Update();
 
+		currentDescriptionFile = std::filesystem::path("input\\3D Models\\C60\\dataset1\\100x100x100_Ie0.95_Ucath44.2_RelTol0_mbrc1_energies.asc");
 		//EnergyDistributionSet set;
 		//set.Load(FileUtils::GetEnergyDistSetFolder() / "C60\\Ie_0.2547 (103 steps)" / "Tperp_1.5_Eext_0.266_test", true);
 		//setList.emplace_back(std::move(set));

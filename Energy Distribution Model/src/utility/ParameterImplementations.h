@@ -81,7 +81,6 @@ struct IonBeamParameters : public Parameters
 	ParameterValue<float2> sigma = ParameterValue(float2(0.01044, 0.00455), "sigmas (x,y)", "%.4f, %.4f m");
 
 	ParameterValue<int> charge = ParameterValue(1, "charge", "%d", true);
-	ParameterValue<int> numberSamples = ParameterValue((int)1e6, "numberSamples", "%d", true);
 
 private:
 	int GetSize() const override

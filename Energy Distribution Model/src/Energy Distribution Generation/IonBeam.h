@@ -12,12 +12,11 @@ namespace IonBeam
 	void Init();
 
 	void CreateFromReference(TH3D* reference);
-	void UpdateMainData();
-	void UpdatePlotData();
+	void UpdateHistData();
 
 	TVector3 GetDirection();
 	TVector3 GetVelocity();
-	double GetValue(const Point3D& point);
+	double GetValue(double x, double y, double z);
 	double GetVelocityMagnitude();
 	int GetCharge();
 	float GetSigmaX();
@@ -31,6 +30,4 @@ namespace IonBeam
 	void ShowPlots();
 	void ShowParameterControls();
 	void ShowCoolingForceParameterControls();
-
-	std::vector<Point3D> GeneratePositions();
 }

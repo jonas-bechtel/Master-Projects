@@ -179,7 +179,7 @@ namespace LabEnergy
 
 				if (ImGui::Button("Load lab energies"))
 				{
-					std::vector<std::filesystem::path> files = FileUtils::SelectFiles(FileUtils::GetInputFolder());
+					std::vector<std::filesystem::path> files = FileUtils::SelectFiles(FileUtils::Get3D_ModelFolder());
 					for (const std::filesystem::path& file : files)
 					{
 						TH3D* hist = LoadLabEnergyFile(file);

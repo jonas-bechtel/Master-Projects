@@ -16,30 +16,7 @@ HistData3D::HistData3D(TH3D* hist)
 	delete fullHistogram;
 	fullHistogram = hist;
 
-	xAxis.reserve(fullHistogram->GetNbinsX());
-	yAxis.reserve(fullHistogram->GetNbinsY());
-	zAxis.reserve(fullHistogram->GetNbinsZ());
-
-	projectionValuesX.reserve(fullHistogram->GetNbinsX());
-	projectionValuesY.reserve(fullHistogram->GetNbinsY());
-	projectionValuesZ.reserve(fullHistogram->GetNbinsZ());
-
-	centerValue.reserve(fullHistogram->GetNbinsZ());
-	outsideValue.reserve(fullHistogram->GetNbinsZ());
-
-	for (int i = 1; i <= fullHistogram->GetNbinsX(); i++)
-	{
-		xAxis.push_back(fullHistogram->GetXaxis()->GetBinCenter(i));
-	}
-	for (int i = 1; i <= fullHistogram->GetNbinsY(); i++)
-	{
-		yAxis.push_back(fullHistogram->GetYaxis()->GetBinCenter(i));
-	}
-	for (int i = 1; i <= fullHistogram->GetNbinsZ(); i++)
-	{
-		zAxis.push_back(fullHistogram->GetZaxis()->GetBinCenter(i));
-	}
-
+	Setup(fullHistogram);
 	UpdateData();
 }
 
@@ -94,6 +71,33 @@ HistData3D::~HistData3D()
 {
 	delete fullHistogramSmall;
 	delete fullHistogram;
+}
+
+void HistData3D::Setup(TH3D* hist)
+{
+	xAxis.reserve(fullHistogram->GetNbinsX());
+	yAxis.reserve(fullHistogram->GetNbinsY());
+	zAxis.reserve(fullHistogram->GetNbinsZ());
+
+	projectionValuesX.reserve(fullHistogram->GetNbinsX());
+	projectionValuesY.reserve(fullHistogram->GetNbinsY());
+	projectionValuesZ.reserve(fullHistogram->GetNbinsZ());
+
+	centerValue.reserve(fullHistogram->GetNbinsZ());
+	outsideValue.reserve(fullHistogram->GetNbinsZ());
+
+	for (int i = 1; i <= fullHistogram->GetNbinsX(); i++)
+	{
+		xAxis.push_back(fullHistogram->GetXaxis()->GetBinCenter(i));
+	}
+	for (int i = 1; i <= fullHistogram->GetNbinsY(); i++)
+	{
+		yAxis.push_back(fullHistogram->GetYaxis()->GetBinCenter(i));
+	}
+	for (int i = 1; i <= fullHistogram->GetNbinsZ(); i++)
+	{
+		zAxis.push_back(fullHistogram->GetZaxis()->GetBinCenter(i));
+	}
 }
 
 TH3D* HistData3D::GetHist() const
@@ -154,14 +158,6 @@ void HistData3D::UpdateData()
 		centerValue.push_back(energyValueIn);
 		outsideValue.push_back(energyValueOut);
 	}
-
-	//// quick hack to save the center values to a file
-	//std::ofstream outFile("potential_values.txt");
-	//for (size_t i = 0; i < centerValue.size(); i++)
-	//{
-	//	outFile << zAxis[i] << "\t" << centerValue[i] << "\t" << outsideValue[i] << "\n";
-	//}
-	//outFile.close();
 }
 
 void HistData3D::Plot3D(ROOTCanvas* canvas, int pos)
