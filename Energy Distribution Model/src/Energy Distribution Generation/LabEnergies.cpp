@@ -19,10 +19,10 @@ namespace LabEnergy
 	// plotting things
 	static std::vector<HistData3D> plotEnergies;
 	static int selectedIndex = -1;
+	static bool showMarkers = false;
 
 	// z value for the xy slice of the lab energies
 	static float SliceZ = 0.0f;
-	static bool showMarkers = false;
 
 	void Init()
 	{
@@ -271,9 +271,9 @@ namespace LabEnergy
 			if (ImPlot::BeginPlot("Projection X"))
 			{
 				ImPlot::SetupAxes("x", "normalised value");
-				for (const HistData3D& energy : plotEnergies)
+				for (int i = 0; i < plotEnergies.size(); i++)
 				{
-					energy.PlotProjectionX();
+					plotEnergies.at(i).PlotProjectionX(i);
 				}
 				ImPlot::EndPlot();
 			}
@@ -281,9 +281,9 @@ namespace LabEnergy
 			if (ImPlot::BeginPlot("Projection Y"))
 			{
 				ImPlot::SetupAxes("y", "normalised value");
-				for (const HistData3D& energy : plotEnergies)
+				for (int i = 0; i < plotEnergies.size(); i++)
 				{
-					energy.PlotProjectionY();
+					plotEnergies.at(i).PlotProjectionY(i);
 				}
 				ImPlot::EndPlot();
 			}
@@ -291,9 +291,9 @@ namespace LabEnergy
 			if (ImPlot::BeginPlot("Projection Z"))
 			{
 				ImPlot::SetupAxes("z", "normalised value");
-				for (const HistData3D& energy : plotEnergies)
+				for (int i = 0; i < plotEnergies.size(); i++)
 				{
-					energy.PlotProjectionZ();
+					plotEnergies.at(i).PlotProjectionZ(i);
 				}
 				ImPlot::EndPlot();
 			}
@@ -301,9 +301,9 @@ namespace LabEnergy
 			if (ImPlot::BeginPlot("Inside/Outside"))
 			{
 				ImPlot::SetupAxes("z", "value");
-				for (const HistData3D& energy : plotEnergies)
+				for (int i = 0; i < plotEnergies.size(); i++)
 				{
-					energy.PlotInsideOutsideValue();
+					plotEnergies.at(i).PlotInsideOutsideValue(i);
 				}
 				ImPlot::EndPlot();
 			}
@@ -311,8 +311,7 @@ namespace LabEnergy
 
 			if (selectedIndex >= 0)
 			{
-				const HistData3D& sliceLE = plotEnergies.at(selectedIndex);
-				sliceLE.PlotSlice();
+				plotEnergies.at(selectedIndex).PlotSlice(selectedIndex);
 			}
 
 			ImPlot::EndSubplots();

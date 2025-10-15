@@ -30,14 +30,14 @@ void HeatMapData::FromTH3D(TH3D* hist, float zSliceValue)
 	topRight = { hist->GetXaxis()->GetXmax(), hist->GetYaxis()->GetXmax() };
 }
 
-void HeatMapData::Plot(std::string title) const
+void HeatMapData::Plot(std::string label, std::string title) const
 {
 	ImPlot::PushColormap(9);
 	
-	if (ImPlot::BeginPlot("XY Slice", ImVec2(350, 350)))
+	if (ImPlot::BeginPlot(title.c_str(), ImVec2(350, 350)))
 	{
 		ImPlot::SetupAxes("x", "y");
-		ImPlot::PlotHeatmap(title.c_str(), values.data(), nRows, nCols, minValue, maxValue, nullptr, bottomLeft, topRight);
+		ImPlot::PlotHeatmap(label.c_str(), values.data(), nRows, nCols, minValue, maxValue, nullptr, bottomLeft, topRight);
 		if(ImPlot::IsPlotHovered())
 			ShowColorValueTooltip();
 		ImPlot::EndPlot();

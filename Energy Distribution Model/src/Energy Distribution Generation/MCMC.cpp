@@ -398,10 +398,10 @@ namespace MCMC
 			{
 				ShowList();
 
-				if (ImGui::Button("generate chain"))
+				if (ImGui::Button("generate chain") && ElectronBeam::GetSelected())
 				{
-					if (!ElectronBeam::GetSelected())
-						return;
+					//if (!ElectronBeam::GetSelected())
+					//	return;
 
 					TH3D* electronBeam = ElectronBeam::GetSelected()->GetHist();
 
@@ -551,8 +551,8 @@ namespace MCMC
 				ImPlot::SetupAxes("x", "normalised value");
 				for (int i = 0; i < plotTargetBeams.size(); i++)
 				{
-					plotTargetBeams.at(i).PlotProjectionX(ImPlotLineFlags_Segments);
-					plotResultBeams.at(i).PlotProjectionX();
+					plotTargetBeams.at(i).PlotProjectionX(i, ImPlotLineFlags_Segments);
+					plotResultBeams.at(i).PlotProjectionX(i);
 				}
 				ImPlot::EndPlot();
 			}
@@ -562,8 +562,8 @@ namespace MCMC
 				ImPlot::SetupAxes("y", "normalised value");
 				for (int i = 0; i < plotTargetBeams.size(); i++)
 				{
-					plotTargetBeams.at(i).PlotProjectionY(ImPlotLineFlags_Segments);
-					plotResultBeams.at(i).PlotProjectionY();
+					plotTargetBeams.at(i).PlotProjectionY(i, ImPlotLineFlags_Segments);
+					plotResultBeams.at(i).PlotProjectionY(i);
 				}
 				ImPlot::EndPlot();
 			}
@@ -573,19 +573,17 @@ namespace MCMC
 				ImPlot::SetupAxes("z", "normalised value");
 				for (int i = 0; i < plotTargetBeams.size(); i++)
 				{
-					plotTargetBeams.at(i).PlotProjectionZ(ImPlotLineFlags_Segments);
-					plotResultBeams.at(i).PlotProjectionZ();
+					plotTargetBeams.at(i).PlotProjectionZ(i, ImPlotLineFlags_Segments);
+					plotResultBeams.at(i).PlotProjectionZ(i);
 				}
 				ImPlot::EndPlot();
 			}
 
 			if (selectedIndex >= 0)
 			{
-				const HistData3D& targetBeam = plotTargetBeams.at(selectedIndex);
-				const HistData3D& resultBeam = plotResultBeams.at(selectedIndex);
-				targetBeam.PlotSlice();
+				plotTargetBeams.at(selectedIndex).PlotSlice(selectedIndex, "Target XY SLice");
 				ImGui::SameLine();
-				resultBeam.PlotSlice();
+				plotResultBeams.at(selectedIndex).PlotSlice(selectedIndex, "Result XY SLice");
 			}
 
 			ImPlot::EndSubplots();

@@ -173,7 +173,7 @@ namespace CoolingForce
 
 	void Value::PlotForceSlice() const
 	{
-		force3D.PlotSlice();
+		force3D.PlotSlice(0);
 	}
 
 	void Value::UpdateSlice(float zValue)

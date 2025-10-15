@@ -114,22 +114,22 @@ namespace IonBeam
 		{
 			if (ImPlot::BeginPlot("Projection X"))
 			{
-				histData.PlotProjectionX();
+				histData.PlotProjectionX(0);
 				ImPlot::EndPlot();
 			}
 
 			if (ImPlot::BeginPlot("Projection Y"))
 			{
-				histData.PlotProjectionY();
+				histData.PlotProjectionY(0);
 				ImPlot::EndPlot();
 			}
 
 			if (ImPlot::BeginPlot("Projection Z"))
 			{
-				histData.PlotProjectionZ();
+				histData.PlotProjectionZ(0);
 				ImPlot::EndPlot();
 			}
-			histData.PlotSlice();
+			histData.PlotSlice(0);
 
 			ImPlot::EndSubplots();
 		}

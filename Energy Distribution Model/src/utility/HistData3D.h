@@ -44,11 +44,11 @@ public:
 	void UpdateData();
 
 	void Plot3D(ROOTCanvas* canvas, int pos);
-	void PlotSlice() const;
-	void PlotProjectionX(ImPlotLineFlags_ flags = ImPlotLineFlags_None) const;
-	void PlotProjectionY(ImPlotLineFlags_ flags = ImPlotLineFlags_None) const;
-	void PlotProjectionZ(ImPlotLineFlags_ flags = ImPlotLineFlags_None) const;
-	void PlotInsideOutsideValue() const;
+	void PlotSlice(int labelModifier, std::string title = "XY Slice") const;
+	void PlotProjectionX(int labelModifier, ImPlotLineFlags_ flags = ImPlotLineFlags_None) const;
+	void PlotProjectionY(int labelModifier, ImPlotLineFlags_ flags = ImPlotLineFlags_None) const;
+	void PlotProjectionZ(int labelModifier, ImPlotLineFlags_ flags = ImPlotLineFlags_None) const;
+	void PlotInsideOutsideValue(int labelModifier) const;
 
 	static bool ShowRebinningFactorsInput();
 };

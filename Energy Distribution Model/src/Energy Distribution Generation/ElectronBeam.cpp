@@ -540,7 +540,7 @@ namespace ElectronBeam
 					for (const std::filesystem::path& file : files)
 					{
 							TH3D* hist = LoadDensityFile(file);
-							std::cout << hist->GetName() << std::endl;
+
 							HistData3D newBeam(hist);
 							std::string index = file.filename().string().substr(0, 4);
 							std::string label = file.parent_path().parent_path().filename().string() + ": index " + index;
@@ -708,9 +708,9 @@ namespace ElectronBeam
 			if (ImPlot::BeginPlot("Projection X"))
 			{
 				ImPlot::SetupAxes("x", "normalised value");
-				for (const HistData3D& eBeam : plotBeams)
+				for (int i = 0; i < plotBeams.size(); i++)
 				{
-					eBeam.PlotProjectionX();
+					plotBeams.at(i).PlotProjectionX(i);
 				}
 				ImPlot::EndPlot();
 			}
@@ -718,9 +718,9 @@ namespace ElectronBeam
 			if (ImPlot::BeginPlot("Projection Y"))
 			{
 				ImPlot::SetupAxes("y", "normalised value");
-				for (const HistData3D& eBeam : plotBeams)
+				for (int i = 0; i < plotBeams.size(); i++)
 				{
-					eBeam.PlotProjectionY();
+					plotBeams.at(i).PlotProjectionY(i);
 				}
 				ImPlot::EndPlot();
 			}
@@ -728,9 +728,9 @@ namespace ElectronBeam
 			if (ImPlot::BeginPlot("Projection Z"))
 			{
 				ImPlot::SetupAxes("z", "normalised value");
-				for (const HistData3D& eBeam : plotBeams)
+				for (int i = 0; i < plotBeams.size(); i++)
 				{
-					eBeam.PlotProjectionZ();
+					plotBeams.at(i).PlotProjectionZ(i);
 				}
 				ImPlot::EndPlot();
 			}
@@ -738,17 +738,16 @@ namespace ElectronBeam
 			if (ImPlot::BeginPlot("Inside/Outside"))
 			{
 				ImPlot::SetupAxes("z", "value");
-				for (const HistData3D& eBeam : plotBeams)
+				for (int i = 0; i < plotBeams.size(); i++)
 				{
-					eBeam.PlotInsideOutsideValue();
+					plotBeams.at(i).PlotInsideOutsideValue(i);
 				}
 				ImPlot::EndPlot();
 			}
 
 			if (selectedIndex >= 0)
 			{
-				const HistData3D& sliceBeam = plotBeams.at(selectedIndex);
-				sliceBeam.PlotSlice();
+				plotBeams.at(selectedIndex).PlotSlice(selectedIndex);
 			}
 
 			ImPlot::EndSubplots();

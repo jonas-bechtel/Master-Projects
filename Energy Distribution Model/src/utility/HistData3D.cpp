@@ -179,30 +179,35 @@ void HistData3D::Plot3D(ROOTCanvas* canvas, int pos)
 	fullHistogramSmall->Draw("BOX2 COLZ");
 }
 
-void HistData3D::PlotSlice() const
+void HistData3D::PlotSlice(int labelModifier, std::string title) const
 {
-	slice.Plot(label);
+	std::string labelModified = label + "##" + std::to_string(labelModifier);
+	slice.Plot(labelModified, title);
 }
 
-void HistData3D::PlotProjectionX(ImPlotLineFlags_ flags) const
+void HistData3D::PlotProjectionX(int labelModifier, ImPlotLineFlags_ flags) const
 {
-	ImPlot::PlotLine(label.c_str(), xAxis.data(), projectionValuesX.data(), xAxis.size());
+	std::string labelModified = label + "##" + std::to_string(labelModifier);
+	ImPlot::PlotLine(labelModified.c_str(), xAxis.data(), projectionValuesX.data(), xAxis.size(), flags);
 }
 
-void HistData3D::PlotProjectionY(ImPlotLineFlags_ flags) const
+void HistData3D::PlotProjectionY(int labelModifier, ImPlotLineFlags_ flags) const
 {
-	ImPlot::PlotLine(label.c_str(), yAxis.data(), projectionValuesY.data(), yAxis.size());
+	std::string labelModified = label + "##" + std::to_string(labelModifier);
+	ImPlot::PlotLine(labelModified.c_str(), yAxis.data(), projectionValuesY.data(), yAxis.size(), flags);
 }
 
-void HistData3D::PlotProjectionZ(ImPlotLineFlags_ flags) const
+void HistData3D::PlotProjectionZ(int labelModifier, ImPlotLineFlags_ flags) const
 {
-	ImPlot::PlotLine(label.c_str(), zAxis.data(), projectionValuesZ.data(), zAxis.size());
+	std::string labelModified = label + "##" + std::to_string(labelModifier);
+	ImPlot::PlotLine(labelModified.c_str(), zAxis.data(), projectionValuesZ.data(), zAxis.size(), flags);
 }
 
-void HistData3D::PlotInsideOutsideValue() const
+void HistData3D::PlotInsideOutsideValue(int labelModifier) const
 {
-	ImPlot::PlotLine(label.c_str(), zAxis.data(), centerValue.data(), zAxis.size());
-	ImPlot::PlotLine(label.c_str(), zAxis.data(), outsideValue.data(), zAxis.size(), ImPlotLineFlags_Segments);
+	std::string labelModified = label + "##" + std::to_string(labelModifier);
+	ImPlot::PlotLine(labelModified.c_str(), zAxis.data(), centerValue.data(), zAxis.size());
+	ImPlot::PlotLine(labelModified.c_str(), zAxis.data(), outsideValue.data(), zAxis.size(), ImPlotLineFlags_Segments);
 }
 
 bool HistData3D::ShowRebinningFactorsInput()

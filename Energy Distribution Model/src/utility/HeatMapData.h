@@ -4,7 +4,7 @@ class HeatMapData
 {
 public:
 	void FromTH3D(TH3D* hist, float zSliceValue);
-	void Plot(std::string title) const;
+	void Plot(std::string label, std::string title) const;
 
 private:
 	void ShowColorValueTooltip() const;
