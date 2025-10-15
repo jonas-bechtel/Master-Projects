@@ -18,7 +18,6 @@ namespace IonBeam
 	TVector3 GetVelocity();
 	double GetValue(double x, double y, double z);
 	double GetVelocityMagnitude();
-	int GetCharge();
 	float GetSigmaX();
 	float GetSigmaY();
 	float* GetLimitedRange();

@@ -191,7 +191,6 @@ namespace IonBeam
 	{
 		ImGui::BeginGroup();
 		ImGui::PushItemWidth(170.0f);
-		ImGui::InputInt("charge", parameter.charge);
 		ImGui::BeginDisabled(!limitZRange);
 		ImGui::InputFloat2("##limited range", limitedZRange);
 		ImGui::EndDisabled();
@@ -259,11 +258,6 @@ namespace IonBeam
 	double GetVelocityMagnitude()
 	{
 		return TMath::Sqrt(2 * ElectronBeam::GetCoolingEnergy() * TMath::Qe() / PhysicalConstants::electronMass);
-	}
-
-	int GetCharge()
-	{
-		return parameter.charge;
 	}
 
 	float GetSigmaX()
