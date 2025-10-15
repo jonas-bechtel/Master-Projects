@@ -78,6 +78,19 @@ namespace LabEnergy
 		return parameters.centerLabEnergy;
 	}
 
+	double GetOutsideDriftTubeEnergy()
+	{
+		if (!hist)
+		{
+			std::cout << "lab energy histogram not set" << std::endl;
+			return 0.0;
+		}
+
+		double z = hist->GetZaxis()->GetXmax();
+		double y = ElectronBeam::Trajectory(z);
+		return HistUtils::GetValueAtPosition(hist, { 0, y, z });
+	}
+
 	void SetDriftTubeVoltage(double voltage)
 	{
 		parameters.driftTubeVoltage = voltage;

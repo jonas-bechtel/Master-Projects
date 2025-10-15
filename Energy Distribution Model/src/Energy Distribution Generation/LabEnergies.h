@@ -15,6 +15,7 @@ namespace LabEnergy
 	void SetParameters(const LabEnergyParameters& params);
 
 	double GetCenterLabEnergy();
+	double GetOutsideDriftTubeEnergy();
 	void SetDriftTubeVoltage(double voltage);
 	void SetCenterEnergy(double energy);
 

@@ -150,8 +150,8 @@ void EnergyDistribution::SetupBinning(const BinningSettings& binSettings)
 	double max = binSettings.energyRange[1];
 
 	double firstPeak = eBeamParameter.detuningEnergy;
-	double secondPeak = pow(sqrt(CSR::energyOutsideDriftTube) - sqrt(eBeamParameter.coolingEnergy), 2);
-	//std::cout << "delta E1: " << sqrt(pow((eBeamParameter.transverse_kT * log(2)), 2) + 16 * log(2) * eBeamParameter.longitudinal_kT * firstPeak) << std::endl;
+	double secondPeak = pow(sqrt(LabEnergy::GetOutsideDriftTubeEnergy()) - sqrt(eBeamParameter.coolingEnergy), 2);
+	
 	// estimate half of the width
 	double estimatedPeakWidth1 = 2 * sqrt(pow((eBeamParameter.transverse_kT * log(2)), 2) + 16 * log(2) * eBeamParameter.longitudinal_kT_estimate * firstPeak);
 	double estimatedPeakWidth2 = 0.7; //5 * sqrt(pow((eBeamParameter.transverse_kT * log(2)), 2) + 16 * log(2) * eBeamParameter.longitudinal_kT * secondPeak);
