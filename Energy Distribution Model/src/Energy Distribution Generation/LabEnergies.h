@@ -24,7 +24,7 @@ namespace LabEnergy
 	void SetupDistribution(std::filesystem::path energyfile);
 
 	TH3D* LoadLabEnergyFile(std::filesystem::path file);
-	TH3D* GenerateLabEnergies();
+	TH3D* GenerateUniformLabEnergies();
 
 	void SelectedItemChanged();
 	void AddBeamToList(HistData3D& beamData);

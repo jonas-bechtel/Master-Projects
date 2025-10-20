@@ -3,6 +3,8 @@
 #include "LabEnergies.h"
 #include "FileUtils.h"
 #include "HistUtils.h"
+#include "ImGuiUtils.h"
+#include <Application.h>
 
 namespace LabEnergy
 {
@@ -116,7 +118,7 @@ namespace LabEnergy
 		delete hist;
 		if (uniformLabEnergies && parameters.centerLabEnergy)
 		{
-			hist = GenerateLabEnergies();
+			hist = GenerateUniformLabEnergies();
 		}
 		else
 		{
@@ -139,7 +141,7 @@ namespace LabEnergy
 		return nullptr;
 	}
 
-	TH3D* GenerateLabEnergies()
+	TH3D* GenerateUniformLabEnergies()
 	{
 		TH3D* result = new TH3D("uniform energies", "uniform energies", 100, -0.1, 0.1, 100, -0.1, 0.1, 100, 0, 0.7);
 		for (int x = 1; x <= result->GetNbinsX(); x++)
@@ -270,8 +272,13 @@ namespace LabEnergy
 		ImGui::BeginGroup();
 
 		ImGui::Checkbox("interpolate", &interpolateEnergy);
+		ImGuiUtils::TextTooltip("interpolate the value of the lab energy inside the 3D histogram");
+		
 		ImGui::Checkbox("no space charge", &noSpaceCharge);
+		ImGuiUtils::TextTooltip("removes space charge effects by using the minimum value in the xy-slice at distance z");
+
 		ImGui::Checkbox("uniform energies", &uniformLabEnergies);
+		ImGuiUtils::TextTooltip("fill lab energy histogram with the center lab energy");
 		ImGui::EndGroup();
 	}
 

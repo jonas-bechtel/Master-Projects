@@ -7,6 +7,7 @@
 #include "ROOTcanvas.h"
 #include "HeatMapData.h"
 #include "HistUtils.h"
+#include <ImGuiUtils.h>
 
 namespace ElectronBeam
 {
@@ -661,12 +662,19 @@ namespace ElectronBeam
 
 		ImGui::SeparatorText("Loading options");
 		ImGui::Checkbox("increase bin number", &increaseHist);
+		ImGuiUtils::TextTooltip("artificially increases the number of bins by an odd factor by interpolating. Increases computation time.");
 		ImGui::SameLine();
 		ImGui::BeginDisabled(!increaseHist);
-		ImGui::InputInt("factor", &factor, 2);
+		if (ImGui::InputInt("factor", &factor, 2))
+		{
+			// only allow odd factors above 0
+			if (factor % 2 == 0) factor -= 1;
+			if (factor < 1) factor = 1;
+		}
 		ImGui::EndDisabled();
 
 		ImGui::Checkbox("mirror around z-axis", &mirrorAroundZ);
+		ImGuiUtils::TextTooltip("mirrors all values to fill the negative z values");
 		ImGui::SameLine();
 		ImGui::Checkbox("cut out zeros", &cutOutZeros);
 

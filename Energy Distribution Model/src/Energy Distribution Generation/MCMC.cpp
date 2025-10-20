@@ -4,6 +4,7 @@
 #include "ElectronBeam.h"
 #include "IonBeam.h"
 #include "HistUtils.h"
+#include "ImGuiUtils.h"
 
 namespace MCMC
 {
@@ -508,8 +509,11 @@ namespace MCMC
 			parameters.numberSamples.get() = ((parameters.numberSamples.get() + numThreads - 1) / numThreads) * numThreads;
 
 		}
+		ImGuiUtils::TextTooltip("number of final samples in the chain after burn-in and including the lag. Actual number of computed samples is higher.");
 		ImGui::InputInt("burn in", parameters.burnIn);
+		ImGuiUtils::TextTooltip("number of initial samples that are discarded.");
 		ImGui::InputInt("lag", parameters.lag);
+		ImGuiUtils::TextTooltip("number of samples that are skipped between two recorded samples.");
 		ImGui::BeginDisabled(!limitZRange);
 		ImGui::InputFloat2("##zRange", limitedZRange);
 		ImGui::EndDisabled();
@@ -517,26 +521,32 @@ namespace MCMC
 		ImGui::Checkbox("limit z range", &limitZRange);
 
 		ImGui::BeginDisabled(automaticProposalStd);
-		if (ImGui::InputFloat3("##proposla sigmas", parameters.proposalSigma, "%.4f"))
+		if (ImGui::InputFloat3("##proposal sigmas", parameters.proposalSigma, "%.4f"))
 		{
 			normalDistX = std::normal_distribution<double>(0.0, parameters.proposalSigma.get().x);
 			normalDistY = std::normal_distribution<double>(0.0, parameters.proposalSigma.get().y);
 			normalDistZ = std::normal_distribution<double>(0.0, parameters.proposalSigma.get().z);
 		}
+		ImGuiUtils::TextTooltip("standard deviations of the normal distributions used to propose new samples in x,y,z");
 		ImGui::EndDisabled();
 		ImGui::SameLine();
 		ImGui::Checkbox("auto set proposal sigma (x,y,z)", &automaticProposalStd);
+		ImGuiUtils::TextTooltip("sets the proposal sigmas to the standard deviations of the target distribution in x,y,z");
 
 		ImGui::BeginDisabled(changeSeed);
 		ImGui::InputInt("##seed", parameters.seed);
+		ImGuiUtils::TextTooltip("seed for the random number generator");
 		ImGui::EndDisabled();
 		ImGui::SameLine();
 		ImGui::Checkbox("auto seed", &changeSeed);
+		ImGuiUtils::TextTooltip("sets the seed to the current time");
 		
 		ImGui::SeparatorText("generation options");
 		ImGui::Checkbox("async", &generateAsync);
+		ImGuiUtils::TextTooltip("generates the chain using multiple threads asynchronously");
 		ImGui::SameLine();
 		ImGui::Checkbox("interpolate", &useInterpolation);
+		ImGuiUtils::TextTooltip("uses interpolation to get values between histogram bins instead of the closest bin value.");
 
 		ImGui::PopItemWidth();
 		ImGui::EndGroup();
